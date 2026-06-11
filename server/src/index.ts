@@ -1,4 +1,4 @@
-// Mini-Lovable backend: chat endpoint (SSE) + project/preview management.
+// MangoAI backend: chat endpoint (SSE) + project/preview management.
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -112,7 +112,7 @@ app.post("/api/stop", async (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Mini-Lovable backend → http://localhost:${PORT}`);
+  console.log(`MangoAI backend → http://localhost:${PORT}`);
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn("⚠️  ANTHROPIC_API_KEY missing — copy .env.example to .env before chatting.");
   }

@@ -1,6 +1,6 @@
-# Statut — Mini-Lovable
+# Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-11 (avant redémarrage PC)*
+*Dernière mise à jour : 2026-06-11 (session viabilité)*
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
@@ -11,19 +11,20 @@
 - Bouton ■ Stop (interruption de l'agent en cours)
 - Choix du modèle dans l'UI (⚡ Haiku / ⚖️ Sonnet / 🧠 Opus) — changeable en cours de session
 - Export ⬇ Zip du projet généré (sources sans node_modules)
-- Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mini-lovable (dernier commit `d79a2ab`)
+- Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
+- **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
 
 ## 🔜 À faire à la prochaine session
 1. **Ajouter l'historique de chat persisté** — aujourd'hui le panneau de chat repart vide quand on recharge la page ; il faut sauvegarder les messages par projet (côté serveur, ex. `workspace/<projet>/.chat-history.json`) et les recharger à l'ouverture
-2. **Discussion viabilité de cette IA** — passer en **plan mode** ; l'utilisateur communiquera ses infos et les sujets à évoquer
+2. **Démarrer le plan d'action 90 jours** (cf. `business-model.pdf`, section 8) — première étape : générer 2-3 sites démo avec MangoAI
 
 ## 🚀 Pour relancer après redémarrage
 ```
-cd C:\Users\PC-DELL\mini-lovable\server
+cd C:\Users\PC-DELL\mangoai\server
 npm run start
 ```
 ```
-cd C:\Users\PC-DELL\mini-lovable\ui
+cd C:\Users\PC-DELL\mangoai\ui
 npm run dev
 ```
 Puis ouvrir **http://localhost:5173** — les conversations des projets reprennent automatiquement (sessions persistées).

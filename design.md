@@ -1,4 +1,4 @@
-# Design — Mini-Lovable
+# Design — MangoAI
 
 ## Layout
 Deux colonnes plein écran, style Lovable :

@@ -1,4 +1,4 @@
-# Memory — Mini-Lovable
+# Memory — MangoAI
 
 ## État actuel (2026-06-11)
 - **MVP terminé et testé de bout en bout** ✅ (génération pizzeria + itération avec contexte de session)

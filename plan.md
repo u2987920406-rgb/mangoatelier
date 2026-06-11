@@ -1,4 +1,4 @@
-# Plan — Mini-Lovable
+# Plan — MangoAI
 
 ## Roadmap
 

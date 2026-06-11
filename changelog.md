@@ -1,4 +1,4 @@
-# Changelog — Mini-Lovable
+# Changelog — MangoAI
 
 ## 2026-06-11 — Session 1 : initialisation
 - Plan validé : agent style Lovable local (chat + aperçu live), Claude Agent SDK TS, apps React+Vite
@@ -19,3 +19,9 @@
 - **Bouton Stop** : POST /api/stop → `interrupt()` du SDK, bouton rouge pendant que l'agent travaille
 - **Choix du modèle dans l'UI** : sélecteur header (⚡ Haiku / ⚖️ Sonnet / 🧠 Opus), validé côté backend (`ALLOWED_MODELS`), testé — on peut changer de modèle en cours de session sans perdre le contexte
 - **Export zip** : bouton « ⬇ Zip » dans le header → GET /api/export/:name (archiver v8 ESM, classe `ZipArchive`) — sources seulement, `node_modules`/`dist`/`.git` exclus, testé ✅
+
+## 2026-06-11 — Session 2 : viabilité & renommage
+- **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours
+- **Renommage Mini-Lovable → MangoAI** : UI (logo 🥭, titre), packages (`mangoai-ui`/`mangoai-server`), docs, business model
+- Dépôt GitHub renommé : https://github.com/u2987920406-rgb/mangoai (l'ancienne URL redirige)
+- Dossier local renommé : `C:\Users\PC-DELL\mangoai`

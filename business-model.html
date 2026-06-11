@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>MangoAI — Plan d'action &amp; Business Model</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 20mm 16mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1a1a2e;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    margin: 0;
+  }
+  /* ---------- Page de garde ---------- */
+  .cover {
+    height: 250mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover .logo {
+    font-size: 42pt;
+    margin-bottom: 8mm;
+  }
+  .cover h1 {
+    font-size: 26pt;
+    margin: 0 0 4mm 0;
+    color: #4f46e5;
+    letter-spacing: 1px;
+  }
+  .cover .subtitle {
+    font-size: 14pt;
+    color: #444;
+    margin-bottom: 20mm;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: #777;
+    border-top: 1px solid #ddd;
+    padding-top: 6mm;
+    width: 60%;
+    margin: 0 auto;
+  }
+  /* ---------- Titres ---------- */
+  h2 {
+    font-size: 15pt;
+    color: #4f46e5;
+    border-bottom: 2px solid #4f46e5;
+    padding-bottom: 2mm;
+    margin-top: 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #1a1a2e;
+    margin-top: 7mm;
+    margin-bottom: 2mm;
+    page-break-after: avoid;
+  }
+  .section { page-break-before: always; }
+  .section.first { page-break-before: avoid; }
+  /* ---------- Sommaire ---------- */
+  .toc { list-style: none; padding: 0; font-size: 11.5pt; }
+  .toc li {
+    padding: 2.5mm 0;
+    border-bottom: 1px dotted #ccc;
+  }
+  .toc .num {
+    display: inline-block;
+    width: 9mm;
+    color: #4f46e5;
+    font-weight: bold;
+  }
+  /* ---------- Tableaux ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4mm 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #4f46e5;
+    color: #fff;
+    text-align: left;
+    padding: 2.2mm 2.5mm;
+    font-weight: 600;
+  }
+  td {
+    padding: 2mm 2.5mm;
+    border-bottom: 1px solid #e2e2ef;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f6f6fc; }
+  td.good { color: #15803d; font-weight: 600; }
+  td.bad { color: #b91c1c; font-weight: 600; }
+  td.mid { color: #b45309; font-weight: 600; }
+  /* ---------- Encadrés ---------- */
+  .box {
+    border-left: 4px solid #4f46e5;
+    background: #f3f3fd;
+    padding: 3mm 4mm;
+    margin: 4mm 0;
+    page-break-inside: avoid;
+  }
+  .box.warn { border-left-color: #d97706; background: #fdf6ec; }
+  .box.ok { border-left-color: #15803d; background: #effaf1; }
+  .box .box-title { font-weight: 700; display: block; margin-bottom: 1.5mm; }
+  /* ---------- Divers ---------- */
+  ul { margin: 2mm 0 4mm 0; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  .pill {
+    display: inline-block;
+    background: #4f46e5;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.5mm 3mm;
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin-right: 2mm;
+  }
+  .pill.green { background: #15803d; }
+  .pill.orange { background: #d97706; }
+  .pill.red { background: #b91c1c; }
+  .small { font-size: 9pt; color: #666; }
+  .price { font-weight: 700; color: #4f46e5; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE DE GARDE ============ -->
+<div class="cover">
+  <div class="logo">🥭🤖</div>
+  <h1>MANGO<span style="color:#1a1a2e;">AI</span></h1>
+  <div class="subtitle">Plan d'action &amp; Business Model<br>Monétiser votre app builder IA personnel</div>
+  <div class="meta">
+    Document stratégique confidentiel<br>
+    Juin 2026 — Version 1.0<br>
+    Cadrage : réseau client existant · &lt; 5 h / semaine disponibles
+  </div>
+</div>
+
+<!-- ============ SOMMAIRE ============ -->
+<div class="section first">
+  <h2>Sommaire</h2>
+  <ul class="toc">
+    <li><span class="num">1.</span> Synthèse exécutive</li>
+    <li><span class="num">2.</span> Ce que MangoAI sait faire aujourd'hui</li>
+    <li><span class="num">3.</span> Piste A — Agence / Freelance (outil de production interne)</li>
+    <li><span class="num">4.</span> Piste B — Produit SaaS (plateforme en ligne)</li>
+    <li><span class="num">5.</span> Piste C — Revenu d'appoint hybride</li>
+    <li><span class="num">6.</span> Tableau comparatif des trois pistes</li>
+    <li><span class="num">7.</span> Recommandation</li>
+    <li><span class="num">8.</span> Plan d'action 90 jours</li>
+    <li><span class="num">9.</span> Points de vigilance</li>
+  </ul>
+</div>
+
+<!-- ============ 1. SYNTHESE ============ -->
+<div class="section">
+  <h2>1. Synthèse exécutive</h2>
+  <p><strong>L'outil.</strong> MangoAI est un app builder IA fonctionnant en local : on décrit une application web dans un chat, l'IA (Claude Agent SDK) génère le code React + Vite, et le résultat s'affiche en direct dans un aperçu. Le MVP est terminé et testé de bout en bout : sessions persistées, choix du modèle, export Zip des projets générés.</p>
+  <p><strong>L'opportunité.</strong> Cet outil divise par 5 à 10 le temps de production d'un site vitrine ou d'une landing page. Ce gain de productivité peut être monétisé de trois façons : en vendant des <em>sites</em> (piste A), en vendant l'<em>outil</em> (piste B), ou en vendant un <em>mix</em> de produits dérivés (piste C).</p>
+  <div class="box ok">
+    <span class="box-title">✅ Recommandation en une phrase</span>
+    Démarrer en <strong>piste A (agence/freelance)</strong> : avec un réseau client existant, moins de 5 h par semaine et des coûts quasi nuls, c'est la seule piste qui peut générer du revenu dès le premier mois — la piste C devient une extension naturelle ensuite, la piste B est écartée à court terme.
+  </div>
+  <table>
+    <tr><th>Piste</th><th>En une phrase</th><th>Verdict</th></tr>
+    <tr><td><strong>A — Agence/Freelance</strong></td><td>Vendre des sites produits avec l'outil</td><td class="good">Recommandée — démarrage immédiat</td></tr>
+    <tr><td><strong>B — SaaS</strong></td><td>Vendre l'accès à l'outil en ligne</td><td class="bad">Écartée à court terme</td></tr>
+    <tr><td><strong>C — Hybride</strong></td><td>Templates, formation, petits sites</td><td class="mid">Extension de A à partir du mois 3-6</td></tr>
+  </table>
+</div>
+
+<!-- ============ 2. CAPACITES ============ -->
+<div class="section">
+  <h2>2. Ce que MangoAI sait faire aujourd'hui</h2>
+  <h3>Capacités réelles du MVP</h3>
+  <ul>
+    <li><strong>Génération complète d'apps web</strong> React + Vite à partir d'une description en français dans un chat</li>
+    <li><strong>Itération avec contexte</strong> : on affine le site par échanges successifs (« change la couleur », « ajoute une page contact ») — la session est persistée par projet, même après redémarrage</li>
+    <li><strong>Aperçu live</strong> : chaque modification est visible instantanément (HMR Vite)</li>
+    <li><strong>Choix du modèle</strong> selon le besoin : ⚡ Haiku (rapide/éco), ⚖️ Sonnet (équilibré), 🧠 Opus (qualité maximale)</li>
+    <li><strong>Export Zip</strong> du code source — livrable directement à un client ou déployable sur n'importe quel hébergeur</li>
+    <li><strong>Coût marginal quasi nul</strong> : l'outil utilise le login Claude Code existant (abonnement), pas de facturation à l'usage par clé API</li>
+  </ul>
+  <h3>Limites honnêtes (importantes pour le choix du modèle économique)</h3>
+  <ul>
+    <li><strong>Mono-utilisateur et local</strong> : l'outil tourne sur ce PC, lié à votre login Claude Code personnel. Il ne peut pas être ouvert à des tiers en l'état (techniquement et contractuellement).</li>
+    <li><strong>Pas de déploiement automatique</strong> : la mise en ligne du site chez un hébergeur reste une étape manuelle (~30 min avec Netlify/Vercel).</li>
+    <li><strong>Front-end uniquement</strong> : pas de base de données ni d'espace client générés — parfait pour sites vitrines, landing pages, portfolios ; pas pour des apps métier complexes.</li>
+    <li><strong>Dépendance à l'abonnement Claude</strong> : si l'abonnement s'arrête, l'outil s'arrête.</li>
+  </ul>
+  <div class="box">
+    <span class="box-title">💡 Conséquence directe</span>
+    Ces caractéristiques font de MangoAI un <strong>excellent outil de production interne</strong> (piste A) et un <strong>mauvais candidat SaaS à court terme</strong> (piste B) : le produit vendable aujourd'hui, c'est le <em>résultat</em> (les sites), pas l'<em>outil</em>.
+  </div>
+</div>
+
+<!-- ============ 3. PISTE A ============ -->
+<div class="section">
+  <h2>3. Piste A — Agence / Freelance <span class="pill green">RECOMMANDÉE</span></h2>
+  <p><strong>Principe :</strong> MangoAI reste votre outil secret de production. Vous vendez des sites web à des TPE, commerces, artisans et indépendants de votre réseau — au prix du marché — mais vous les produisez en 1 à 3 h au lieu de 1 à 3 jours.</p>
+
+  <h3>Offre commerciale type</h3>
+  <table>
+    <tr><th>Prestation</th><th>Contenu</th><th>Prix conseillé</th><th>Temps réel de production</th></tr>
+    <tr><td><strong>Landing page</strong></td><td>1 page, design moderne, formulaire contact, mise en ligne</td><td class="price">150 – 400 €</td><td>1 – 2 h</td></tr>
+    <tr><td><strong>Site vitrine</strong></td><td>3-5 pages (accueil, services, à propos, contact), responsive</td><td class="price">300 – 800 €</td><td>2 – 4 h</td></tr>
+    <tr><td><strong>Refonte de site existant</strong></td><td>Modernisation d'un site vieillissant</td><td class="price">400 – 900 €</td><td>3 – 5 h</td></tr>
+    <tr><td><strong>Maintenance / retouches</strong></td><td>Modifications, mises à jour de contenu</td><td class="price">20 – 50 € / mois</td><td>&lt; 30 min / mois</td></tr>
+  </table>
+
+  <h3>Pourquoi cette piste colle à votre situation</h3>
+  <ul>
+    <li><strong>Réseau existant</strong> = pas de prospection froide ; les 2-3 premiers clients sont probablement déjà dans vos contacts</li>
+    <li><strong>&lt; 5 h/semaine suffit</strong> : 1 site vitrine par semaine = 300 à 800 € de chiffre d'affaires mensuel dès le premier mois, en croisière 2 sites/mois sans stress</li>
+    <li><strong>Coûts quasi nuls</strong> : abonnement Claude déjà payé, hébergement client en Netlify/Vercel gratuit ou ~5 €/mois refacturés — marge &gt; 95 %</li>
+    <li><strong>Aucun développement supplémentaire requis</strong> : l'outil est prêt aujourd'hui</li>
+  </ul>
+
+  <h3>Revenus potentiels (hypothèse prudente)</h3>
+  <table>
+    <tr><th>Horizon</th><th>Activité</th><th>Revenu mensuel estimé</th></tr>
+    <tr><td>Mois 1-3</td><td>1-2 sites/mois (réseau direct) + premières maintenances</td><td class="price">300 – 1 000 €</td></tr>
+    <tr><td>Mois 4-6</td><td>2-3 sites/mois (bouche-à-oreille) + 5-10 maintenances</td><td class="price">800 – 2 000 €</td></tr>
+    <tr><td>Mois 7-12</td><td>Rythme stabilisé, tarifs ajustés à la hausse</td><td class="price">1 000 – 2 500 €</td></tr>
+  </table>
+  <p class="small">Hypothèses : prix moyens du marché français pour TPE, ~4 h/semaine, sans publicité payante. La maintenance récurrente devient le socle du revenu passif.</p>
+
+  <h3>Risques et parades</h3>
+  <table>
+    <tr><th>Risque</th><th>Parade</th></tr>
+    <tr><td>Client qui demande des fonctions hors périmètre (e-commerce, espace membre)</td><td>Périmètre écrit dans le devis ; partenariat avec un dev pour la sous-traitance ponctuelle</td></tr>
+    <tr><td>Statut juridique / facturation</td><td>Micro-entreprise : création en ligne gratuite, charges ~22 % du CA, compatible activité d'appoint</td></tr>
+    <tr><td>Temps sous-estimé (allers-retours client)</td><td>Forfait incluant 2 séries de retours max ; au-delà, facturation horaire</td></tr>
+  </table>
+</div>
+
+<!-- ============ 4. PISTE B ============ -->
+<div class="section">
+  <h2>4. Piste B — Produit SaaS <span class="pill red">ÉCARTÉE À COURT TERME</span></h2>
+  <p><strong>Principe :</strong> transformer MangoAI en plateforme en ligne où des abonnés génèrent eux-mêmes leurs sites — le modèle de Lovable.dev, Bolt.new, v0.dev.</p>
+
+  <h3>Ce qu'il faudrait construire (chantier technique restant)</h3>
+  <ul>
+    <li><strong>Multi-tenant</strong> : isolation des projets et des exécutions par utilisateur (sandboxing sécurisé — le point le plus difficile : l'agent exécute du code)</li>
+    <li><strong>Authentification, comptes, facturation</strong> (Stripe), quotas d'usage</li>
+    <li><strong>Passage en clés API Anthropic</strong> : chaque génération coûterait alors réellement de l'argent (de quelques centimes à plusieurs euros par site selon le modèle) — à refacturer dans l'abonnement</li>
+    <li><strong>Hébergement et infrastructure</strong> : serveurs capables de faire tourner des builds Vite par utilisateur</li>
+    <li><strong>Support, RGPD, CGU, sécurité</strong></li>
+  </ul>
+
+  <h3>Pourquoi c'est écarté aujourd'hui</h3>
+  <table>
+    <tr><th>Obstacle</th><th>Réalité</th></tr>
+    <tr><td>Temps de développement</td><td class="bad">3 à 6 mois à temps plein minimum — incompatible avec &lt; 5 h/semaine</td></tr>
+    <tr><td>Concurrence</td><td class="bad">Lovable, Bolt, v0, Replit : levées de fonds en dizaines/centaines de M$, itération quotidienne</td></tr>
+    <tr><td>Coûts fixes</td><td class="bad">API + infra + support : plusieurs centaines d'€/mois avant le premier client</td></tr>
+    <tr><td>Conditions d'usage</td><td class="bad">Revendre l'accès via un abonnement Claude personnel n'est pas permis ; il faut des clés API commerciales</td></tr>
+  </table>
+
+  <div class="box warn">
+    <span class="box-title">⚠️ Mais ne pas l'enterrer définitivement</span>
+    Si la piste A révèle un segment de niche mal servi (ex. « sites pour praticiens bien-être » ou un secteur précis de votre réseau), un <strong>micro-SaaS vertical</strong> très ciblé pourrait redevenir pertinent à 12-18 mois — avec des revenus de la piste A pour le financer. Décision à réévaluer au mois 6.
+  </div>
+</div>
+
+<!-- ============ 5. PISTE C ============ -->
+<div class="section">
+  <h2>5. Piste C — Revenu d'appoint hybride <span class="pill orange">EXTENSION DE LA PISTE A</span></h2>
+  <p><strong>Principe :</strong> diversifier les revenus autour de l'outil sans dépendre uniquement des commandes de sites.</p>
+
+  <h3>Les trois briques</h3>
+  <table>
+    <tr><th>Brique</th><th>Description</th><th>Revenu type</th><th>Effort</th></tr>
+    <tr><td><strong>Templates à vendre</strong></td><td>Sites types générés une fois (pizzeria, coiffeur, coach, artisan…) vendus en personnalisation rapide « votre site en 48 h »</td><td class="price">90 – 200 € / vente</td><td>Production unique, vente répétée</td></tr>
+    <tr><td><strong>Petits sites au fil de l'eau</strong></td><td>Mêmes prestations que la piste A mais sans objectif de volume</td><td class="price">150 – 800 € / projet</td><td>À la demande</td></tr>
+    <tr><td><strong>Mini-formation</strong></td><td>« Créez votre site avec l'IA » : atelier visio 2 h ou vidéo enregistrée pour indépendants débrouillards</td><td class="price">50 – 150 € / participant</td><td>Création une fois, vente répétée</td></tr>
+  </table>
+
+  <h3>Lecture honnête</h3>
+  <ul>
+    <li>Les templates et la formation demandent un <strong>investissement initial</strong> (création, page de vente, un peu de visibilité) avant le premier euro — contrairement à la piste A qui paie dès le premier client</li>
+    <li>La formation a du sens quand vous aurez des <strong>références et témoignages</strong> issus de la piste A</li>
+    <li>C'est la suite logique de A : les sites livrés deviennent les templates, les clients deviennent les témoignages</li>
+  </ul>
+  <div class="box">
+    <span class="box-title">💡 Timing conseillé</span>
+    Lancer la brique « templates » au mois 3-4 (recycler les sites déjà produits) et la formation au mois 6+, une fois la crédibilité établie.
+  </div>
+</div>
+
+<!-- ============ 6. COMPARATIF ============ -->
+<div class="section">
+  <h2>6. Tableau comparatif des trois pistes</h2>
+  <table>
+    <tr>
+      <th style="width:22%"></th>
+      <th>A — Agence/Freelance</th>
+      <th>B — SaaS</th>
+      <th>C — Hybride</th>
+    </tr>
+    <tr><td><strong>Prêt à démarrer</strong></td><td class="good">Oui, aujourd'hui</td><td class="bad">Non (3-6 mois de dev)</td><td class="mid">Partiellement (briques à créer)</td></tr>
+    <tr><td><strong>Compatible &lt; 5 h/sem.</strong></td><td class="good">Oui</td><td class="bad">Non</td><td class="good">Oui</td></tr>
+    <tr><td><strong>Exploite le réseau existant</strong></td><td class="good">Directement</td><td class="bad">Faiblement</td><td class="mid">Oui (témoignages, formation)</td></tr>
+    <tr><td><strong>Investissement initial</strong></td><td class="good">~0 €</td><td class="bad">Plusieurs milliers d'€ + temps</td><td class="mid">Quelques dizaines d'heures</td></tr>
+    <tr><td><strong>Coûts récurrents</strong></td><td class="good">Quasi nuls</td><td class="bad">API + infra + support</td><td class="good">Quasi nuls</td></tr>
+    <tr><td><strong>Premier revenu</strong></td><td class="good">Mois 1</td><td class="bad">Mois 6-12 au mieux</td><td class="mid">Mois 2-4</td></tr>
+    <tr><td><strong>Potentiel à 12 mois</strong></td><td class="mid">1 000 – 2 500 €/mois</td><td class="good">Théoriquement illimité</td><td class="mid">300 – 1 200 €/mois</td></tr>
+    <tr><td><strong>Revenu passif</strong></td><td class="mid">Maintenances mensuelles</td><td class="good">Abonnements</td><td class="good">Templates + formation</td></tr>
+    <tr><td><strong>Risque principal</strong></td><td>Temps client sous-estimé</td><td>Concurrence écrasante + coûts</td><td>Dispersion des efforts</td></tr>
+    <tr><td><strong>Verdict</strong></td><td class="good">★ Démarrage immédiat</td><td class="bad">Réévaluer au mois 6+</td><td class="mid">Greffer sur A au mois 3+</td></tr>
+  </table>
+</div>
+
+<!-- ============ 7. RECOMMANDATION ============ -->
+<div class="section">
+  <h2>7. Recommandation</h2>
+  <div class="box ok">
+    <span class="box-title">✅ Stratégie recommandée : « A d'abord, C en greffe, B en option lointaine »</span>
+    <ol style="margin:2mm 0; padding-left:6mm;">
+      <li><strong>Mois 1-3 :</strong> piste A pure — vendre 2-3 sites au réseau existant, roder l'offre, encaisser les premiers revenus, collecter des témoignages.</li>
+      <li><strong>Mois 3-6 :</strong> greffer la brique « templates » de la piste C (recyclage des sites produits) et systématiser la maintenance mensuelle (revenu récurrent).</li>
+      <li><strong>Mois 6 :</strong> bilan chiffré. Si un segment de niche émerge → étudier un micro-SaaS vertical (piste B repensée). Sinon, continuer à faire croître A + C.</li>
+    </ol>
+  </div>
+  <h3>Pourquoi ce séquencement</h3>
+  <ul>
+    <li><strong>Le ratio effort/revenu de A est imbattable dans votre situation</strong> : l'outil est prêt, le réseau existe, chaque heure investie est facturable.</li>
+    <li><strong>C sans A est fragile</strong> : vendre des templates ou une formation sans références revient à faire du marketing à froid — votre contrainte de temps l'interdit.</li>
+    <li><strong>B sans trésorerie est un piège</strong> : le SaaS brûle du temps et de l'argent avant d'en rapporter ; A peut précisément financer ce pari plus tard, s'il garde du sens.</li>
+  </ul>
+</div>
+
+<!-- ============ 8. PLAN 90 JOURS ============ -->
+<div class="section">
+  <h2>8. Plan d'action 90 jours <span class="small">(budget : ~4 h/semaine)</span></h2>
+
+  <h3>Semaines 1-2 — Préparer l'offre</h3>
+  <ul>
+    <li>Rédiger l'offre : 3 formules (landing / vitrine / refonte) + grille tarifaire + ce qui est inclus/exclu <em>(~1 h)</em></li>
+    <li>Générer avec MangoAI <strong>2-3 sites démo</strong> dans des secteurs représentés dans votre réseau (ex. restaurant, artisan, thérapeute) et les mettre en ligne sur Netlify <em>(~4 h)</em></li>
+    <li>Créer une page portfolio simple présentant ces démos — avec MangoAI lui-même <em>(~2 h)</em></li>
+    <li>Vérifier le statut de facturation (micro-entreprise si pas déjà fait — déclaration en ligne, gratuite) <em>(~1 h)</em></li>
+  </ul>
+
+  <h3>Semaines 3-4 — Activer le réseau</h3>
+  <ul>
+    <li>Lister 10-15 contacts du réseau ayant un site vieillissant ou pas de site <em>(~30 min)</em></li>
+    <li>Les contacter personnellement (message type ci-dessous) — objectif : <strong>3 rendez-vous, 1 premier client signé</strong> <em>(~2 h)</em></li>
+    <li>Pour les plus hésitants : proposer une <strong>maquette gratuite en 24 h</strong> (coût réel pour vous : ~30 min avec l'outil) — argument de vente massue</li>
+  </ul>
+  <div class="box">
+    <span class="box-title">✉️ Message type (à personnaliser)</span>
+    « Bonjour [prénom], je me lance dans la création de sites web modernes pour les indépendants et commerces. J'ai pensé à toi pour [son activité] — je peux te montrer en 48 h une maquette de ce que pourrait donner ton site, gratuitement et sans engagement. Intéressé(e) ? »
+  </div>
+
+  <h3>Mois 2 — Livrer et capitaliser</h3>
+  <ul>
+    <li>Livrer le(s) premier(s) site(s) : génération avec MangoAI, 2 séries de retours client max, mise en ligne</li>
+    <li>Demander systématiquement : un <strong>témoignage écrit</strong> + l'autorisation d'afficher le site en référence + <strong>une recommandation</strong> vers un autre contact</li>
+    <li>Proposer la <strong>maintenance mensuelle</strong> (20-50 €/mois) à chaque livraison — c'est le futur revenu récurrent</li>
+  </ul>
+
+  <h3>Mois 3 — Itérer et décider</h3>
+  <ul>
+    <li>Ajuster les tarifs à la hausse si la demande suit (signal : plus de 2 demandes en attente)</li>
+    <li>Recycler les sites livrés en <strong>templates</strong> → lancement de la brique C « votre site en 48 h »</li>
+    <li><strong>Bilan chiffré</strong> : CA réalisé, heures réelles passées, taux de conversion du réseau — et décision pour le trimestre suivant</li>
+  </ul>
+
+  <table>
+    <tr><th>Jalon</th><th>Échéance</th><th>Critère de succès</th></tr>
+    <tr><td>Offre + démos en ligne</td><td>Fin semaine 2</td><td>3 sites démo visibles + grille tarifaire prête</td></tr>
+    <tr><td>Premier client signé</td><td>Fin semaine 4</td><td>1 devis accepté</td></tr>
+    <tr><td>Premier site livré et payé</td><td>Fin mois 2</td><td>Encaissement + témoignage obtenu</td></tr>
+    <tr><td>Bilan trimestriel</td><td>Fin mois 3</td><td>≥ 500 € de CA cumulé et ≥ 1 contrat de maintenance</td></tr>
+  </table>
+</div>
+
+<!-- ============ 9. VIGILANCE ============ -->
+<div class="section">
+  <h2>9. Points de vigilance</h2>
+
+  <h3>Juridique et contractuel</h3>
+  <ul>
+    <li><strong>Conditions d'usage Anthropic</strong> : utiliser Claude (via abonnement) comme outil interne pour produire des livrables clients est un usage professionnel normal. En revanche, <strong>revendre l'accès à l'outil</strong> (piste B) avec un abonnement personnel est interdit — cela exigerait des clés API commerciales. À revérifier dans les conditions en vigueur au moment de tout changement de modèle.</li>
+    <li><strong>Propriété du code livré</strong> : prévoir dans le devis que le client devient propriétaire du code de son site une fois payé.</li>
+    <li><strong>Statut</strong> : micro-entreprise suffisante au démarrage ; penser à la mention « TVA non applicable, art. 293 B du CGI » sous les seuils.</li>
+  </ul>
+
+  <h3>Dépendances techniques</h3>
+  <ul>
+    <li><strong>Abonnement Claude</strong> : c'est le moteur de toute l'activité. Son coût mensuel est la seule vraie charge fixe — à intégrer dans le calcul de rentabilité (couvert dès le premier petit projet du mois).</li>
+    <li><strong>Quotas d'usage</strong> : un abonnement a des limites ; en cas de forte activité, surveiller la consommation. Le sélecteur de modèle de MangoAI aide (Haiku pour les itérations simples, Opus pour la génération initiale).</li>
+    <li><strong>Sauvegarde</strong> : les projets clients vivent dans <code>workspace/</code> sur ce PC — mettre en place une sauvegarde (GitHub privé par projet client, déjà le réflexe du projet).</li>
+  </ul>
+
+  <h3>Signaux qui déclencheraient un changement de stratégie</h3>
+  <table>
+    <tr><th>Signal observé</th><th>Action</th></tr>
+    <tr><td>Plus de demandes que de temps disponible (file d'attente &gt; 3 projets)</td><td>Augmenter les tarifs de 30-50 % — c'est le levier, pas les heures</td></tr>
+    <tr><td>Un secteur précis représente &gt; 50 % des clients</td><td>Étudier le micro-SaaS vertical ou l'offre template dédiée à ce secteur</td></tr>
+    <tr><td>Demandes récurrentes de fonctions back-end (réservation, paiement…)</td><td>Étendre MangoAI (intégrations Stripe/Calendly) ou partenariat développeur</td></tr>
+    <tr><td>Baisse des quotas / hausse du prix de l'abonnement Claude</td><td>Recalculer la marge ; basculer en clés API si le volume le justifie</td></tr>
+  </table>
+
+  <div class="box ok" style="margin-top:8mm;">
+    <span class="box-title">🎯 La prochaine action concrète</span>
+    Ouvrir MangoAI et générer le premier site démo (semaine 1 du plan). Tout le reste découle de là.
+  </div>
+</div>
+
+</body>
+</html>

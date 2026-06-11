@@ -20,7 +20,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <span className="logo">✨ Mini-Lovable</span>
+        <span className="logo">🥭 MangoAI</span>
         <input
           className="project-input"
           value={projectName}
