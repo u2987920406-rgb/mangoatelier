@@ -4,7 +4,8 @@ import express from "express";
 import cors from "cors";
 import { ZipArchive } from "archiver";
 import path from "node:path";
-import { ALLOWED_MODELS, interruptAgent, runAgent, type ModelChoice } from "./agent.js";
+import { ALLOWED_MODELS, interruptAgent, runAgent, type AgentEvent, type ModelChoice } from "./agent.js";
+import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { createProject, listProjects, projectDir, projectExists } from "./projects.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
@@ -49,6 +50,19 @@ app.post("/api/chat", async (req, res) => {
   res.flushHeaders();
   const send = (event: unknown) => res.write(`data: ${JSON.stringify(event)}\n\n`);
 
+  // Everything worth re-rendering on reload is collected here and written to
+  // the project's .chat-history.json once the turn ends.
+  const turn: ChatEntry[] = [];
+  let historyDir: string | null = null;
+  const record = (role: ChatEntry["role"], text: string) =>
+    turn.push({ role, text, ts: new Date().toISOString() });
+  const recordEvent = (event: AgentEvent) => {
+    if (event.type === "text") record("agent", event.text);
+    else if (event.type === "tool") record("tool", formatToolLine(event.name, event.detail));
+    else if (event.type === "error") record("error", event.message);
+    else if (event.type === "result" && !event.ok) record("error", `L'agent s'est arrêté : ${event.error}`);
+  };
+
   try {
     let dir: string;
     if (!projectExists(projectName)) {
@@ -59,6 +73,8 @@ app.post("/api/chat", async (req, res) => {
     }
     // Snapshot the pre-agent state so the first rollback point always exists
     await ensureRepo(dir);
+    historyDir = dir;
+    record("user", prompt);
 
     send({ type: "status", text: "Démarrage de l'aperçu…" });
     const { url } = await startPreview(dir);
@@ -81,9 +97,13 @@ app.post("/api/chat", async (req, res) => {
         if (event.type === "result" && event.sessionId) {
           saveSession(projectName, event.sessionId);
         }
+        recordEvent(event);
         send(event);
       }
-      if (pendingFailure) send(pendingFailure);
+      if (pendingFailure) {
+        recordEvent(pendingFailure as AgentEvent);
+        send(pendingFailure);
+      }
       return "ok";
     };
 
@@ -98,14 +118,56 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const version = await commitVersion(dir, prompt.replace(/\s+/g, " ").slice(0, 72));
-    if (version) send({ type: "version", ...version });
+    if (version) {
+      record("status", `📌 Version sauvegardée (${version.hash})`);
+      send({ type: "version", ...version });
+    }
   } catch (err) {
-    send({ type: "error", message: err instanceof Error ? err.message : String(err) });
+    const message = err instanceof Error ? err.message : String(err);
+    record("error", message);
+    send({ type: "error", message });
   } finally {
     agentBusy = false;
+    if (historyDir) {
+      try {
+        appendHistory(historyDir, turn);
+      } catch (err) {
+        console.error("[history]", err instanceof Error ? err.message : err);
+      }
+    }
     send({ type: "done" });
     res.end();
   }
+});
+
+// Start (or reuse) the live preview of an existing project — lets the UI
+// restore the preview on page load without sending a message first
+app.post("/api/preview/:name", async (req, res) => {
+  const name = req.params.name;
+  if (!projectExists(name)) {
+    res.status(404).json({ error: `Project "${name}" not found` });
+    return;
+  }
+  if (agentBusy) {
+    res.status(409).json({ error: "Agent is working — preview follows the active project" });
+    return;
+  }
+  try {
+    const { url } = await startPreview(projectDir(name));
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Persisted chat history of a project (empty for unknown/new projects)
+app.get("/api/history/:name", (req, res) => {
+  const name = req.params.name;
+  if (!projectExists(name)) {
+    res.json({ messages: [] });
+    return;
+  }
+  res.json({ messages: loadHistory(projectDir(name)) });
 });
 
 // Download a generated project as a zip (sources only, no node_modules)
@@ -129,7 +191,7 @@ app.get("/api/export/:name", (req, res) => {
   archive.glob("**/*", {
     cwd: dir,
     dot: true,
-    ignore: ["node_modules/**", "dist/**", ".git/**"],
+    ignore: ["node_modules/**", "dist/**", ".git/**", ".chat-history.json"],
   });
   archive.finalize();
 });

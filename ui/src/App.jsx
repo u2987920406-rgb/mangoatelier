@@ -3,9 +3,38 @@ import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 
 export default function App() {
-  const [projectName, setProjectName] = useState("mon-app");
+  // Project and model survive a page reload — otherwise a refresh silently
+  // switches back to the default project and its (different) chat history.
+  const [projectName, setProjectName] = useState(
+    () => localStorage.getItem("mangoai.project") ?? "mon-app",
+  );
   const [projects, setProjects] = useState([]);
-  const [model, setModel] = useState("sonnet");
+  const [model, setModel] = useState(() => localStorage.getItem("mangoai.model") ?? "sonnet");
+
+  useEffect(() => {
+    localStorage.setItem("mangoai.project", projectName);
+  }, [projectName]);
+
+  // Auto-start the preview of the selected project (debounced: the input
+  // fires on every keystroke). 404 for not-yet-created projects is fine.
+  useEffect(() => {
+    if (!projectName.trim()) return;
+    const t = setTimeout(() => {
+      fetch(`/api/preview/${encodeURIComponent(projectName)}`, { method: "POST" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.url) {
+            setPreviewUrl(d.url);
+            setPreviewKey((k) => k + 1);
+          }
+        })
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [projectName]);
+  useEffect(() => {
+    localStorage.setItem("mangoai.model", model);
+  }, [model]);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);

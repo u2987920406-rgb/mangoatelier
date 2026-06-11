@@ -29,6 +29,16 @@
   - UI : menu « ↩ Versions (n) » dans le header — choisir une version + confirmation → rollback + rechargement de l'aperçu
   - Smoke test complet OK (init, commit, no-op, rollback avec suppression des fichiers postérieurs) ; `tsc --noEmit` et `vite build` propres
 - **Fix sessions mortes** : le renommage `mini-lovable → mangoai` avait invalidé les sessions stockées (indexées par chemin) → erreur « No conversation found with session ID ». Le backend détecte maintenant ce cas, efface la session morte (`clearSession`) et redémarre automatiquement une conversation neuve
+- **Historique de chat persisté** (priorité 2 de la roadmap) :
+  - Nouveau module `server/src/history.ts` : messages affichables (user/agent/tool/error/status) sauvegardés dans `workspace/<projet>/.chat-history.json` à la fin de chaque tour
+  - Endpoint GET `/api/history/:name` ; le chat recharge l'historique à l'ouverture d'un projet (`Chat.jsx`)
+  - `.chat-history.json` exclu du git des projets (un rollback restaure le code, pas la conversation — `.gitignore` des anciens projets mis à jour automatiquement) et de l'export zip
+  - Smoke test OK (append/reload, formatage outils identique au live, survie au rollback) ; `tsc --noEmit` et `vite build` propres
+- **Fix projet non mémorisé au rechargement** : après F5 l'UI revenait à `mon-app` par défaut → l'historique du projet en cours semblait perdu. Projet + modèle persistés dans `localStorage` (`mangoai.project`, `mangoai.model`)
+- **Fix aperçu orphelin (port 5174)** : un redémarrage du backend laissait l'ancien Vite vivant sur le port → `--strictPort` faisait échouer tous les nouveaux aperçus pendant que l'orphelin servait un projet périmé. `startPreview` tue maintenant tout processus résiduel sur le port avant de démarrer (`freePort` dans `preview.ts`)
+- **Test de bout en bout réel validé** : demande « titre en vert » sur test-pipeline (haiku, $0.09) → aperçu démarré, 3 outils, version committée, historique complet rechargeable via GET /api/history
+- **Fix rollback qui effaçait l'historique de chat** (trouvé par l'utilisateur) : revenir à une version créée AVANT la fonctionnalité d'historique supprimait `.chat-history.json` (le `.gitignore` de l'époque ne le protégeait pas de `git clean`). `rollbackTo` sauvegarde maintenant l'historique en mémoire, exclut le fichier du clean (`-e`) et le restaure après — test de régression sur le scénario exact ✅
+- **Aperçu restauré au chargement de la page** : avant, l'aperçu restait vide après F5 tant qu'on n'envoyait pas de message. Nouvel endpoint POST `/api/preview/:name` ; l'UI démarre automatiquement l'aperçu du projet sélectionné (debounce 400 ms sur la saisie)
 
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours

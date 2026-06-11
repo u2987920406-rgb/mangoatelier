@@ -1,8 +1,11 @@
 // Manages the Vite dev server of the currently previewed generated project.
 // One preview at a time, fixed port (PREVIEW_PORT, default 5174).
-import { spawn, type ChildProcess } from "node:child_process";
+import { exec, spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 const PREVIEW_PORT = Number(process.env.PREVIEW_PORT ?? 5174);
 
@@ -21,6 +24,7 @@ export async function startPreview(projectDir: string): Promise<{ url: string }>
     return { url: `http://localhost:${PREVIEW_PORT}` };
   }
   await stopPreview();
+  await freePort(PREVIEW_PORT);
 
   if (!fs.existsSync(path.join(projectDir, "package.json"))) {
     throw new Error(`No package.json in ${projectDir}`);
@@ -57,6 +61,31 @@ export async function stopPreview(): Promise<void> {
     }
   }
   await new Promise((r) => setTimeout(r, 500));
+}
+
+// Kills any orphaned process still bound to the preview port — e.g. a Vite
+// left behind when a previous backend run was killed without its children.
+// Without this, --strictPort makes every new preview fail, while the orphan
+// keeps serving a stale project to the iframe.
+async function freePort(port: number): Promise<void> {
+  try {
+    if (process.platform === "win32") {
+      const { stdout } = await execAsync("netstat -ano -p tcp");
+      const pids = new Set<string>();
+      for (const line of stdout.split(/\r?\n/)) {
+        const m = line.match(/TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)/);
+        if (m && Number(m[1]) === port) pids.add(m[2]);
+      }
+      for (const pid of pids) {
+        console.log(`[preview] killing orphan on port ${port} (pid ${pid})`);
+        await execAsync(`taskkill /pid ${pid} /T /F`).catch(() => {});
+      }
+    } else {
+      await execAsync(`lsof -ti tcp:${port} | xargs -r kill -9`).catch(() => {});
+    }
+  } catch {
+    // best effort — spawn will fail loudly if the port is still taken
+  }
 }
 
 async function waitForServer(url: string, timeoutMs: number): Promise<void> {

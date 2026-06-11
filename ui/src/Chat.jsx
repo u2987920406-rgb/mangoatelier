@@ -11,9 +11,28 @@ export default function Chat({ projectName, model, onPreviewUrl, onCost, onAgent
   const listRef = useRef(null);
 
   // Switching projects = different conversation; the backend will resume
-  // the project's stored session on the next message.
+  // the project's stored session on the next message. The persisted chat
+  // history of the project replaces whatever is on screen.
   useEffect(() => {
     sessionRef.current = null;
+    let cancelled = false;
+    if (!projectName.trim()) {
+      setMessages([]);
+      return;
+    }
+    fetch(`/api/history/${encodeURIComponent(projectName)}`)
+      .then((r) => (r.ok ? r.json() : { messages: [] }))
+      .then((d) => {
+        if (cancelled) return;
+        setMessages((d.messages ?? []).map((m) => ({ id: uid(), role: m.role, text: m.text })));
+        requestAnimationFrame(() => {
+          listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [projectName]);
 
   const push = (msg) => {
