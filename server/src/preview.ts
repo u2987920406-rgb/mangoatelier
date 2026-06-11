@@ -1,0 +1,74 @@
+// Manages the Vite dev server of the currently previewed generated project.
+// One preview at a time, fixed port (PREVIEW_PORT, default 5174).
+import { spawn, type ChildProcess } from "node:child_process";
+import path from "node:path";
+import fs from "node:fs";
+
+const PREVIEW_PORT = Number(process.env.PREVIEW_PORT ?? 5174);
+
+let current: { projectDir: string; proc: ChildProcess } | null = null;
+
+export function previewStatus() {
+  return {
+    running: current !== null && current.proc.exitCode === null,
+    projectDir: current?.projectDir ?? null,
+    url: `http://localhost:${PREVIEW_PORT}`,
+  };
+}
+
+export async function startPreview(projectDir: string): Promise<{ url: string }> {
+  if (current && current.projectDir === projectDir && current.proc.exitCode === null) {
+    return { url: `http://localhost:${PREVIEW_PORT}` };
+  }
+  await stopPreview();
+
+  if (!fs.existsSync(path.join(projectDir, "package.json"))) {
+    throw new Error(`No package.json in ${projectDir}`);
+  }
+
+  const proc = spawn(
+    process.platform === "win32" ? "npm.cmd" : "npm",
+    ["run", "dev", "--", "--port", String(PREVIEW_PORT), "--strictPort"],
+    { cwd: projectDir, stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32" },
+  );
+  current = { projectDir, proc };
+
+  proc.stdout?.on("data", (d: Buffer) => process.stdout.write(`[preview] ${d}`));
+  proc.stderr?.on("data", (d: Buffer) => process.stderr.write(`[preview] ${d}`));
+  proc.on("exit", (code) => {
+    console.log(`[preview] dev server exited (code ${code})`);
+    if (current?.proc === proc) current = null;
+  });
+
+  await waitForServer(`http://localhost:${PREVIEW_PORT}`, 30_000);
+  return { url: `http://localhost:${PREVIEW_PORT}` };
+}
+
+export async function stopPreview(): Promise<void> {
+  if (!current) return;
+  const { proc } = current;
+  current = null;
+  if (proc.exitCode === null) {
+    if (process.platform === "win32" && proc.pid) {
+      // Kill the whole tree on Windows (npm spawns vite as a child)
+      spawn("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { stdio: "ignore" });
+    } else {
+      proc.kill("SIGTERM");
+    }
+  }
+  await new Promise((r) => setTimeout(r, 500));
+}
+
+async function waitForServer(url: string, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) return;
+    } catch {
+      // not up yet
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Preview server did not start within ${timeoutMs / 1000}s`);
+}
