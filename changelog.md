@@ -20,6 +20,16 @@
 - **Choix du modèle dans l'UI** : sélecteur header (⚡ Haiku / ⚖️ Sonnet / 🧠 Opus), validé côté backend (`ALLOWED_MODELS`), testé — on peut changer de modèle en cours de session sans perdre le contexte
 - **Export zip** : bouton « ⬇ Zip » dans le header → GET /api/export/:name (archiver v8 ESM, classe `ZipArchive`) — sources seulement, `node_modules`/`dist`/`.git` exclus, testé ✅
 
+## 2026-06-12 — Session 3 : roadmap concurrence + rollback git
+- **Analyse concurrentielle** : cartographie complète du code + comparaison Lovable/Emergent 2026 — roadmap priorisée ajoutée dans `statut.md` (avantages structurels : coût zéro, moteur claude_code, code local)
+- **Rollback par git auto-commit** (priorité 1 de la roadmap) :
+  - Nouveau module `server/src/versions.ts` : git init auto par projet (`.gitignore` node_modules/dist), commit après chaque itération de l'agent (message = prompt tronqué), historique, reset dur
+  - Endpoints : GET `/api/versions/:name` (historique), POST `/api/rollback` (refusé si l'agent travaille)
+  - Événement SSE `version` → message « 📌 Version sauvegardée » dans le chat
+  - UI : menu « ↩ Versions (n) » dans le header — choisir une version + confirmation → rollback + rechargement de l'aperçu
+  - Smoke test complet OK (init, commit, no-op, rollback avec suppression des fichiers postérieurs) ; `tsc --noEmit` et `vite build` propres
+- **Fix sessions mortes** : le renommage `mini-lovable → mangoai` avait invalidé les sessions stockées (indexées par chemin) → erreur « No conversation found with session ID ». Le backend détecte maintenant ce cas, efface la session morte (`clearSession`) et redémarre automatiquement une conversation neuve
+
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours
 - **Renommage Mini-Lovable → MangoAI** : UI (logo 🥭, titre), packages (`mangoai-ui`/`mangoai-server`), docs, business model

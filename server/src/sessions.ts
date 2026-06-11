@@ -24,3 +24,11 @@ export function saveSession(projectName: string, sessionId: string): void {
   map[projectName] = sessionId;
   fs.writeFileSync(FILE, JSON.stringify(map, null, 2));
 }
+
+/** Drops a stored session id (e.g. when the SDK no longer knows it). */
+export function clearSession(projectName: string): void {
+  const map = load();
+  if (!(projectName in map)) return;
+  delete map[projectName];
+  fs.writeFileSync(FILE, JSON.stringify(map, null, 2));
+}

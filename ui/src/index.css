@@ -60,7 +60,8 @@ body {
   border-color: var(--accent);
 }
 
-.model-select {
+.model-select,
+.versions-select {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
@@ -70,9 +71,19 @@ body {
   cursor: pointer;
 }
 
-.model-select:focus {
+.model-select:focus,
+.versions-select:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.versions-select {
+  max-width: 180px;
+}
+
+.versions-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .export-btn {

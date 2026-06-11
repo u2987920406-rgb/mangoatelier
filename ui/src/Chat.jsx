@@ -85,6 +85,9 @@ export default function Chat({ projectName, model, onPreviewUrl, onCost, onAgent
       case "tool":
         push({ role: "tool", text: `${toolIcon(ev.name)} ${ev.name} ${ev.detail}`.trim() });
         break;
+      case "version":
+        push({ role: "status", text: `📌 Version sauvegardée (${ev.hash})` });
+        break;
       case "result":
         sessionRef.current = ev.sessionId;
         onCost(ev.costUsd);
