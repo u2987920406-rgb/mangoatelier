@@ -5,6 +5,7 @@ import Preview from "./Preview.jsx";
 export default function App() {
   const [projectName, setProjectName] = useState("mon-app");
   const [projects, setProjects] = useState([]);
+  const [model, setModel] = useState("sonnet");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
@@ -33,11 +34,22 @@ export default function App() {
             <option key={p} value={p} />
           ))}
         </datalist>
+        <select
+          className="model-select"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          title="Modèle utilisé par l'agent"
+        >
+          <option value="haiku">⚡ Haiku — rapide, simple</option>
+          <option value="sonnet">⚖️ Sonnet — équilibré</option>
+          <option value="opus">🧠 Opus — puissant, plus cher</option>
+        </select>
         <span className="cost">Coût session : ${cost.toFixed(4)}</span>
       </header>
       <div className="columns">
         <Chat
           projectName={projectName}
+          model={model}
           onPreviewUrl={setPreviewUrl}
           onCost={(c) => setCost((prev) => prev + c)}
           onAgentDone={() => setPreviewKey((k) => k + 1)}

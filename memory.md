@@ -5,7 +5,8 @@
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli)
 - Sessions persistées dans `server/sessions.json` (non committé) — le frontend n'a plus besoin de garder le sessionId, le backend reprend automatiquement
-- Backlog restant : export zip, choix du modèle dans l'UI, historique de chat persisté
+- Choix du modèle dans l'UI (haiku/sonnet/opus) — le modèle peut changer en cours de session, le resume garde le contexte
+- Backlog restant : export zip, historique de chat persisté
 - Node v25.9.0, npm 11.12.1
 
 ## Règles spécifiques au projet

@@ -2,7 +2,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { interruptAgent, runAgent } from "./agent.js";
+import { ALLOWED_MODELS, interruptAgent, runAgent, type ModelChoice } from "./agent.js";
 import { createProject, listProjects, projectDir, projectExists } from "./projects.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { getSession, saveSession } from "./sessions.js";
@@ -21,11 +21,15 @@ app.get("/api/projects", (_req, res) => {
 // Body: { prompt: string, projectName: string, sessionId?: string }
 // Streams AgentEvent objects as SSE. Creates the project on first message.
 app.post("/api/chat", async (req, res) => {
-  const { prompt, projectName, sessionId } = req.body as {
+  const { prompt, projectName, sessionId, model } = req.body as {
     prompt?: string;
     projectName?: string;
     sessionId?: string;
+    model?: string;
   };
+  const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
+    ? (model as ModelChoice)
+    : undefined;
   if (!prompt?.trim() || !projectName?.trim()) {
     res.status(400).json({ error: "prompt and projectName are required" });
     return;
@@ -58,7 +62,7 @@ app.post("/api/chat", async (req, res) => {
     // Resume the project's previous conversation if the client didn't pass one
     const effectiveSession = sessionId ?? getSession(projectName);
     send({ type: "status", text: "L'agent travaille…" });
-    for await (const event of runAgent(prompt, dir, effectiveSession)) {
+    for await (const event of runAgent(prompt, dir, effectiveSession, chosenModel)) {
       if (event.type === "result" && event.sessionId) {
         saveSession(projectName, event.sessionId);
       }

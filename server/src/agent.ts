@@ -2,7 +2,9 @@
 // and yields simplified events the frontend can render.
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-const MODEL = process.env.MODEL ?? "sonnet";
+const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
+export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
+export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 
 export type AgentEvent =
   | { type: "text"; text: string }
@@ -39,13 +41,14 @@ export async function* runAgent(
   prompt: string,
   projectDir: string,
   sessionId?: string,
+  model?: ModelChoice,
 ): AsyncGenerator<AgentEvent> {
   try {
     const q = query({
       prompt,
       options: {
         cwd: projectDir,
-        model: MODEL,
+        model: model ?? DEFAULT_MODEL,
         maxTurns: 40,
         permissionMode: "acceptEdits",
         allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],

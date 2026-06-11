@@ -32,7 +32,7 @@ Utilisation : `npm run start` dans `server/` + `npm run dev` dans `ui/` → http
 - [x] Persister le sessionId par projet (`server/sessions.json`) pour reprendre après redémarrage
 - [x] Bouton « Stop » pour interrompre l'agent en cours (POST /api/stop → interrupt() du SDK)
 - [ ] Export / téléchargement du projet généré (zip)
-- [ ] Choix du modèle (sonnet/opus) dans l'UI
+- [x] Choix du modèle (haiku/sonnet/opus) dans l'UI — sélecteur dans le header, changeable en cours de session
 - [ ] Historique de chat persisté par projet (aujourd'hui le chat repart vide au rechargement de la page)
 
 ## Règles de collaboration

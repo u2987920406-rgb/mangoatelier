@@ -60,6 +60,21 @@ body {
   border-color: var(--accent);
 }
 
+.model-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .cost {
   margin-left: auto;
   color: var(--text-dim);

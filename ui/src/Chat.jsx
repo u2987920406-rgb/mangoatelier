@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 let nextId = 1;
 const uid = () => nextId++;
 
-export default function Chat({ projectName, onPreviewUrl, onCost, onAgentDone }) {
+export default function Chat({ projectName, model, onPreviewUrl, onCost, onAgentDone }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,7 +34,12 @@ export default function Chat({ projectName, onPreviewUrl, onCost, onAgentDone })
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, projectName, sessionId: sessionRef.current ?? undefined }),
+        body: JSON.stringify({
+          prompt,
+          projectName,
+          model,
+          sessionId: sessionRef.current ?? undefined,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
