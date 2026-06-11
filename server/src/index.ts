@@ -2,6 +2,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { ZipArchive } from "archiver";
+import path from "node:path";
 import { ALLOWED_MODELS, interruptAgent, runAgent, type ModelChoice } from "./agent.js";
 import { createProject, listProjects, projectDir, projectExists } from "./projects.js";
 import { previewStatus, startPreview } from "./preview.js";
@@ -75,6 +77,32 @@ app.post("/api/chat", async (req, res) => {
     send({ type: "done" });
     res.end();
   }
+});
+
+// Download a generated project as a zip (sources only, no node_modules)
+app.get("/api/export/:name", (req, res) => {
+  const name = req.params.name;
+  if (!projectExists(name)) {
+    res.status(404).json({ error: `Project "${name}" not found` });
+    return;
+  }
+  const dir = projectDir(name);
+  const filename = `${path.basename(dir)}.zip`;
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+  const archive = new ZipArchive({ zlib: { level: 9 } });
+  archive.on("error", (err: Error) => {
+    console.error("[export]", err.message);
+    res.destroy(err);
+  });
+  archive.pipe(res);
+  archive.glob("**/*", {
+    cwd: dir,
+    dot: true,
+    ignore: ["node_modules/**", "dist/**", ".git/**"],
+  });
+  archive.finalize();
 });
 
 // Interrupt the agent currently working (if any)

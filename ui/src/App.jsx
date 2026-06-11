@@ -44,6 +44,14 @@ export default function App() {
           <option value="sonnet">⚖️ Sonnet — équilibré</option>
           <option value="opus">🧠 Opus — puissant, plus cher</option>
         </select>
+        <a
+          className="export-btn"
+          href={`/api/export/${encodeURIComponent(projectName)}`}
+          download
+          title="Télécharger le code du projet (zip, sans node_modules)"
+        >
+          ⬇ Zip
+        </a>
         <span className="cost">Coût session : ${cost.toFixed(4)}</span>
       </header>
       <div className="columns">

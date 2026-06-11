@@ -75,6 +75,21 @@ body {
   border-color: var(--accent);
 }
 
+.export-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.export-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
 .cost {
   margin-left: auto;
   color: var(--text-dim);

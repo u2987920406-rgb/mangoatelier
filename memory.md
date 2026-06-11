@@ -6,7 +6,8 @@
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli)
 - Sessions persistées dans `server/sessions.json` (non committé) — le frontend n'a plus besoin de garder le sessionId, le backend reprend automatiquement
 - Choix du modèle dans l'UI (haiku/sonnet/opus) — le modèle peut changer en cours de session, le resume garde le contexte
-- Backlog restant : export zip, historique de chat persisté
+- Export zip : GET /api/export/:name — note : archiver v8 est ESM pur, importer `{ ZipArchive }` (pas de default export)
+- Backlog restant : historique de chat persisté
 - Node v25.9.0, npm 11.12.1
 
 ## Règles spécifiques au projet
