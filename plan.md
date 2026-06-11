@@ -28,11 +28,12 @@
 Utilisation : `npm run start` dans `server/` + `npm run dev` dans `ui/` → http://localhost:5173
 
 ### Idées pour la suite (backlog)
-- [ ] Sélecteur de projets existants dans le header (GET /api/projects déjà prêt)
-- [ ] Persister le sessionId par projet (fichier JSON) pour reprendre après redémarrage
-- [ ] Bouton « Stop » pour interrompre l'agent en cours
+- [x] Sélecteur de projets existants dans le header (datalist alimentée par GET /api/projects)
+- [x] Persister le sessionId par projet (`server/sessions.json`) pour reprendre après redémarrage
+- [x] Bouton « Stop » pour interrompre l'agent en cours (POST /api/stop → interrupt() du SDK)
 - [ ] Export / téléchargement du projet généré (zip)
 - [ ] Choix du modèle (sonnet/opus) dans l'UI
+- [ ] Historique de chat persisté par projet (aujourd'hui le chat repart vide au rechargement de la page)
 
 ## Règles de collaboration
 - Lire `memory.md` au démarrage de chaque session

@@ -11,3 +11,9 @@
 - **Test de bout en bout réussi** : landing page pizzeria « Bella Napoli » générée (6 tours, $0.19), aperçu live OK
 - **Test d'itération réussi** : modification du slogan sur la même session — l'agent garde le contexte (il a détecté qu'une pizza demandée existait déjà)
 - 🎉 MVP terminé
+- Dépôt GitHub privé créé et poussé : https://github.com/u2987920406-rgb/mini-lovable
+
+## 2026-06-11 — Session 1 (suite) : améliorations backlog
+- **Persistance des sessions** : `server/sessions.json` (projet → sessionId), reprise automatique après redémarrage du serveur — testé ✅
+- **Sélecteur de projets** : datalist dans le header alimentée par GET /api/projects
+- **Bouton Stop** : POST /api/stop → `interrupt()` du SDK, bouton rouge pendant que l'agent travaille

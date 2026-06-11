@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 let nextId = 1;
 const uid = () => nextId++;
@@ -9,6 +9,12 @@ export default function Chat({ projectName, onPreviewUrl, onCost, onAgentDone })
   const [busy, setBusy] = useState(false);
   const sessionRef = useRef(null); // Agent SDK session_id, kept across turns
   const listRef = useRef(null);
+
+  // Switching projects = different conversation; the backend will resume
+  // the project's stored session on the next message.
+  useEffect(() => {
+    sessionRef.current = null;
+  }, [projectName]);
 
   const push = (msg) => {
     setMessages((prev) => [...prev, { id: uid(), ...msg }]);
@@ -118,9 +124,18 @@ export default function Chat({ projectName, onPreviewUrl, onCost, onAgentDone })
           rows={3}
           disabled={busy}
         />
-        <button onClick={send} disabled={busy || !input.trim()}>
-          Envoyer
-        </button>
+        {busy ? (
+          <button
+            className="stop"
+            onClick={() => fetch("/api/stop", { method: "POST" }).catch(() => {})}
+          >
+            ■ Stop
+          </button>
+        ) : (
+          <button onClick={send} disabled={!input.trim()}>
+            Envoyer
+          </button>
+        )}
       </div>
     </section>
   );

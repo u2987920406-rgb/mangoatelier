@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 
 export default function App() {
   const [projectName, setProjectName] = useState("mon-app");
+  const [projects, setProjects] = useState([]);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/projects")
+      .then((r) => r.json())
+      .then((d) => setProjects(d.projects ?? []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="app">
@@ -18,7 +26,13 @@ export default function App() {
           onChange={(e) => setProjectName(e.target.value)}
           placeholder="nom-du-projet"
           spellCheck={false}
+          list="projects-list"
         />
+        <datalist id="projects-list">
+          {projects.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
         <span className="cost">Coût session : ${cost.toFixed(4)}</span>
       </header>
       <div className="columns">

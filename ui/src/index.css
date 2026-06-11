@@ -190,6 +190,14 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.stop {
+  background: var(--err);
+}
+
+button.stop:hover {
+  background: #ff7b7b;
+}
+
 /* ── Preview (right, 60%) ───────────────── */
 .preview {
   flex: 1;

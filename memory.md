@@ -3,7 +3,9 @@
 ## État actuel (2026-06-11)
 - **MVP terminé et testé de bout en bout** ✅ (génération pizzeria + itération avec contexte de session)
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
-- Projet de test : `workspace/test-pipeline/` (landing Bella Napoli), sessionId `c78b9a72-790d-4bf8-ad68-744990a6ad14`
+- Projet de test : `workspace/test-pipeline/` (landing Bella Napoli)
+- Sessions persistées dans `server/sessions.json` (non committé) — le frontend n'a plus besoin de garder le sessionId, le backend reprend automatiquement
+- Backlog restant : export zip, choix du modèle dans l'UI, historique de chat persisté
 - Node v25.9.0, npm 11.12.1
 
 ## Règles spécifiques au projet

@@ -21,13 +21,27 @@ Rules:
 - Only run npm installs when a new dependency is truly required.
 - Answer the user briefly in French; code and comments stay in English.`;
 
+// Handle to the in-flight query so the HTTP layer can interrupt it.
+let currentQuery: ReturnType<typeof query> | null = null;
+
+export async function interruptAgent(): Promise<boolean> {
+  if (!currentQuery) return false;
+  try {
+    await currentQuery.interrupt();
+    return true;
+  } catch (err) {
+    console.warn("[agent] interrupt failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 export async function* runAgent(
   prompt: string,
   projectDir: string,
   sessionId?: string,
 ): AsyncGenerator<AgentEvent> {
   try {
-    for await (const message of query({
+    const q = query({
       prompt,
       options: {
         cwd: projectDir,
@@ -38,7 +52,9 @@ export async function* runAgent(
         systemPrompt: { type: "preset", preset: "claude_code", append: SYSTEM_APPEND },
         ...(sessionId ? { resume: sessionId } : {}),
       },
-    })) {
+    });
+    currentQuery = q;
+    for await (const message of q) {
       if (message.type === "assistant") {
         for (const block of message.message.content) {
           if (block.type === "text" && block.text.trim()) {
@@ -60,6 +76,8 @@ export async function* runAgent(
     }
   } catch (err) {
     yield { type: "error", message: err instanceof Error ? err.message : String(err) };
+  } finally {
+    currentQuery = null;
   }
 }
 

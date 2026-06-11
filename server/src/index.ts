@@ -2,9 +2,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { runAgent } from "./agent.js";
+import { interruptAgent, runAgent } from "./agent.js";
 import { createProject, listProjects, projectDir, projectExists } from "./projects.js";
 import { previewStatus, startPreview } from "./preview.js";
+import { getSession, saveSession } from "./sessions.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
@@ -54,8 +55,13 @@ app.post("/api/chat", async (req, res) => {
     const { url } = await startPreview(dir);
     send({ type: "preview", url });
 
+    // Resume the project's previous conversation if the client didn't pass one
+    const effectiveSession = sessionId ?? getSession(projectName);
     send({ type: "status", text: "L'agent travaille…" });
-    for await (const event of runAgent(prompt, dir, sessionId)) {
+    for await (const event of runAgent(prompt, dir, effectiveSession)) {
+      if (event.type === "result" && event.sessionId) {
+        saveSession(projectName, event.sessionId);
+      }
       send(event);
     }
   } catch (err) {
@@ -65,6 +71,12 @@ app.post("/api/chat", async (req, res) => {
     send({ type: "done" });
     res.end();
   }
+});
+
+// Interrupt the agent currently working (if any)
+app.post("/api/stop", async (_req, res) => {
+  const stopped = await interruptAgent();
+  res.json({ stopped });
 });
 
 app.listen(PORT, () => {
