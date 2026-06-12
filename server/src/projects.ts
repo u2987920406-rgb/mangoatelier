@@ -12,7 +12,8 @@ export function listProjects(): string[] {
   if (!fs.existsSync(WORKSPACE_DIR)) return [];
   return fs
     .readdirSync(WORKSPACE_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
+    // hidden dirs (.skills, ...) are workspace internals, not projects
+    .filter((e) => e.isDirectory() && !e.name.startsWith("."))
     .map((e) => e.name);
 }
 

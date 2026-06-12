@@ -14,6 +14,7 @@ import {
   loadUserProfile,
 } from "./memory.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { listSkills, skillsSnapshot } from "./skills.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
 // One review at a time; a turn that ends while a review runs skips its review
@@ -24,11 +25,11 @@ export function reviewStatus(): { running: boolean } {
   return { running: reviewRunning };
 }
 
-// The two-store distinction is Hermes' MEMORY.md vs USER.md, adapted:
-// project-scoped facts vs durable cross-project tastes.
+// Hermes' combined review, adapted: MEMORY.md vs USER.md vs the skill library
+// (declarative facts vs user identity vs procedural how-to knowledge).
 const REVIEW_SYSTEM = `
 You are a silent background reviewer for a "Lovable-like" app builder. Your ONLY
-job is to curate two memory files (paths are given in the user message):
+job is to curate three knowledge stores (paths are given in the user message):
 1. The PROJECT memory (${MEMORY_FILE_NAME} inside the project folder): design
    decisions, conventions, data shapes, pitfalls — facts scoped to THIS project.
 2. The USER profile (${USER_PROFILE_FILE_NAME} at the workspace root): who the
@@ -36,11 +37,26 @@ job is to curate two memory files (paths are given in the user message):
    tastes, how they like to work. Only put a preference here when it is clearly
    general ("je n'aime pas...", "toujours", "de manière générale", or the same
    taste keeps coming back); when in doubt, keep it project-scoped.
+3. The SKILL library (.skills/<name>/SKILL.md at the workspace root): HOW to do
+   a class of task — a non-trivial technique, fix, workaround or pattern that a
+   future session on ANY project would benefit from (e.g. a working cart
+   pattern, a tricky CSS/Vite fix, a layout recipe the user validated).
+   Format: .skills/<class-level-name>/SKILL.md starting with YAML frontmatter
+   (--- name: <name> / description: <one line, when to use> ---), then concise
+   steps with the actual code that worked. Be ACTIVE about skills: when the
+   turn produced a working UI pattern, interaction, or fix (even a small one —
+   a scroll button, an accordion, a form validation), capturing it is the
+   default; a pass that saves nothing is a missed learning opportunity.
+   Preference order: PATCH an existing skill that covers the territory > add
+   detail to it > CREATE a new one. The name MUST be class-level
+   ("panier-ecommerce", "bouton-scroll-top"), NEVER a one-session artifact
+   ("fix-bug-du-jour"). Skip only pure Q&A turns or trivial one-line tweaks.
 User preferences and corrections ("stop doing X", "I don't like Y") are
-FIRST-CLASS signals — save them in the right store.
-Do NOT save: transient errors that were fixed, one-off task narratives, anything
-obvious from reading the code, environment-dependent failures.
-Rules for both files: short factual bullets, in French; under 50 lines for the
+FIRST-CLASS signals — save them in the right memory store.
+Do NOT save anywhere: transient errors that were fixed by retrying, one-off task
+narratives, anything obvious from reading the code, environment-dependent
+failures, negative claims like "X does not work" (capture the FIX instead).
+Rules for memory files: short factual bullets, in French; under 50 lines for the
 project memory, under 25 for the profile. MERGE and rewrite existing entries
 instead of appending duplicates; delete entries that became wrong. When a
 preference graduates to the profile, remove its duplicate from project memories
@@ -65,9 +81,13 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
     try {
       const memoryBefore = loadMemory(projectDir);
       const profileBefore = loadUserProfile(WORKSPACE_DIR);
+      const skillsBefore = skillsSnapshot();
       const memoryPath = path
         .join(path.relative(WORKSPACE_DIR, projectDir), MEMORY_FILE_NAME)
         .replaceAll("\\", "/");
+      const skillList = listSkills()
+        .map((s) => `- ${s.name}: ${s.description}`)
+        .join("\n");
       const prompt = [
         "Conversation turn to review:",
         formatTranscript(turn),
@@ -78,7 +98,10 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         `USER profile file: ${USER_PROFILE_FILE_NAME} — current content:`,
         profileBefore || "(the file does not exist yet)",
         "",
-        "Update the file(s) if warranted, then stop.",
+        "Existing skills in .skills/ :",
+        skillList || "(none yet)",
+        "",
+        "Update the store(s) if warranted, then stop.",
       ].join("\n");
 
       const q = query({
@@ -88,7 +111,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
           // scope; the system prompt forbids touching anything else.
           cwd: WORKSPACE_DIR,
           model: "haiku",
-          maxTurns: 8,
+          maxTurns: 12,
           permissionMode: "acceptEdits",
           allowedTools: ["Read", "Write", "Edit"],
           systemPrompt: { type: "preset", preset: "claude_code", append: REVIEW_SYSTEM },
@@ -101,10 +124,12 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
 
       const memoryChanged = loadMemory(projectDir) !== memoryBefore;
       const profileChanged = loadUserProfile(WORKSPACE_DIR) !== profileBefore;
-      if (memoryChanged || profileChanged) {
+      const skillsChanged = skillsSnapshot() !== skillsBefore;
+      if (memoryChanged || profileChanged || skillsChanged) {
         const what = [
           ...(memoryChanged ? ["mémoire du projet"] : []),
           ...(profileChanged ? ["profil utilisateur"] : []),
+          ...(skillsChanged ? ["bibliothèque de skills"] : []),
         ].join(" + ");
         console.log(`[review] ${what} updated ($${cost.toFixed(4)})`);
         // Visible on the next history reload, like the "version saved" line.
