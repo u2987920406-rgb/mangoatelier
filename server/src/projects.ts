@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 export const WORKSPACE_DIR = path.join(ROOT, "workspace");
 const TEMPLATE_DIR = path.join(ROOT, "server", "template");
+const TEMPLATES_DIR = path.join(ROOT, "server", "templates");
 
 export function listProjects(): string[] {
   if (!fs.existsSync(WORKSPACE_DIR)) return [];
@@ -25,11 +26,26 @@ export function projectExists(name: string): boolean {
   return fs.existsSync(path.join(projectDir(name), "package.json"));
 }
 
-/** Copies the template and installs dependencies. Returns the project dir. */
-export async function createProject(name: string): Promise<string> {
+/** Starter templates: each dir under server/templates/ overlays the base template. */
+export function listTemplates(): string[] {
+  if (!fs.existsSync(TEMPLATES_DIR)) return [];
+  return fs
+    .readdirSync(TEMPLATES_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+}
+
+/** Copies the base template (+ optional starter overlay) and installs dependencies. */
+export async function createProject(name: string, template?: string): Promise<string> {
   const dir = projectDir(name);
   if (fs.existsSync(dir)) throw new Error(`Project "${name}" already exists`);
+  if (template && !listTemplates().includes(template)) {
+    throw new Error(`Unknown template "${template}"`);
+  }
   fs.cpSync(TEMPLATE_DIR, dir, { recursive: true });
+  if (template) {
+    fs.cpSync(path.join(TEMPLATES_DIR, template), dir, { recursive: true, force: true });
+  }
   await run("npm", ["install"], dir);
   return dir;
 }

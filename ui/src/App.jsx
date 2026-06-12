@@ -9,6 +9,8 @@ export default function App() {
     () => localStorage.getItem("mangoai.project") ?? "mon-app",
   );
   const [projects, setProjects] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [template, setTemplate] = useState(""); // applied only when the project gets created
   const [model, setModel] = useState(() => localStorage.getItem("mangoai.model") ?? "sonnet");
 
   useEffect(() => {
@@ -69,7 +71,10 @@ export default function App() {
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.json())
-      .then((d) => setProjects(d.projects ?? []))
+      .then((d) => {
+        setProjects(d.projects ?? []);
+        setTemplates(d.templates ?? []);
+      })
       .catch(() => {});
   }, []);
 
@@ -130,6 +135,21 @@ export default function App() {
             <option key={p} value={p} />
           ))}
         </datalist>
+        {!projects.includes(projectName) && templates.length > 0 && (
+          <select
+            className="template-select"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            title="Template de départ du nouveau projet"
+          >
+            <option value="">📦 Vierge</option>
+            {templates.map((t) => (
+              <option key={t} value={t}>
+                {TEMPLATE_LABELS[t] ?? `📦 ${t}`}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           className="model-select"
           value={model}
@@ -168,6 +188,7 @@ export default function App() {
         <Chat
           projectName={projectName}
           model={model}
+          template={template}
           onPreviewUrl={setPreviewUrl}
           onCost={(c) => setCost((prev) => prev + c)}
           onAgentDone={() => {
@@ -188,6 +209,13 @@ export default function App() {
     </div>
   );
 }
+
+const TEMPLATE_LABELS = {
+  vitrine: "🏪 Vitrine",
+  ecommerce: "🛒 E-commerce",
+  dashboard: "📊 Dashboard",
+  blog: "📝 Blog",
+};
 
 function formatVersion(v) {
   const date = new Date(v.date).toLocaleString("fr-FR", {

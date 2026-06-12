@@ -6,6 +6,7 @@ const uid = () => nextId++;
 export default function Chat({
   projectName,
   model,
+  template,
   onPreviewUrl,
   onCost,
   onAgentDone,
@@ -72,6 +73,7 @@ export default function Chat({
           prompt,
           projectName,
           model,
+          template: template || undefined,
           sessionId: sessionRef.current ?? undefined,
         }),
       });

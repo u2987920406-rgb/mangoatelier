@@ -61,6 +61,7 @@ body {
 }
 
 .model-select,
+.template-select,
 .versions-select {
   background: var(--bg);
   border: 1px solid var(--border);

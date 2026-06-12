@@ -6,7 +6,7 @@ import { ZipArchive } from "archiver";
 import path from "node:path";
 import { ALLOWED_MODELS, interruptAgent, runAgent, type AgentEvent, type ModelChoice } from "./agent.js";
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
-import { createProject, listProjects, projectDir, projectExists } from "./projects.js";
+import { createProject, listProjects, listTemplates, projectDir, projectExists } from "./projects.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
@@ -20,17 +20,18 @@ app.use(express.json());
 let agentBusy = false;
 
 app.get("/api/projects", (_req, res) => {
-  res.json({ projects: listProjects(), preview: previewStatus() });
+  res.json({ projects: listProjects(), templates: listTemplates(), preview: previewStatus() });
 });
 
 // Body: { prompt: string, projectName: string, sessionId?: string }
 // Streams AgentEvent objects as SSE. Creates the project on first message.
 app.post("/api/chat", async (req, res) => {
-  const { prompt, projectName, sessionId, model } = req.body as {
+  const { prompt, projectName, sessionId, model, template } = req.body as {
     prompt?: string;
     projectName?: string;
     sessionId?: string;
     model?: string;
+    template?: string;
   };
   const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
     ? (model as ModelChoice)
@@ -68,7 +69,7 @@ app.post("/api/chat", async (req, res) => {
     let dir: string;
     if (!projectExists(projectName)) {
       send({ type: "status", text: "Création du projet (template + npm install)…" });
-      dir = await createProject(projectName);
+      dir = await createProject(projectName, template || undefined);
     } else {
       dir = projectDir(projectName);
     }

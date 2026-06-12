@@ -44,6 +44,11 @@
   - UI : bandeau rouge ⚠ sous la barre d'aperçu (erreurs dédupliquées, max 10) + bouton « 🔧 Corriger » qui envoie la liste des erreurs à l'agent comme message automatique
   - System prompt : interdiction à l'agent de retirer le script relais
   - Vérifié : relay injecté dans test-pipeline et servi par l'aperçu (port 5174)
+- **Templates de démarrage** (priorité 4 de la roadmap) :
+  - 4 starters complets en français dans `server/templates/` : 🏪 vitrine (hero, services, à propos, contact), 🛒 e-commerce (grille produits + panier fonctionnel), 📊 dashboard (sidebar, stats, graphique CSS, table), 📝 blog (liste d'articles + vue article)
+  - Architecture overlay : le starter se superpose au template de base React+Vite à la création (`createProject(name, template)`), `listTemplates()` scanne le dossier
+  - UI : sélecteur 📦 dans le header, visible uniquement quand le nom de projet saisi n'existe pas encore ; envoyé avec le premier message
+  - Vérifié : les 4 templates buildent sans erreur (vite build) ; `tsc --noEmit` propre
 
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours
