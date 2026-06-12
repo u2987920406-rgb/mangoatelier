@@ -3,7 +3,15 @@ import { useEffect, useRef, useState } from "react";
 let nextId = 1;
 const uid = () => nextId++;
 
-export default function Chat({ projectName, model, onPreviewUrl, onCost, onAgentDone }) {
+export default function Chat({
+  projectName,
+  model,
+  onPreviewUrl,
+  onCost,
+  onAgentDone,
+  autoPrompt,
+  onAutoPromptConsumed,
+}) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,10 +50,17 @@ export default function Chat({ projectName, model, onPreviewUrl, onCost, onAgent
     });
   };
 
-  async function send() {
-    const prompt = input.trim();
+  // Sends the "🔧 Corriger" request as soon as the agent is idle
+  useEffect(() => {
+    if (!autoPrompt || busy) return;
+    onAutoPromptConsumed?.();
+    send(autoPrompt);
+  }, [autoPrompt, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function send(textArg) {
+    const prompt = (typeof textArg === "string" ? textArg : input).trim();
     if (!prompt || busy) return;
-    setInput("");
+    if (typeof textArg !== "string") setInput("");
     setBusy(true);
     push({ role: "user", text: prompt });
 

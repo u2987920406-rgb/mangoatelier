@@ -39,6 +39,11 @@
 - **Test de bout en bout réel validé** : demande « titre en vert » sur test-pipeline (haiku, $0.09) → aperçu démarré, 3 outils, version committée, historique complet rechargeable via GET /api/history
 - **Fix rollback qui effaçait l'historique de chat** (trouvé par l'utilisateur) : revenir à une version créée AVANT la fonctionnalité d'historique supprimait `.chat-history.json` (le `.gitignore` de l'époque ne le protégeait pas de `git clean`). `rollbackTo` sauvegarde maintenant l'historique en mémoire, exclut le fichier du clean (`-e`) et le restaure après — test de régression sur le scénario exact ✅
 - **Aperçu restauré au chargement de la page** : avant, l'aperçu restait vide après F5 tant qu'on n'envoyait pas de message. Nouvel endpoint POST `/api/preview/:name` ; l'UI démarre automatiquement l'aperçu du projet sélectionné (debounce 400 ms sur la saisie)
+- **Auto-réparation des erreurs** (priorité 3 de la roadmap — le différenciateur d'Emergent) :
+  - `server/src/relay.ts` : script « error relay » injecté automatiquement dans l'`index.html` des apps générées (idempotent, appliqué au chat et au preview) — capte `window.onerror` + `unhandledrejection` et les remonte à l'UI via `postMessage`
+  - UI : bandeau rouge ⚠ sous la barre d'aperçu (erreurs dédupliquées, max 10) + bouton « 🔧 Corriger » qui envoie la liste des erreurs à l'agent comme message automatique
+  - System prompt : interdiction à l'agent de retirer le script relais
+  - Vérifié : relay injecté dans test-pipeline et servi par l'aperçu (port 5174)
 
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours

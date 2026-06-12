@@ -39,6 +39,32 @@ export default function App() {
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
   const [versions, setVersions] = useState([]);
+  const [previewErrors, setPreviewErrors] = useState([]);
+  const [fixRequest, setFixRequest] = useState(null);
+
+  // Runtime errors reported by the generated app (error-relay script)
+  useEffect(() => {
+    const onMessage = (e) => {
+      const d = e.data;
+      if (!d || d.source !== "mangoai-preview" || !d.message) return;
+      setPreviewErrors((prev) =>
+        prev.includes(d.message) || prev.length >= 10 ? prev : [...prev, d.message],
+      );
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    setPreviewErrors([]);
+  }, [projectName]);
+
+  function requestFix() {
+    if (previewErrors.length === 0) return;
+    const list = previewErrors.map((e) => `- ${e}`).join("\n");
+    setFixRequest(`Corrige ces erreurs détectées dans l'aperçu de l'app :\n${list}`);
+    setPreviewErrors([]);
+  }
 
   useEffect(() => {
     fetch("/api/projects")
@@ -145,11 +171,19 @@ export default function App() {
           onPreviewUrl={setPreviewUrl}
           onCost={(c) => setCost((prev) => prev + c)}
           onAgentDone={() => {
+            setPreviewErrors([]); // the reloaded iframe re-reports anything still broken
             setPreviewKey((k) => k + 1);
             refreshVersions();
           }}
+          autoPrompt={fixRequest}
+          onAutoPromptConsumed={() => setFixRequest(null)}
         />
-        <Preview url={previewUrl} reloadKey={previewKey} />
+        <Preview
+          url={previewUrl}
+          reloadKey={previewKey}
+          errors={previewErrors}
+          onFix={requestFix}
+        />
       </div>
     </div>
   );

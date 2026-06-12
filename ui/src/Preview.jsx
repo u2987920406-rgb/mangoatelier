@@ -1,4 +1,4 @@
-export default function Preview({ url, reloadKey }) {
+export default function Preview({ url, reloadKey, errors = [], onFix }) {
   return (
     <section className="preview">
       <div className="preview-bar">
@@ -10,6 +10,17 @@ export default function Preview({ url, reloadKey }) {
           </a>
         )}
       </div>
+      {errors.length > 0 && (
+        <div className="preview-errors">
+          <span className="preview-errors-text">
+            ⚠ {errors.length} erreur{errors.length > 1 ? "s" : ""} détectée
+            {errors.length > 1 ? "s" : ""} — {errors[0]}
+          </span>
+          <button className="fix-btn" onClick={onFix}>
+            🔧 Corriger
+          </button>
+        </div>
+      )}
       {url ? (
         <iframe key={`${url}-${reloadKey}`} src={url} title="Aperçu de l'app générée" />
       ) : (

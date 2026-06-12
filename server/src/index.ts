@@ -10,6 +10,7 @@ import { createProject, listProjects, projectDir, projectExists } from "./projec
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
+import { ensureErrorRelay } from "./relay.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
@@ -71,6 +72,7 @@ app.post("/api/chat", async (req, res) => {
     } else {
       dir = projectDir(projectName);
     }
+    ensureErrorRelay(dir);
     // Snapshot the pre-agent state so the first rollback point always exists
     await ensureRepo(dir);
     historyDir = dir;
@@ -153,7 +155,9 @@ app.post("/api/preview/:name", async (req, res) => {
     return;
   }
   try {
-    const { url } = await startPreview(projectDir(name));
+    const dir = projectDir(name);
+    ensureErrorRelay(dir);
+    const { url } = await startPreview(dir);
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

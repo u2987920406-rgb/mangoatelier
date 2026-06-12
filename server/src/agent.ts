@@ -21,6 +21,7 @@ Rules:
 - Use Tailwind-free plain CSS (src/index.css or component CSS) unless the user asks otherwise.
 - Do NOT run "npm run dev" or start servers — the host application manages the dev server.
 - Only run npm installs when a new dependency is truly required.
+- Never remove or modify the <script data-mangoai="error-relay"> block in index.html — the host application needs it.
 - Answer the user briefly in French; code and comments stay in English.`;
 
 // Handle to the in-flight query so the HTTP layer can interrupt it.
