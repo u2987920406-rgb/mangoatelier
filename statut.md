@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-12 (session compression de contexte)*
+*Dernière mise à jour : 2026-06-12 (session compression de contexte + raisonnement analytique)*
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
@@ -20,6 +20,7 @@
 - **Boucle d'apprentissage Hermes (5/5)** — mémoire par projet, profil utilisateur inter-projets, skills apprises, revue silencieuse en arrière-plan après chaque tâche, subagents `builder` parallèles (détail : roadmap Hermes ci-dessous)
 - **Panneau « 🧠 Mémoire »** dans le header — voir d'un clic ce que MangoAI sait : le projet, vous, les skills (`GET /api/knowledge/:name`)
 - **Compression de contexte** (context_compressor d'Hermes transposé) — mesure du contexte à chaque tour, compaction proactive en arrière-plan au-delà de 70 % (`server/src/compaction.ts`, résumé en haiku via /compact), jauge de contexte dans le header, ligne « 🗜 » dans l'historique
+- **Raisonnement analytique (Opus/Sonnet)** — extended thinking adaptatif natif du SDK (`thinking: adaptive/summarized`) + règles d'analyse dans le system prompt (3 hypothèses, auto-critique, plan avant code) ; blocs « 🧠 Réflexion » repliables dans le chat, persistés dans l'historique
 - Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
 - **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
 
@@ -61,11 +62,7 @@
 
 ## 🔜 Aussi à faire
 1. ✅ **Compression de contexte** — FAIT (2026-06-12) : `server/src/compaction.ts` — le SDK détient l'historique (pas de liste de messages à découper comme Hermes), donc transposition des CONCEPTS : taille du contexte mesurée sur le dernier appel API de chaque tour (`agent.ts` → événement `result`), au-delà de 70 % de la fenêtre un `/compact` tourne en arrière-plan après la livraison (zéro latence, résumé écrit par haiku, instructions de préservation style Hermes) ; un nouveau message de l'utilisateur interrompt la compaction (best-effort) ; anti-thrashing ; jauge de contexte dans le header (vert/orange/rouge) ; ligne « 🗜 Contexte compressé (42k → 6k tokens) » dans l'historique. Testé e2e : compaction réelle vérifiée dans le transcript (`compact_boundary`), reprise de session avec souvenirs intacts ✅. Seuil réglable via env `COMPACT_THRESHOLD`
-2. **Raisonnement analytique pour Opus/Sonnet (style Fable 5 / o1)** — activer l'**extended thinking natif** de Claude via le SDK (le vrai raisonnement interne du modèle, pas une balise simulée) quand le modèle choisi est Opus ou Sonnet. En complément, le system prompt doit exiger avant chaque réponse technique :
-   - une analyse critique et profonde du besoin ;
-   - l'exploration de 3 hypothèses techniques différentes avant de coder ;
-   - une phase d'auto-critique agressive (sécurité, bugs, intégration avec les skills apprises) ;
-   - un plan d'exécution étape par étape avant de livrer le code
+2. ✅ **Raisonnement analytique pour Opus/Sonnet** — FAIT (2026-06-12) : option `thinking: { type: "adaptive", display: "summarized" }` du SDK quand le modèle ≠ haiku (le thinking adaptatif est LE mode des modèles 4.6+, `budget_tokens` est déprécié) + bloc `ANALYTIC_RULES` dans le system prompt (analyse critique du besoin, 3 hypothèses techniques, auto-critique sécurité/bugs/skills apprises, plan étape par étape — escamoté pour les changements triviaux et le Q&A). Les blocs thinking remontent en SSE (événement `thinking`), s'affichent repliés « 🧠 Réflexion » dans le chat et sont persistés dans l'historique. Testé e2e sur sonnet : le raisonnement analyse le code existant, formule des hypothèses et identifie la vraie cause avant de coder ✅
 3. **Démarrer le plan d'action 90 jours** (cf. `business-model.pdf`, section 8) — première étape : générer 2-3 sites démo avec MangoAI
 4. *(Plus tard)* Supabase pour apps avec données/auth ; tâches planifiées façon cron d'Hermes si besoin
 

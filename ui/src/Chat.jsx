@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Bookmark, Sparkles, Square } from "lucide-react";
+import { ArrowUp, Bookmark, BrainCircuit, Sparkles, Square } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 
 let nextId = 1;
@@ -125,6 +125,9 @@ export default function Chat({
         break;
       case "text":
         push({ role: "agent", text: ev.text });
+        break;
+      case "thinking":
+        push({ role: "thinking", text: ev.text });
         break;
       case "tool":
         push({ role: "tool", name: ev.name, detail: ev.detail });
@@ -259,6 +262,18 @@ function Message({ m }) {
             <ReactMarkdown>{m.text}</ReactMarkdown>
           </div>
         </div>
+      );
+    case "thinking":
+      return (
+        <details className="animate-fade-up max-w-[95%] self-start">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-1 text-xs font-medium text-faint transition-colors hover:text-dim">
+            <BrainCircuit size={12} />
+            Réflexion
+          </summary>
+          <div className="mt-1 rounded-xl border border-edge-soft bg-panel px-3.5 py-2.5 text-xs leading-relaxed text-dim whitespace-pre-wrap break-words">
+            {m.text}
+          </div>
+        </details>
       );
     case "version":
       return (

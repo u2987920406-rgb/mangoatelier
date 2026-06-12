@@ -1,7 +1,7 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-12 — fin de session compression de contexte)
-- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
+## État actuel (2026-06-12 — fin de session compression + raisonnement)
+- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte + raisonnement analytique** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
 - **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog
@@ -21,6 +21,7 @@
 - **Langue** : réponses en français, code/commentaires en anglais
 - **Agent SDK** : contrairement à la doc, le SDK v0.3.x **réutilise le login Claude Code local** — aucune `ANTHROPIC_API_KEY` nécessaire (vérifié le 2026-06-11). `.env` optionnel pour forcer une clé API
 - **Modèle par défaut** : `sonnet` ; la revue en arrière-plan tourne toujours en `haiku` (~$0.02-0.08/revue)
+- **Thinking** : `thinking: { type: "adaptive", display: "summarized" }` pour opus/sonnet (jamais `budget_tokens` — déprécié sur les modèles 4.6+) ; les blocs thinking arrivent comme `block.type === "thinking"` dans les messages assistant du SDK
 - **Multi-tours** : capturer `session_id` du message `type: "result"` puis passer `options.resume` aux tours suivants
 - **cwd absolu obligatoire** pour `query()` (les sessions sont stockées par cwd encodé dans ~/.claude/projects/)
 - **Permissions agent principal** : `permissionMode: "acceptEdits"`, `allowedTools: ["Read","Write","Edit","Bash","Glob","Grep","Agent"]` + `agents: { builder }`

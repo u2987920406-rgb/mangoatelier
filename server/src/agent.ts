@@ -11,6 +11,7 @@ export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 
 export type AgentEvent =
   | { type: "text"; text: string }
+  | { type: "thinking"; text: string }
   | { type: "tool"; name: string; detail: string }
   | {
       type: "result";
@@ -40,6 +41,14 @@ Rules:
 - Answer the user briefly in French; code and comments stay in English.
 - For large requests made of several INDEPENDENT parts (multiple sections, pages or components that don't touch the same files), delegate each part to a "builder" subagent and launch them in parallel (multiple Agent calls in one message), then integrate and verify the result yourself. For small or interdependent changes, work directly — delegation has overhead.
 ${MEMORY_RULES}`;
+
+// Backlog item "raisonnement analytique" — appended only when the chosen model
+// supports native extended thinking (opus/sonnet); haiku stays lightweight.
+const ANALYTIC_RULES = `
+Deep analysis (you run with native extended thinking — use it):
+- Before any substantial technical work (new feature or section, refactor, tricky bug), use your thinking to: critically analyse the real need behind the request; explore 3 different technical approaches and pick one with a short justification; lay out a step-by-step execution plan before writing code.
+- Before delivering, self-review aggressively: bugs, edge cases, security (untrusted input, unsafe links), coherence with the project's conventions and with the learned skills available to you.
+- Skip this ritual for trivial tweaks and pure Q&A — answer directly.`;
 
 // Hermes-style parallel workstreams: an isolated builder subagent that owns
 // one well-scoped slice of the app. Tools restricted to file work — no Bash,
@@ -80,23 +89,32 @@ export async function* runAgent(
   sessionId?: string,
   model?: ModelChoice,
 ): AsyncGenerator<AgentEvent> {
+  const effectiveModel = model ?? DEFAULT_MODEL;
+  // Native extended thinking for the capable models (adaptive = the model
+  // decides when and how much to think; summarized = readable thinking blocks).
+  const analytic = effectiveModel !== "haiku";
   try {
     const q = query({
       prompt,
       options: {
         cwd: projectDir,
-        model: model ?? DEFAULT_MODEL,
+        model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
         allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
         agents: AGENTS,
+        ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
         // Memory is appended per turn as a frozen snapshot (Hermes pattern):
         // mid-turn writes to .memory.md land on disk and are picked up at the
         // start of the NEXT turn, keeping this turn's prompt stable.
         systemPrompt: {
           type: "preset",
           preset: "claude_code",
-          append: SYSTEM_APPEND + memoryPromptSection(projectDir, WORKSPACE_DIR) + skillsPromptSection(),
+          append:
+            SYSTEM_APPEND +
+            (analytic ? ANALYTIC_RULES : "") +
+            memoryPromptSection(projectDir, WORKSPACE_DIR) +
+            skillsPromptSection(),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },
@@ -117,6 +135,8 @@ export async function* runAgent(
         for (const block of message.message.content) {
           if (block.type === "text" && block.text.trim()) {
             yield { type: "text", text: block.text };
+          } else if (block.type === "thinking" && block.thinking?.trim()) {
+            yield { type: "thinking", text: block.thinking };
           } else if (block.type === "tool_use") {
             yield { type: "tool", name: block.name, detail: summarizeToolInput(block.name, block.input) };
           }

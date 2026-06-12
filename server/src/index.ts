@@ -71,6 +71,7 @@ app.post("/api/chat", async (req, res) => {
     turn.push({ role, text, ts: new Date().toISOString() });
   const recordEvent = (event: AgentEvent) => {
     if (event.type === "text") record("agent", event.text);
+    else if (event.type === "thinking") record("thinking", event.text);
     else if (event.type === "tool") record("tool", formatToolLine(event.name, event.detail));
     else if (event.type === "error") record("error", event.message);
     else if (event.type === "result" && !event.ok) record("error", `L'agent s'est arrêté : ${event.error}`);

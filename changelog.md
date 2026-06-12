@@ -1,5 +1,11 @@
 # Changelog — MangoAI
 
+## 2026-06-12 — Session 6 (suite) : raisonnement analytique pour Opus/Sonnet
+- **Extended thinking natif** : option `thinking: { type: "adaptive", display: "summarized" }` du Claude Agent SDK quand le modèle choisi ≠ haiku (`server/src/agent.ts`) — le thinking adaptatif est le mode recommandé des modèles 4.6+ (`budget_tokens` déprécié, vérifié via le skill claude-api) ; `display: "summarized"` rend les blocs lisibles
+- **Règles analytiques** (`ANALYTIC_RULES` dans le system prompt, mêmes modèles) : analyse critique du besoin réel, exploration de 3 approches techniques, auto-critique agressive (bugs, edge cases, sécurité, cohérence avec conventions et skills apprises), plan d'exécution avant le code — escamoté pour les tweaks triviaux et le Q&A
+- **Flux & UI** : nouvel événement `thinking` (SSE) émis pour chaque bloc thinking non vide, rôle `thinking` dans l'historique (`history.ts`), rendu replié « 🧠 Réflexion » (`<details>`) dans le chat, discret et dépliable
+- **Test e2e** (sonnet, vraie tâche : bouton scroll-top qui doit disparaître en haut de page) : 2 blocs de raisonnement visibles — analyse du code existant, hypothèses, identification de la vraie cause (scroll events pendant le smooth scroll) avant l'édition ; $0.34, 6 tours, session/contexte intacts, 2 entrées `thinking` persistées ✅ ; `tsc --noEmit` propre, 0 erreur Vite
+
 ## 2026-06-12 — Session 6 : compression de contexte (context_compressor d'Hermes transposé)
 - **Différence d'architecture identifiée** : Hermes possède sa liste de messages et la réécrit (seuil %, tête/queue protégées, résumé par modèle auxiliaire) ; MangoAI délègue l'historique au Claude Agent SDK (`resume: sessionId`) → transposition des concepts sur les primitives du SDK plutôt que portage du code
 - **Mesure** : `agent.ts` capture l'usage du dernier appel API du tour principal (input + cache tokens = taille réelle du contexte, subagents exclus via `parent_tool_use_id`) et la fenêtre du modèle (`modelUsage.contextWindow`) → champs `contextTokens`/`contextWindow` sur l'événement `result`

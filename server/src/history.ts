@@ -6,7 +6,7 @@ import fs from "node:fs";
 export const HISTORY_FILE_NAME = ".chat-history.json";
 
 export type ChatEntry = {
-  role: "user" | "agent" | "tool" | "error" | "status";
+  role: "user" | "agent" | "thinking" | "tool" | "error" | "status";
   text: string;
   ts: string;
 };
