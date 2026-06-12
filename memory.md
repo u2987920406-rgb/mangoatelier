@@ -4,7 +4,7 @@
 - **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte + raisonnement analytique + robustesse des magasins + mode vision en boucle fermée** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
-- **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog
+- **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog ; et TOUJOURS montrer à l'utilisateur le tableau « 💡 Idées en attente » (tout en haut de `statut.md`) au démarrage d'une session, avant de coder quoi que ce soit
 
 ## Boucle d'apprentissage (architecture Hermes transposée)
 - **3 magasins**, tous dans `workspace/` (git-ignoré, hors zip, survivent au rollback) :

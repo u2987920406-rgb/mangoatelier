@@ -2,6 +2,17 @@
 
 *Dernière mise à jour : 2026-06-13 (session mode vision avancé — jalon 2)*
 
+## 💡 Idées en attente — à relire avant de commencer à coder
+
+| # | Idée | Détail | Priorité | Statut |
+|---|------|--------|----------|--------|
+| 1 | **Agent QA temporel** (time-travel debugging visuel) | Capturer des séquences animées (mini-vidéos/GIF 3-5 s via Playwright) pendant les simulations : analyser transitions CSS, boucles d'animation, bugs de collision en mouvement — au-delà de la capture statique | à définir | 💤 en attente |
+| 2 | **Design pair-programming** (canevas collaboratif) | L'agent dessine un calque semi-transparent sur l'aperçu live pour MONTRER ses propositions (re-paddings, déplacements de boutons) avant d'écrire le moindre patch | à définir | 💤 en attente |
+| 3 | **Généalogie visuelle** (rollback graphique) | Associer chaque version git à sa snapshot de validation → time-line visuelle type Figma : survoler l'historique, comparer les rendus passés, rollback d'un clic sur l'image | à définir | 💤 en attente |
+| 4 | **Documentation multimodale autonome** | À la clôture d'un grand jalon, l'agent recycle ses captures/crops/zooms pour rédiger seul un guide illustré ou un changelog visuel (captures fléchées et expliquées) | à définir | 💤 en attente |
+
+*Source : `D:\IA\idée d'amelioration MangoAi.md.md` — vision long terme : passer d'un agent réactif à un système autonome prédictif et collaboratif.*
+
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
 - Backend Express + Claude Agent SDK (port 3000) — auth via login Claude Code local, pas de clé API
