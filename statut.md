@@ -69,12 +69,13 @@
 4. *(Plus tard)* Supabase pour apps avec données/auth ; tâches planifiées façon cron d'Hermes si besoin
 
 ## 🚀 Pour relancer après redémarrage
+*(Projet déplacé sur D: le 2026-06-12 — libération du disque C ; ouvrir les sessions Claude Code dans `D:\IA\mangoai`)*
 ```
-cd C:\Users\PC-DELL\mangoai\server
+cd D:\IA\mangoai\server
 npm run start
 ```
 ```
-cd C:\Users\PC-DELL\mangoai\ui
+cd D:\IA\mangoai\ui
 npm run dev
 ```
 Puis ouvrir **http://localhost:5173** — les conversations des projets reprennent automatiquement (sessions persistées).
