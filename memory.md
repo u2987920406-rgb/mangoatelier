@@ -1,15 +1,15 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-11)
+## État actuel (2026-06-12)
 - **MVP terminé et testé de bout en bout** ✅ (génération pizzeria + itération avec contexte de session)
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli)
 - Sessions persistées dans `server/sessions.json` (non committé) — le frontend n'a plus besoin de garder le sessionId, le backend reprend automatiquement
 - Choix du modèle dans l'UI (haiku/sonnet/opus) — le modèle peut changer en cours de session, le resume garde le contexte
 - Export zip : GET /api/export/:name — note : archiver v8 est ESM pur, importer `{ ZipArchive }` (pas de default export)
-- Backlog restant : historique de chat persisté (PRIORITÉ prochaine session — voir statut.md)
-- Prochaine session : ① ajouter l'historique de chat persisté ② discussion « viabilité de cette IA » en plan mode (l'utilisateur apportera ses infos)
-- Node v25.9.0, npm 11.12.1
+- Historique de chat persisté : FAIT — `workspace/<projet>/.chat-history.json` (exclu git/zip), endpoint `GET /api/history/:name`, rechargé par l'UI à l'ouverture du projet (`ui/src/Chat.jsx`)
+- Roadmap concurrence (rollback git, auto-réparation, templates, déploiement Cloudflare) : tout FAIT — voir statut.md
+- **Refonte UI FAITE** (2026-06-12) : Tailwind v4 + lucide-react + react-markdown, écran d'accueil Home + workspace repolie, toasts/modal custom — voir design.md et changelog.md. Vérifiée sous Edge headless, 0 erreur console
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais

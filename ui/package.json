@@ -8,8 +8,12 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "lucide-react": "^1.17.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",

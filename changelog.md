@@ -61,3 +61,12 @@
 - **Renommage Mini-Lovable → MangoAI** : UI (logo 🥭, titre), packages (`mangoai-ui`/`mangoai-server`), docs, business model
 - Dépôt GitHub renommé : https://github.com/u2987920406-rgb/mangoai (l'ancienne URL redirige)
 - Dossier local renommé : `C:\Users\PC-DELL\mangoai`
+
+## 2026-06-12 — Session 4 : refonte UI « niveau 5,5 M d'abonnés »
+- **Stack** : Tailwind CSS v4 (`@tailwindcss/vite`, tokens `@theme`), lucide-react (icônes SVG), react-markdown — Inter chargée via Google Fonts
+- **Écran d'accueil** (`ui/src/components/Home.jsx`) : hero avec halo violet, grande carte prompt + nom de projet auto-slugifié, cartes templates, suggestions cliquables, grille projets récents
+- **Workspace repolie** : header épuré (`Header.jsx` + `Dropdown.jsx` custom : modèle, versions, zip, Publier, coût), chat avec rendu markdown + groupes d'actions repliables (`ToolGroup.jsx`) + shimmer pendant la génération, preview avec barre navigateur, toggle desktop/mobile (390px) et cadre arrondi ombré
+- **Feedback custom** : toasts (`Toast.jsx`) et modal de confirmation (`ConfirmModal.jsx`) remplacent `alert()`/`confirm()`
+- Toute la logique conservée (SSE, sessions, relay d'erreurs + Corriger, rollback, deploy, export) — aucun changement backend
+- Vérifié sous Edge headless (Playwright) : Home, ouverture projet, historique markdown, dropdowns, modal rollback, mode mobile, retour Home — 0 erreur console
+- `design.md` réécrit pour refléter le nouveau design system
