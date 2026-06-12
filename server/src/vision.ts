@@ -168,6 +168,44 @@ const snapshotTool = tool(
   },
 );
 
+/** User-initiated zone capture (the chat's Snap button): renders the preview
+ * at the exact viewport size the user sees (the iframe's CSS size) and crops
+ * to the drawn box, so the capture matches the screen. PNG for crisp text
+ * (the agent may OCR code/text from it). Does NOT consume the agent's vision
+ * budget — this is the user's hand, not the agent's eyes. */
+export async function snapZone(
+  url: string,
+  viewport: { width: number; height: number },
+  box: { x: number; y: number; width: number; height: number },
+): Promise<Buffer> {
+  const b = await getBrowser();
+  const context = await b.newContext({
+    viewport: {
+      width: Math.max(50, Math.round(viewport.width)),
+      height: Math.max(50, Math.round(viewport.height)),
+    },
+    deviceScaleFactor: 2, // crisp text for OCR
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: "load", timeout: 10_000 });
+    await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    return await page.screenshot({
+      type: "png",
+      clip: {
+        x: Math.max(0, Math.round(box.x)),
+        y: Math.max(0, Math.round(box.y)),
+        width: Math.max(8, Math.round(box.width)),
+        height: Math.max(8, Math.round(box.height)),
+      },
+    });
+  } finally {
+    await context.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
 function text(message: string, isError = false) {
   return { content: [{ type: "text" as const, text: message }], ...(isError ? { isError: true } : {}) };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Bookmark, BrainCircuit, Paperclip, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Bookmark, BrainCircuit, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 
 let nextId = 1;
@@ -32,6 +32,72 @@ export default function Chat({
     if (valid.length === 0) return;
     setAttachments((prev) => [...prev, ...valid].slice(0, 6));
   };
+
+  // Snap mode: the user draws a rectangle over the preview; the backend
+  // re-renders the preview at the iframe's exact size and crops that zone.
+  const [snapMode, setSnapMode] = useState(false);
+  const [snapBusy, setSnapBusy] = useState(false);
+  const [snapRect, setSnapRect] = useState(null); // {x, y, w, h} viewport coords
+  const snapStart = useRef(null);
+
+  useEffect(() => {
+    if (!snapMode) return;
+    const onKey = (e) => e.key === "Escape" && cancelSnap();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [snapMode]);
+
+  const cancelSnap = () => {
+    setSnapMode(false);
+    setSnapRect(null);
+    snapStart.current = null;
+  };
+
+  async function finishSnap() {
+    const rect = snapRect;
+    cancelSnap();
+    if (!rect || rect.w < 8 || rect.h < 8) return;
+    const iframe = document.querySelector("iframe");
+    if (!iframe) {
+      push({ role: "status", text: "Aucun aperçu à capturer — lance d'abord l'app." });
+      return;
+    }
+    // Intersect the drawn rectangle with the preview iframe
+    const r = iframe.getBoundingClientRect();
+    const x1 = Math.max(rect.x, r.left);
+    const y1 = Math.max(rect.y, r.top);
+    const x2 = Math.min(rect.x + rect.w, r.right);
+    const y2 = Math.min(rect.y + rect.h, r.bottom);
+    if (x2 - x1 < 8 || y2 - y1 < 8) {
+      push({ role: "status", text: "La zone capturée doit recouvrir l'aperçu (panneau de droite)." });
+      return;
+    }
+    setSnapBusy(true);
+    try {
+      const res = await fetch("/api/snap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectName,
+          viewport: { width: Math.round(r.width), height: Math.round(r.height) },
+          box: {
+            x: Math.round(x1 - r.left),
+            y: Math.round(y1 - r.top),
+            width: Math.round(x2 - x1),
+            height: Math.round(y2 - y1),
+          },
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error ?? `Erreur HTTP ${res.status}`);
+      const bytes = Uint8Array.from(atob(d.data), (c) => c.charCodeAt(0));
+      addFiles([new File([bytes], "capture-zone.png", { type: "image/png" })]);
+    } catch (err) {
+      push({ role: "error", text: `Capture impossible : ${err.message ?? err}` });
+    } finally {
+      setSnapBusy(false);
+    }
+  }
 
   // Switching projects = different conversation; the backend will resume
   // the project's stored session on the next message. The persisted chat
@@ -188,6 +254,36 @@ export default function Chat({
 
   return (
     <section className="flex w-2/5 min-w-[360px] flex-col border-r border-edge bg-panel">
+      {snapMode && (
+        <div
+          className="fixed inset-0 z-50 cursor-crosshair bg-black/30"
+          onMouseDown={(e) => {
+            snapStart.current = { x: e.clientX, y: e.clientY };
+            setSnapRect({ x: e.clientX, y: e.clientY, w: 0, h: 0 });
+          }}
+          onMouseMove={(e) => {
+            const s = snapStart.current;
+            if (!s) return;
+            setSnapRect({
+              x: Math.min(s.x, e.clientX),
+              y: Math.min(s.y, e.clientY),
+              w: Math.abs(e.clientX - s.x),
+              h: Math.abs(e.clientY - s.y),
+            });
+          }}
+          onMouseUp={finishSnap}
+        >
+          <div className="pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-xl border border-edge bg-panel px-4 py-2 text-sm text-dim shadow-lg">
+            Glisse pour capturer une zone de l'aperçu — Échap pour annuler
+          </div>
+          {snapRect && snapRect.w > 0 && (
+            <div
+              className="pointer-events-none absolute border-2 border-accent bg-accent/10"
+              style={{ left: snapRect.x, top: snapRect.y, width: snapRect.w, height: snapRect.h }}
+            />
+          )}
+        </div>
+      )}
       <div ref={listRef} className="nice-scroll flex flex-1 flex-col gap-2.5 overflow-y-auto p-4">
         {messages.length === 0 && !busy && (
           <div className="m-auto flex flex-col items-center gap-3 text-center text-dim">
@@ -229,7 +325,7 @@ export default function Chat({
                   key={`${f.name}-${i}`}
                   className="flex items-center gap-1.5 rounded-lg border border-edge bg-panel px-2 py-1 text-xs text-dim"
                 >
-                  <Paperclip size={10} className="shrink-0 text-accent-soft" />
+                  <AttachmentThumb file={f} />
                   <span className="max-w-40 truncate">{f.name}</span>
                   <button
                     onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
@@ -262,6 +358,16 @@ export default function Chat({
               e.target.value = "";
             }}
           />
+          <button
+            onClick={() => setSnapMode(true)}
+            disabled={busy || snapBusy}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+              snapBusy ? "animate-pulse text-accent" : "text-faint hover:text-ink"
+            }`}
+            title="Snap : capturer une zone de l'aperçu"
+          >
+            <Scan size={16} />
+          </button>
           <textarea
             ref={inputRef}
             value={input}
@@ -310,6 +416,20 @@ export default function Chat({
       </div>
     </section>
   );
+}
+
+// Image attachments get a live thumbnail in their chip; other files (PDF)
+// keep the paperclip icon. The object URL is revoked on unmount.
+function AttachmentThumb({ file }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    if (!file.type?.startsWith("image/")) return undefined;
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  if (!url) return <Paperclip size={10} className="shrink-0 text-accent-soft" />;
+  return <img src={url} alt="" className="h-5 w-5 shrink-0 rounded object-cover" />;
 }
 
 // Collapse consecutive tool messages into one expandable group

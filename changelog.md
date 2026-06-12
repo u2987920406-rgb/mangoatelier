@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 8 (suite 2) : bouton Snap — capture interactive d'une zone de l'aperçu
+- **Pourquoi côté backend** : l'iframe de l'aperçu est cross-origin → impossible de capturer son contenu depuis le frontend ; l'overlay dessine la bounding box, le backend re-rend l'aperçu **à la taille exacte de l'iframe** (le rendu correspond à l'écran) et croppe la zone via l'infra Playwright du jalon vision
+- **Backend** : `snapZone(url, viewport, box)` dans `vision.ts` (PNG net ×2 pour l'OCR, hors budget vision — c'est la main de l'utilisateur, pas les yeux de l'agent) ; endpoint `POST /api/snap` (validation des nombres, 409 si l'agent travaille sur un autre projet, réutilise l'aperçu en cours)
+- **UI (`Chat.jsx`)** : bouton Snap (icône viseur Scan) à côté du trombone → overlay plein écran (fond assombri, curseur crosshair, bandeau d'aide, Échap pour annuler) → rectangle dessiné au glisser → intersection avec l'iframe → capture → fichier `capture-zone.png` injecté dans les pièces jointes existantes (validation = envoi normal du message) ; les chips affichent désormais une **vignette** pour les images (object URL révoqué au démontage)
+- **Règle agent** : une `capture-zone.png` jointe déclenche la double analyse — transcription exacte du texte/code (OCR) + analyse du contexte visuel (bug, layout)
+- **Tests** : API `/api/snap` → PNG valide, crop exact vérifié à l'œil ✅ ; e2e headless du flux complet (clic Snap → overlay → glisser sur l'aperçu → chip avec vignette, 0 erreur console) ✅ ; `tsc --noEmit` propre
+- Limite assumée : la capture re-rend la page (état initial) — les interactions faites à la main dans l'iframe (modal ouverte…) n'y figurent pas
+
 ## 2026-06-13 — Session 8 (suite) : Tailwind v4 préinstallé dans les apps générées
 - **Demande** : le clonage d'UI depuis maquette doit se faire en Tailwind v4 (jalon « Phase 1 » — par ailleurs entièrement couvert par le jalon 2 déjà livré, vérification point par point faite)
 - **Template de base** : `tailwindcss` + `@tailwindcss/vite` en devDependencies, plugin dans `vite.config.js`, `@import "tailwindcss"` en tête de `src/index.css` — chaque nouveau projet naît avec Tailwind v4 prêt à l'emploi

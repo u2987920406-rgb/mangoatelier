@@ -18,7 +18,7 @@ import { deployProject } from "./deploy.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
-import { SNAPSHOTS_DIR_NAME, setVisionContext } from "./vision.js";
+import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone } from "./vision.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -205,6 +205,43 @@ app.post(
     }
   },
 );
+
+// Snap button: captures a user-drawn zone of the live preview and returns it
+// as a base64 PNG that the UI attaches to the next message.
+app.post("/api/snap", async (req, res) => {
+  const { projectName, viewport, box } = req.body as {
+    projectName?: string;
+    viewport?: { width?: number; height?: number };
+    box?: { x?: number; y?: number; width?: number; height?: number };
+  };
+  const nums = [viewport?.width, viewport?.height, box?.x, box?.y, box?.width, box?.height];
+  if (!projectName?.trim() || nums.some((n) => typeof n !== "number" || !Number.isFinite(n))) {
+    res.status(400).json({ error: "projectName, viewport and box are required" });
+    return;
+  }
+  if (!projectExists(projectName)) {
+    res.status(404).json({ error: `Project "${projectName}" not found` });
+    return;
+  }
+  const dir = projectDir(projectName);
+  // Reusing the running preview is always safe; switching the preview to
+  // another project while the agent works is not.
+  if (agentBusy && previewStatus().projectDir !== dir) {
+    res.status(409).json({ error: "L'agent travaille — la capture suivra le projet actif" });
+    return;
+  }
+  try {
+    const { url } = await startPreview(dir);
+    const buf = await snapZone(
+      url,
+      viewport as { width: number; height: number },
+      box as { x: number; y: number; width: number; height: number },
+    );
+    res.json({ data: buf.toString("base64") });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
 
 // Start (or reuse) the live preview of an existing project — lets the UI
 // restore the preview on page load without sending a message first
