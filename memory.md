@@ -1,32 +1,36 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-12)
-- **MVP terminé et testé de bout en bout** ✅ (génération pizzeria + itération avec contexte de session)
+## État actuel (2026-06-12 — fin de session Hermes)
+- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5)** : tout est FAIT, testé de bout en bout et poussé — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
-- Projet de test : `workspace/test-pipeline/` (landing Bella Napoli)
-- Sessions persistées dans `server/sessions.json` (non committé) — le frontend n'a plus besoin de garder le sessionId, le backend reprend automatiquement
-- Choix du modèle dans l'UI (haiku/sonnet/opus) — le modèle peut changer en cours de session, le resume garde le contexte
-- Export zip : GET /api/export/:name — note : archiver v8 est ESM pur, importer `{ ZipArchive }` (pas de default export)
-- Historique de chat persisté : FAIT — `workspace/<projet>/.chat-history.json` (exclu git/zip), endpoint `GET /api/history/:name`, rechargé par l'UI à l'ouverture du projet (`ui/src/Chat.jsx`)
-- Roadmap concurrence (rollback git, auto-réparation, templates, déploiement Cloudflare) : tout FAIT — voir statut.md
-- **Refonte UI FAITE** (2026-06-12) : Tailwind v4 + lucide-react + react-markdown, écran d'accueil Home + workspace repolie, toasts/modal custom — voir design.md et changelog.md. Vérifiée sous Edge headless, 0 erreur console
-- **Mémoire par projet FAITE** (2026-06-12) : `workspace/<projet>/.memory.md`, snapshot injecté au system prompt à chaque tour (`server/src/memory.ts`), survit au rollback, exclu git/zip — concepts extraits du code source d'Hermes Agent (clone d'étude : `C:\Users\PC-DELL\hermes-agent-study`, à NE PAS committer)
-- **Revue en arrière-plan FAITE** (2026-06-12) : `server/src/review.ts` — agent haiku silencieux après chaque tour réussi, cure les deux magasins de mémoire (c'est lui qui cure, plus l'agent principal)
-- **Profil utilisateur global FAIT** (2026-06-12) : `workspace/.user-profile.md` (USER.md d'Hermes) — préférences transverses injectées dans tous les projets, routage général/spécifique par la revue
-- **Skills apprises FAITES** (2026-06-12) : `workspace/.skills/<nom>/SKILL.md` (`server/src/skills.ts`), divulgation progressive, curation par la revue (3 magasins)
-- **Subagents FAITS** (2026-06-12) : agent `builder` via `options.agents` du SDK, délégation parallèle pour les gros chantiers indépendants — **roadmap Hermes 5/5 complète** 🎉. L'agent n'a plus le droit de lancer git (le backend versionne)
-- **Panneau mémoire UI FAIT** (2026-06-12) : bouton « 🧠 Mémoire » dans le header → 3 sections (projet/profil/skills), `GET /api/knowledge/:name` + `ui/src/components/Knowledge.jsx`. Playwright est en devDependency de l'UI pour les vérifs headless (channel msedge)
+- Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
+- **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog
+
+## Boucle d'apprentissage (architecture Hermes transposée)
+- **3 magasins**, tous dans `workspace/` (git-ignoré, hors zip, survivent au rollback) :
+  - `workspace/<projet>/.memory.md` — faits du projet (design, conventions) ; snapshot gelé injecté au system prompt à chaque tour (`server/src/memory.ts`)
+  - `workspace/.user-profile.md` — préférences inter-projets de l'utilisateur (ton, typo)
+  - `workspace/.skills/<nom-classe>/SKILL.md` — savoir-faire réutilisable ; divulgation progressive : seules les métadonnées au prompt, lecture à la demande (`server/src/skills.ts`)
+- **Qui écrit ?** La revue en arrière-plan (`server/src/review.ts`) : agent haiku silencieux, fire-and-forget après chaque tour livré sans erreur, cwd = workspace, outils Read/Write/Edit, verrou anti-empilement, pas de récursion. L'agent principal ne cure PAS (sauf demande explicite de l'utilisateur)
+- **Subagents** : agent `builder` via `options.agents` du SDK — outils fichiers seulement (pas de Bash → pas de conflit npm/preview entre builders), délégation réservée aux gros chantiers à volets indépendants
+- **Panneau « 🧠 Mémoire »** dans le header : `GET /api/knowledge/:name` + `ui/src/components/Knowledge.jsx` (fetch à l'ouverture du menu = toujours frais)
+- Clone d'étude Hermes : `C:\Users\PC-DELL\hermes-agent-study` — à NE PAS committer ; y retourner pour la compression de contexte (`agent/conversation_loop.py`, `context_compressor`)
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais
-- **Agent SDK** : contrairement à la doc, le SDK v0.3.x **réutilise le login Claude Code local** — aucune `ANTHROPIC_API_KEY` nécessaire (vérifié le 2026-06-11, coût ~$0.17-0.19 par génération). `.env` optionnel pour forcer une clé API
-- **Modèle par défaut** : `sonnet` (économie pendant l'apprentissage) — configurable dans `server/src/agent.ts`
+- **Agent SDK** : contrairement à la doc, le SDK v0.3.x **réutilise le login Claude Code local** — aucune `ANTHROPIC_API_KEY` nécessaire (vérifié le 2026-06-11). `.env` optionnel pour forcer une clé API
+- **Modèle par défaut** : `sonnet` ; la revue en arrière-plan tourne toujours en `haiku` (~$0.02-0.08/revue)
 - **Multi-tours** : capturer `session_id` du message `type: "result"` puis passer `options.resume` aux tours suivants
 - **cwd absolu obligatoire** pour `query()` (les sessions sont stockées par cwd encodé dans ~/.claude/projects/)
-- **Permissions agent** : `permissionMode: "acceptEdits"`, `allowedTools: ["Read","Write","Edit","Bash","Glob","Grep"]`
+- **Permissions agent principal** : `permissionMode: "acceptEdits"`, `allowedTools: ["Read","Write","Edit","Bash","Glob","Grep","Agent"]` + `agents: { builder }`
+- **Interdits à l'agent** (system prompt) : lancer le dev server, toucher au script error-relay, lancer git (le backend versionne chaque tour)
 - Un seul projet généré actif à la fois (un seul dev server preview sur le port 5174)
+- Export zip : archiver v8 est ESM pur, importer `{ ZipArchive }` (pas de default export)
 
 ## Décisions prises
 - Template React+Vite pré-copié dans `server/template/` (plus rapide que `npm create vite` à chaque projet)
 - Streaming backend → frontend en SSE (pas de WebSocket, plus simple)
 - TypeScript exécuté via `tsx` (pas de build step en dev)
+- Limites mémoire en **caractères** (6 000 projet / 3 000 profil), pas en tokens — indépendant du modèle (pattern Hermes)
+- Posture de la revue skills : **active** (« une passe qui ne sauve rien est une occasion manquée ») mais noms niveau classe et pas de skill pour les tours Q&A — calibré après essai
+- Playwright en devDependency de l'UI (channel msedge) pour les vérifications headless ; jamais committer les captures

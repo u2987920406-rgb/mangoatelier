@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-12 (session roadmap concurrence)*
+*Dernière mise à jour : 2026-06-12 (session Hermes — boucle d'apprentissage complète)*
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
@@ -16,6 +16,9 @@
 - Auto-réparation des erreurs — les erreurs runtime de l'app générée remontent dans un bandeau ⚠, bouton « 🔧 Corriger » qui les envoie à l'agent
 - Templates de démarrage — 4 starters (vitrine, e-commerce, dashboard, blog) sélectionnables à la création d'un projet
 - Déploiement 1-clic — bouton « 🚀 Publier » vers Cloudflare Pages (nécessite `npx wrangler login` une fois)
+- **Refonte UI complète** — Tailwind v4 + lucide-react + react-markdown : écran d'accueil (hero, templates, projets récents), workspace repolie (dropdowns, toasts, modal, mode mobile)
+- **Boucle d'apprentissage Hermes (5/5)** — mémoire par projet, profil utilisateur inter-projets, skills apprises, revue silencieuse en arrière-plan après chaque tâche, subagents `builder` parallèles (détail : roadmap Hermes ci-dessous)
+- **Panneau « 🧠 Mémoire »** dans le header — voir d'un clic ce que MangoAI sait : le projet, vous, les skills (`GET /api/knowledge/:name`)
 - Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
 - **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
 
@@ -56,7 +59,14 @@
 6. Système prompt durci : interdiction des commandes git à l'agent (le backend versionne déjà chaque tour)
 
 ## 🔜 Aussi à faire
-- **Démarrer le plan d'action 90 jours** (cf. `business-model.pdf`, section 8) — première étape : générer 2-3 sites démo avec MangoAI
+1. **Compression de contexte** (à faire d'abord) — transposer le mécanisme `context_compressor` d'Hermes (`agent/conversation_loop.py` du clone d'étude) : compresser les vieux messages des très longues sessions pour ne jamais saturer la fenêtre de contexte de l'agent (les N premiers et derniers messages restent protégés)
+2. **Raisonnement analytique pour Opus/Sonnet (style Fable 5 / o1)** — activer l'**extended thinking natif** de Claude via le SDK (le vrai raisonnement interne du modèle, pas une balise simulée) quand le modèle choisi est Opus ou Sonnet. En complément, le system prompt doit exiger avant chaque réponse technique :
+   - une analyse critique et profonde du besoin ;
+   - l'exploration de 3 hypothèses techniques différentes avant de coder ;
+   - une phase d'auto-critique agressive (sécurité, bugs, intégration avec les skills apprises) ;
+   - un plan d'exécution étape par étape avant de livrer le code
+3. **Démarrer le plan d'action 90 jours** (cf. `business-model.pdf`, section 8) — première étape : générer 2-3 sites démo avec MangoAI
+4. *(Plus tard)* Supabase pour apps avec données/auth ; tâches planifiées façon cron d'Hermes si besoin
 
 ## 🚀 Pour relancer après redémarrage
 ```
