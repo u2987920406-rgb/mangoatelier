@@ -15,6 +15,7 @@
 - **Profil utilisateur global FAIT** (2026-06-12) : `workspace/.user-profile.md` (USER.md d'Hermes) — préférences transverses injectées dans tous les projets, routage général/spécifique par la revue
 - **Skills apprises FAITES** (2026-06-12) : `workspace/.skills/<nom>/SKILL.md` (`server/src/skills.ts`), divulgation progressive, curation par la revue (3 magasins)
 - **Subagents FAITS** (2026-06-12) : agent `builder` via `options.agents` du SDK, délégation parallèle pour les gros chantiers indépendants — **roadmap Hermes 5/5 complète** 🎉. L'agent n'a plus le droit de lancer git (le backend versionne)
+- **Panneau mémoire UI FAIT** (2026-06-12) : bouton « 🧠 Mémoire » dans le header → 3 sections (projet/profil/skills), `GET /api/knowledge/:name` + `ui/src/components/Knowledge.jsx`. Playwright est en devDependency de l'UI pour les vérifs headless (channel msedge)
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais

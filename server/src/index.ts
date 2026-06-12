@@ -6,7 +6,9 @@ import { ZipArchive } from "archiver";
 import path from "node:path";
 import { ALLOWED_MODELS, interruptAgent, runAgent, type AgentEvent, type ModelChoice } from "./agent.js";
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
-import { createProject, listProjects, listTemplates, projectDir, projectExists } from "./projects.js";
+import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
+import { loadMemory, loadUserProfile } from "./memory.js";
+import { listSkills } from "./skills.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
@@ -189,6 +191,16 @@ app.post("/api/deploy/:name", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// What the agent has learned: project memory, user profile, skill library
+app.get("/api/knowledge/:name", (req, res) => {
+  const name = req.params.name;
+  res.json({
+    memory: projectExists(name) ? loadMemory(projectDir(name)) : "",
+    profile: loadUserProfile(WORKSPACE_DIR),
+    skills: listSkills().map(({ name: skill, description }) => ({ name: skill, description })),
+  });
 });
 
 // Persisted chat history of a project (empty for unknown/new projects)

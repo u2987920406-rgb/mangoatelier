@@ -1,5 +1,6 @@
-import { Brain, Download, Gauge, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
+import { Brain, BrainCircuit, Download, Gauge, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
+import Knowledge from "./Knowledge.jsx";
 
 const MODELS = [
   { id: "haiku", label: "Haiku", hint: "Rapide, projets simples", icon: Zap },
@@ -53,6 +54,18 @@ export default function Header({
             <span className="truncate">{deployedUrl.replace("https://", "")}</span>
           </a>
         )}
+
+        <Dropdown
+          width="w-96"
+          button={
+            <>
+              <BrainCircuit size={14} className="text-accent-soft" />
+              Mémoire
+            </>
+          }
+        >
+          <Knowledge projectName={projectName} />
+        </Dropdown>
 
         <Dropdown
           button={
