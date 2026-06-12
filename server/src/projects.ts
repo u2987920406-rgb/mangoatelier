@@ -39,7 +39,9 @@ export function listTemplates(): string[] {
 /** Copies the base template (+ optional starter overlay) and installs dependencies. */
 export async function createProject(name: string, template?: string): Promise<string> {
   const dir = projectDir(name);
-  if (fs.existsSync(dir)) throw new Error(`Project "${name}" already exists`);
+  // The dir may pre-exist with only .assets/ in it (attachments uploaded with
+  // the very first message) — only a scaffolded project blocks creation.
+  if (projectExists(name)) throw new Error(`Project "${name}" already exists`);
   if (template && !listTemplates().includes(template)) {
     throw new Error(`Unknown template "${template}"`);
   }

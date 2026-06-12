@@ -27,7 +27,10 @@ function hasRepo(dir: string): boolean {
 // versioned: a rollback should restore the code, not erase the conversation
 // or what the agent has learned.
 const PRESERVED_FILES = [HISTORY_FILE_NAME, MEMORY_FILE_NAME];
-const IGNORED = ["node_modules/", "dist/", ...PRESERVED_FILES];
+// User-uploaded attachments and vision snapshots: inputs/artifacts, not code —
+// never versioned, and a rollback's clean must not delete them.
+const PRESERVED_DIRS = [".assets", ".snapshots"];
+const IGNORED = ["node_modules/", "dist/", ...PRESERVED_FILES, ...PRESERVED_DIRS.map((d) => `${d}/`)];
 
 function ensureGitignore(dir: string): void {
   const gitignore = path.join(dir, ".gitignore");
@@ -79,7 +82,11 @@ export async function rollbackTo(dir: string, hash: string): Promise<void> {
   }
   await git(dir, ["reset", "--hard", hash]);
   // respects .gitignore → node_modules untouched
-  await git(dir, ["clean", "-fd", ...PRESERVED_FILES.flatMap((name) => ["-e", name])]);
+  await git(dir, [
+    "clean",
+    "-fd",
+    ...[...PRESERVED_FILES, ...PRESERVED_DIRS].flatMap((name) => ["-e", name]),
+  ]);
   for (const [file, content] of saved) fs.writeFileSync(file, content);
 }
 

@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-12 (session robustesse + isolation — jalon 1)*
+*Dernière mise à jour : 2026-06-13 (session mode vision avancé — jalon 2)*
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
@@ -22,6 +22,7 @@
 - **Compression de contexte** (context_compressor d'Hermes transposé) — mesure du contexte à chaque tour, compaction proactive en arrière-plan au-delà de 70 % (`server/src/compaction.ts`, résumé en haiku via /compact), jauge de contexte dans le header, ligne « 🗜 » dans l'historique
 - **Raisonnement analytique (Opus/Sonnet)** — extended thinking adaptatif natif du SDK (`thinking: adaptive/summarized`) + règles d'analyse dans le system prompt (3 hypothèses, auto-critique, plan avant code) ; blocs « 🧠 Réflexion » repliables dans le chat, persistés dans l'historique
 - **Robustesse des magasins (jalon 1)** — validation stricte à l'exécution de `sessions.json`, `.chat-history.json` et des frontmatters `SKILL.md` (guards TS, plafonds anti-inondation du prompt), écritures atomiques (`server/src/safe-io.ts`), filet global `unhandledRejection`/`uncaughtException` : aucun fichier corrompu par la revue d'arrière-plan ne peut plus planter un tour ni le serveur. Isolation des outils vérifiée : tout (outils agent, revue, compaction, Vite, git, wrangler) tourne en subprocess — le crash d'un outil ne touche jamais le process serveur
+- **Mode vision avancé en boucle fermée (jalon 2)** — entrées multimodales (📎 images/PDF dans le chat → `.assets/`, lus nativement par Read) + tool `snapshot` MCP in-process (`server/src/vision.ts` : Playwright msedge, crop par sélecteur/box, zoom ×1-3, budget par tour façon IterationBudget d'Hermès) + boucle « patch → snapshot → critique → crop zoomé → re-patch » pilotée par le system prompt ; hygiène contexte (purge `.snapshots/` par tour, compaction qui jette les images analysées). Validé e2e : l'agent a détecté À L'ŒIL un bandeau recouvert par la nav fixed et l'a corrigé seul
 - Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
 - **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
 

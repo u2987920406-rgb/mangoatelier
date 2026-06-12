@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import { ZipArchive } from "archiver";
 import path from "node:path";
+import fs from "node:fs";
 import { ALLOWED_MODELS, interruptAgent, runAgent, type AgentEvent, type ModelChoice } from "./agent.js";
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
@@ -16,6 +17,8 @@ import { ensureErrorRelay } from "./relay.js";
 import { deployProject } from "./deploy.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
+import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
+import { SNAPSHOTS_DIR_NAME, setVisionContext } from "./vision.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -104,6 +107,9 @@ app.post("/api/chat", async (req, res) => {
     send({ type: "status", text: "Démarrage de l'aperçu…" });
     const { url } = await startPreview(dir);
     send({ type: "preview", url });
+    // Vision mode: bind the snapshot tool to this project's preview, reset
+    // the per-turn budget and purge the previous turn's snapshots.
+    setVisionContext(dir, url);
 
     // Runs one agent turn. Returns "session-not-found" when resuming a session
     // the SDK no longer knows (e.g. the project folder was moved/renamed) so
@@ -181,6 +187,24 @@ app.post("/api/chat", async (req, res) => {
     res.end();
   }
 });
+
+// Multimodal input: stores a user-attached image/PDF under <project>/.assets/
+// so the agent can Read it. Raw body (the file bytes), filename in the query.
+// Works before the project scaffold exists (first message with attachments).
+app.post(
+  "/api/upload/:name",
+  express.raw({ type: () => true, limit: "26mb" }),
+  (req, res) => {
+    try {
+      const dir = projectDir(req.params.name);
+      fs.mkdirSync(dir, { recursive: true });
+      const relPath = saveUpload(dir, String(req.query.filename ?? ""), req.body as Buffer);
+      res.json({ path: relPath });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+);
 
 // Start (or reuse) the live preview of an existing project — lets the UI
 // restore the preview on page load without sending a message first
@@ -264,7 +288,15 @@ app.get("/api/export/:name", (req, res) => {
   archive.glob("**/*", {
     cwd: dir,
     dot: true,
-    ignore: ["node_modules/**", "dist/**", ".git/**", ".chat-history.json", ".memory.md"],
+    ignore: [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      ".chat-history.json",
+      ".memory.md",
+      `${ASSETS_DIR_NAME}/**`,
+      `${SNAPSHOTS_DIR_NAME}/**`,
+    ],
   });
   archive.finalize();
 });

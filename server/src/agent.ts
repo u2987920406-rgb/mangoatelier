@@ -4,6 +4,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { visionServer } from "./vision.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -49,6 +50,14 @@ Deep analysis (you run with native extended thinking — use it):
 - Before any substantial technical work (new feature or section, refactor, tricky bug), use your thinking to: critically analyse the real need behind the request; explore 3 different technical approaches and pick one with a short justification; lay out a step-by-step execution plan before writing code.
 - Before delivering, self-review aggressively: bugs, edge cases, security (untrusted input, unsafe links), coherence with the project's conventions and with the learned skills available to you.
 - Skip this ritual for trivial tweaks and pure Q&A — answer directly.`;
+
+// Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
+// The loop is prompt-driven — the model iterates, the snapshot tool captures.
+const VISION_RULES = `
+Visual inputs and self-verification (you have eyes — use them):
+- Attached files: when the user message lists attached files (.assets/...), Read each one FIRST. For a UI screenshot or mockup: reproduce its structure, palette and typography faithfully. For a PDF: Read it (use the pages parameter, 20 pages max per call) and extract what the user asks.
+- Closed visual loop: after a significant visual change, verify your own work with the snapshot tool: (1) global snapshot, (2) compare against what is expected, (3) if a zone looks wrong or unreadable (dense table, chart, small text, misalignment), take a zoomed snapshot of that zone (selector or box, scale 2-3) and inspect it closely, (4) fix the real defects you SAW, (5) re-snapshot to confirm. Stop as soon as the render matches — or when the snapshot budget runs out. Then always state in one or two sentences what you visually checked and fixed (that text summary survives context compaction; images do not).
+- Skip the loop entirely for non-visual changes (logic, data, config) and trivial tweaks.`;
 
 // Hermes-style parallel workstreams: an isolated builder subagent that owns
 // one well-scoped slice of the app. Tools restricted to file work — no Bash,
@@ -101,8 +110,9 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot"],
         agents: AGENTS,
+        mcpServers: { vision: visionServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
         // Memory is appended per turn as a frozen snapshot (Hermes pattern):
         // mid-turn writes to .memory.md land on disk and are picked up at the
@@ -113,6 +123,7 @@ export async function* runAgent(
           append:
             SYSTEM_APPEND +
             (analytic ? ANALYTIC_RULES : "") +
+            VISION_RULES +
             memoryPromptSection(projectDir, WORKSPACE_DIR) +
             skillsPromptSection(),
         },
@@ -138,7 +149,9 @@ export async function* runAgent(
           } else if (block.type === "thinking" && block.thinking?.trim()) {
             yield { type: "thinking", text: block.thinking };
           } else if (block.type === "tool_use") {
-            yield { type: "tool", name: block.name, detail: summarizeToolInput(block.name, block.input) };
+            // MCP names are noisy ("mcp__vision__snapshot") — show a clean label.
+            const name = block.name === "mcp__vision__snapshot" ? "Snapshot" : block.name;
+            yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
       } else if (message.type === "result") {
@@ -185,6 +198,15 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Agent":
     case "Task":
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
+    case "Snapshot": {
+      const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";
+      if (i?.selector) return `${String(i.selector).slice(0, 80)}${scale}`;
+      if (i?.box) {
+        const b = i.box as Record<string, number>;
+        return `zone ${b.width}×${b.height}${scale}`;
+      }
+      return i?.fullPage ? "page entière" : "aperçu";
+    }
     default:
       return "";
   }

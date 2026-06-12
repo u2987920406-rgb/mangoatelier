@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Bookmark, BrainCircuit, Sparkles, Square } from "lucide-react";
+import { ArrowUp, Bookmark, BrainCircuit, Paperclip, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 
 let nextId = 1;
@@ -20,9 +20,18 @@ export default function Chat({
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [attachments, setAttachments] = useState([]); // File[] — images/PDF joints
   const sessionRef = useRef(null); // Agent SDK session_id, kept across turns
   const listRef = useRef(null);
   const inputRef = useRef(null);
+  const fileRef = useRef(null);
+
+  const ACCEPTED = /\.(png|jpe?g|webp|gif|pdf)$/i;
+  const addFiles = (files) => {
+    const valid = [...files].filter((f) => f && ACCEPTED.test(f.name || ".png"));
+    if (valid.length === 0) return;
+    setAttachments((prev) => [...prev, ...valid].slice(0, 6));
+  };
 
   // Switching projects = different conversation; the backend will resume
   // the project's stored session on the next message. The persisted chat
@@ -64,16 +73,36 @@ export default function Chat({
   }, [autoPrompt, busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function send(textArg) {
-    const prompt = (typeof textArg === "string" ? textArg : input).trim();
-    if (!prompt || busy) return;
+    const typed = (typeof textArg === "string" ? textArg : input).trim();
+    // Auto-prompts (fix requests) never carry attachments
+    const files = typeof textArg === "string" ? [] : attachments;
+    if ((!typed && files.length === 0) || busy) return;
     if (typeof textArg !== "string") {
       setInput("");
+      setAttachments([]);
       if (inputRef.current) inputRef.current.style.height = "auto";
     }
     setBusy(true);
-    push({ role: "user", text: prompt });
 
     try {
+      // Upload attachments first; their paths are prepended to the prompt so
+      // the agent Reads them (Read handles PNG/JPEG/PDF natively).
+      let prompt = typed || "Analyse les fichiers joints et dis-moi ce que tu en comprends.";
+      if (files.length > 0) {
+        const paths = [];
+        for (const f of files) {
+          const r = await fetch(
+            `/api/upload/${encodeURIComponent(projectName)}?filename=${encodeURIComponent(f.name || "collage.png")}`,
+            { method: "POST", body: f },
+          );
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error ?? `Échec de l'envoi de ${f.name}`);
+          paths.push(d.path);
+        }
+        prompt = `[Fichiers joints : ${paths.join(", ")}]\n\n${prompt}`;
+      }
+      push({ role: "user", text: prompt });
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -185,12 +214,69 @@ export default function Chat({
       </div>
 
       <div className="border-t border-edge p-3">
-        <div className="flex items-end gap-2 rounded-2xl border border-edge bg-bg p-2 pl-3.5 focus-within:border-accent/60 transition-colors">
+        <div
+          className="rounded-2xl border border-edge bg-bg p-2 focus-within:border-accent/60 transition-colors"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            addFiles(e.dataTransfer.files);
+          }}
+        >
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-1.5 pb-2">
+              {attachments.map((f, i) => (
+                <span
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-1.5 rounded-lg border border-edge bg-panel px-2 py-1 text-xs text-dim"
+                >
+                  <Paperclip size={10} className="shrink-0 text-accent-soft" />
+                  <span className="max-w-40 truncate">{f.name}</span>
+                  <button
+                    onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                    className="text-faint hover:text-err transition-colors"
+                    title="Retirer"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-end gap-1.5 pl-1.5">
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-faint hover:text-ink disabled:opacity-30 transition-colors"
+            title="Joindre une image ou un PDF (ou colle/glisse-le ici)"
+          >
+            <Paperclip size={16} />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept=".png,.jpg,.jpeg,.webp,.gif,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onInput={autoGrow}
+            onPaste={(e) => {
+              const pasted = [...e.clipboardData.items]
+                .filter((it) => it.kind === "file")
+                .map((it) => it.getAsFile())
+                .filter(Boolean);
+              if (pasted.length > 0) {
+                e.preventDefault();
+                addFiles(pasted);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -212,13 +298,14 @@ export default function Chat({
           ) : (
             <button
               onClick={send}
-              disabled={!input.trim()}
+              disabled={!input.trim() && attachments.length === 0}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white hover:bg-accent-soft disabled:opacity-30 transition"
               title="Envoyer (Entrée)"
             >
               <ArrowUp size={17} strokeWidth={2.5} />
             </button>
           )}
+          </div>
         </div>
       </div>
     </section>

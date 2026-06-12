@@ -1,7 +1,7 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-12 — fin de session robustesse/isolation, jalon 1)
-- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte + raisonnement analytique + robustesse des magasins** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
+## État actuel (2026-06-13 — fin de session mode vision, jalon 2)
+- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte + raisonnement analytique + robustesse des magasins + mode vision en boucle fermée** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
 - **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog
@@ -29,6 +29,7 @@
 - Un seul projet généré actif à la fois (un seul dev server preview sur le port 5174)
 - Export zip : archiver v8 est ESM pur, importer `{ ZipArchive }` (pas de default export)
 - **Robustesse** : les magasins JSON (`sessions.json`, `.chat-history.json`) passent par `safe-io.ts` (écriture atomique temp+rename) et sont validés au chargement (entrées invalides filtrées, jamais d'exception) ; les frontmatters `SKILL.md` sont plafonnés (80/240 car.) et une skill illisible est ignorée ; filet `unhandledRejection`/`uncaughtException` dans `index.ts`. Isolation : tous les outils/agents tournent en subprocess du SDK — pas de module `tools/` local, rien d'in-process à isoler
+- **Vision** : le tool Read du preset claude_code lit nativement PNG/JPEG/PDF (paramètre pages, 20 max/appel) — les entrées visuelles passent par un fichier + chemin dans le prompt, JAMAIS par des blocs image dans le message utilisateur (un tool result se compacte, pas le message). Tool MCP in-process : `createSdkMcpServer` + `tool()` (zod), nom d'outil `mcp__<server>__<tool>`, `alwaysLoad: true` sinon différé derrière ToolSearch ; un bloc `{type:"image", data: base64, mimeType}` dans le retour du tool est VU par le modèle. Budget vision : env `VISION_BUDGET` (10/tour), reset + purge `.snapshots/` par `setVisionContext()` au début de chaque tour ; snapshots 1280×800 JPEG q80 ≈ 1 400 tokens chacun
 
 ## Décisions prises
 - Template React+Vite pré-copié dans `server/template/` (plus rapide que `npm create vite` à chaque projet)

@@ -57,6 +57,7 @@ export function formatToolLine(name: string, detail: string): string {
     Grep: "🔍",
     Agent: "🤖",
     Task: "🤖",
+    Snapshot: "📸",
   };
   return `${icons[name] ?? "🔧"} ${name} ${detail}`.trim();
 }

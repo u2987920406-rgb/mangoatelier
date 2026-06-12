@@ -25,7 +25,9 @@ const COMPACT_INSTRUCTIONS =
   "de design (couleurs, typo, structure des pages), la liste des fichiers du " +
   "projet et leur rôle, les conventions adoptées, les problèmes non résolus. " +
   "Compresse agressivement : contenus de fichiers déjà lus, sorties d'outils, " +
-  "étapes anciennes déjà livrées avec succès.";
+  "étapes anciennes déjà livrées avec succès. Jette les images, captures et " +
+  "snapshots déjà analysés — ne garde que les conclusions textuelles des " +
+  "vérifications visuelles.";
 
 let current: ReturnType<typeof query> | null = null;
 let running: Promise<void> | null = null;
