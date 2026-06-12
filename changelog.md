@@ -1,5 +1,12 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 8 (suite) : Tailwind v4 préinstallé dans les apps générées
+- **Demande** : le clonage d'UI depuis maquette doit se faire en Tailwind v4 (jalon « Phase 1 » — par ailleurs entièrement couvert par le jalon 2 déjà livré, vérification point par point faite)
+- **Template de base** : `tailwindcss` + `@tailwindcss/vite` en devDependencies, plugin dans `vite.config.js`, `@import "tailwindcss"` en tête de `src/index.css` — chaque nouveau projet naît avec Tailwind v4 prêt à l'emploi
+- **Starters** (vitrine, e-commerce, dashboard, blog) : leurs `index.css` écrasent celui du template → import ajouté **sans preflight** (`theme.css` + `utilities.css` en layers) pour ne pas altérer leur rendu CSS pur existant
+- **Règles agent** : CSS pur pour les sites simples et les projets déjà stylés ainsi ; classes Tailwind v4 pour le clonage de maquette/capture jointe ou sur demande ; dans les vieux projets sans Tailwind, installation seulement si vraiment nécessaire (`SYSTEM_APPEND`, `VISION_RULES`, `BUILDER_PROMPT`)
+- **Tests** : build template+starter avec utilities vérifiées dans le CSS généré ✅ ; e2e réel : nouveau projet `tw-demo` (haiku, $0.10) → hero dégradé violet-indigo 100 % utilities, auto-vérifié par snapshot ✅
+
 ## 2026-06-13 — Session 8 : mode vision avancé en boucle fermée (jalon 2)
 - **Constat d'architecture** : le tool `Read` du preset claude_code lit nativement PNG/JPEG/PDF → les entrées visuelles passent par un fichier sur disque + son chemin dans le prompt (l'image entre comme *tool result*, donc compressible par `/compact` — impossible si elle était incrustée dans le message utilisateur). Le « CDP/Browser tool » d'Hermès se transpose en tool MCP in-process (`createSdkMcpServer`), son `IterationBudget` en budget de snapshots par tour avec arrêt doux
 - **Entrées multimodales universelles** : endpoint `POST /api/upload/:name` (body brut, filename en query, whitelist PNG/JPEG/WebP/GIF/PDF, 25 Mo max, nom assaini, anti-collision) → `workspace/<projet>/.assets/` (`server/src/uploads.ts`) ; UI : bouton 📎 + glisser-déposer + collage presse-papiers dans le chat (`Chat.jsx`), chips retirables, jusqu'à 6 fichiers, chemins préfixés au prompt `[Fichiers joints : …]` ; `createProject` tolère un dossier pré-créé par un upload (premier message avec pièce jointe)

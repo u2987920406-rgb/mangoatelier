@@ -32,7 +32,7 @@
 - **Vision** : le tool Read du preset claude_code lit nativement PNG/JPEG/PDF (paramètre pages, 20 max/appel) — les entrées visuelles passent par un fichier + chemin dans le prompt, JAMAIS par des blocs image dans le message utilisateur (un tool result se compacte, pas le message). Tool MCP in-process : `createSdkMcpServer` + `tool()` (zod), nom d'outil `mcp__<server>__<tool>`, `alwaysLoad: true` sinon différé derrière ToolSearch ; un bloc `{type:"image", data: base64, mimeType}` dans le retour du tool est VU par le modèle. Budget vision : env `VISION_BUDGET` (10/tour), reset + purge `.snapshots/` par `setVisionContext()` au début de chaque tour ; snapshots 1280×800 JPEG q80 ≈ 1 400 tokens chacun
 
 ## Décisions prises
-- Template React+Vite pré-copié dans `server/template/` (plus rapide que `npm create vite` à chaque projet)
+- Template React+Vite pré-copié dans `server/template/` (plus rapide que `npm create vite` à chaque projet) ; **Tailwind v4 préinstallé** (`@tailwindcss/vite` + `@import "tailwindcss"`) — les starters, eux, importent theme+utilities SANS preflight (leur CSS pur garde son rendu) ; règle : utilities pour le clonage de maquette, CSS pur pour les sites simples
 - Streaming backend → frontend en SSE (pas de WebSocket, plus simple)
 - TypeScript exécuté via `tsx` (pas de build step en dev)
 - Limites mémoire en **caractères** (6 000 projet / 3 000 profil), pas en tokens — indépendant du modèle (pattern Hermes)
