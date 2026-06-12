@@ -39,6 +39,8 @@ export function formatToolLine(name: string, detail: string): string {
     Bash: "💻",
     Glob: "🔍",
     Grep: "🔍",
+    Agent: "🤖",
+    Task: "🤖",
   };
   return `${icons[name] ?? "🔧"} ${name} ${detail}`.trim();
 }

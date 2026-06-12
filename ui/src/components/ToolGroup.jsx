@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Bot,
   ChevronRight,
   Eye,
   FilePlus2,
@@ -16,6 +17,8 @@ const TOOL_ICONS = {
   Bash: Terminal,
   Glob: Search,
   Grep: Search,
+  Agent: Bot,
+  Task: Bot,
 };
 
 // History entries arrive as pre-formatted text ("📄 Write src/App.tsx") while

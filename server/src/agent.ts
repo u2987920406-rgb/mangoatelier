@@ -23,10 +23,31 @@ Rules:
 - The user sees the app live through Vite HMR: keep the app compiling at every step.
 - Use Tailwind-free plain CSS (src/index.css or component CSS) unless the user asks otherwise.
 - Do NOT run "npm run dev" or start servers — the host application manages the dev server.
+- Do NOT run git commands — the host application commits a version after every turn.
 - Only run npm installs when a new dependency is truly required.
 - Never remove or modify the <script data-mangoai="error-relay"> block in index.html — the host application needs it.
 - Answer the user briefly in French; code and comments stay in English.
+- For large requests made of several INDEPENDENT parts (multiple sections, pages or components that don't touch the same files), delegate each part to a "builder" subagent and launch them in parallel (multiple Agent calls in one message), then integrate and verify the result yourself. For small or interdependent changes, work directly — delegation has overhead.
 ${MEMORY_RULES}`;
+
+// Hermes-style parallel workstreams: an isolated builder subagent that owns
+// one well-scoped slice of the app. Tools restricted to file work — no Bash,
+// so parallel builders can't fight over npm or the dev server.
+const BUILDER_PROMPT = `You are a builder subagent inside a local "Lovable-like" app builder, implementing ONE well-scoped part of an existing React + Vite project while sibling subagents may be working on other parts in parallel.
+Rules:
+- Implement ONLY the part described in your task; never touch files outside your scope (shared files like index.css are listed in the task when you may edit them).
+- Keep the app compiling at every step. Plain CSS unless the task says otherwise.
+- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- When done, return a short summary: files created/edited and what the parent must wire up (imports, routes, CSS hooks).`;
+
+const AGENTS = {
+  builder: {
+    description:
+      "Implements one well-scoped, independent part of the app (a section, component or page) in parallel with other builders. Give it a precise task: what to build, which files it owns, and any shared conventions (colors, fonts) it must follow.",
+    prompt: BUILDER_PROMPT,
+    tools: ["Read", "Write", "Edit", "Glob", "Grep"],
+  },
+};
 
 // Handle to the in-flight query so the HTTP layer can interrupt it.
 let currentQuery: ReturnType<typeof query> | null = null;
@@ -56,7 +77,8 @@ export async function* runAgent(
         model: model ?? DEFAULT_MODEL,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+        agents: AGENTS,
         // Memory is appended per turn as a frozen snapshot (Hermes pattern):
         // mid-turn writes to .memory.md land on disk and are picked up at the
         // start of the NEXT turn, keeping this turn's prompt stable.
@@ -108,6 +130,9 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Glob":
     case "Grep":
       return String(i?.pattern ?? "");
+    case "Agent":
+    case "Task":
+      return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
     default:
       return "";
   }

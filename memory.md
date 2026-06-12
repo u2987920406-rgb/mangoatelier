@@ -13,7 +13,8 @@
 - **Mémoire par projet FAITE** (2026-06-12) : `workspace/<projet>/.memory.md`, snapshot injecté au system prompt à chaque tour (`server/src/memory.ts`), survit au rollback, exclu git/zip — concepts extraits du code source d'Hermes Agent (clone d'étude : `C:\Users\PC-DELL\hermes-agent-study`, à NE PAS committer)
 - **Revue en arrière-plan FAITE** (2026-06-12) : `server/src/review.ts` — agent haiku silencieux après chaque tour réussi, cure les deux magasins de mémoire (c'est lui qui cure, plus l'agent principal)
 - **Profil utilisateur global FAIT** (2026-06-12) : `workspace/.user-profile.md` (USER.md d'Hermes) — préférences transverses injectées dans tous les projets, routage général/spécifique par la revue
-- **Skills apprises FAITES** (2026-06-12) : `workspace/.skills/<nom>/SKILL.md` (`server/src/skills.ts`), divulgation progressive, curation par la revue (3 magasins). Reste de la roadmap Hermes : subagents (P5) : voir `statut.md`
+- **Skills apprises FAITES** (2026-06-12) : `workspace/.skills/<nom>/SKILL.md` (`server/src/skills.ts`), divulgation progressive, curation par la revue (3 magasins)
+- **Subagents FAITS** (2026-06-12) : agent `builder` via `options.agents` du SDK, délégation parallèle pour les gros chantiers indépendants — **roadmap Hermes 5/5 complète** 🎉. L'agent n'a plus le droit de lancer git (le backend versionne)
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais
