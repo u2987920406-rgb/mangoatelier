@@ -2,6 +2,7 @@
 // and yields simplified events the frontend can render.
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
+import { WORKSPACE_DIR } from "./projects.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -61,7 +62,7 @@ export async function* runAgent(
         systemPrompt: {
           type: "preset",
           preset: "claude_code",
-          append: SYSTEM_APPEND + memoryPromptSection(projectDir),
+          append: SYSTEM_APPEND + memoryPromptSection(projectDir, WORKSPACE_DIR),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },
