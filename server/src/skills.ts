@@ -11,22 +11,45 @@ export const SKILLS_DIR = path.join(WORKSPACE_DIR, ".skills");
 
 export type SkillMeta = { name: string; description: string; file: string };
 
+// Frontmatter caps: the library is written by the background reviewer (an
+// LLM), so a malformed SKILL.md must degrade gracefully — never flood the
+// system prompt, never crash the turn that builds it.
+const NAME_MAX_CHARS = 80;
+const DESC_MAX_CHARS = 240;
+
+function capLine(value: string, max: number): string {
+  const flat = value.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
+
 export function listSkills(): SkillMeta[] {
-  if (!fs.existsSync(SKILLS_DIR)) return [];
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(SKILLS_DIR, { withFileTypes: true });
+  } catch {
+    return []; // no library yet
+  }
   const metas: SkillMeta[] = [];
-  for (const entry of fs.readdirSync(SKILLS_DIR, { withFileTypes: true })) {
+  for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const file = path.join(SKILLS_DIR, entry.name, "SKILL.md");
-    if (!fs.existsSync(file)) continue;
-    const head = fs.readFileSync(file, "utf8").slice(0, 2000);
-    const fm = /^---\s*\r?\n([\s\S]*?)\r?\n---/.exec(head);
-    const get = (key: string): string | undefined =>
-      fm ? new RegExp(`^${key}:\\s*(.+)$`, "m").exec(fm[1])?.[1]?.trim() : undefined;
-    metas.push({
-      name: get("name") ?? entry.name,
-      description: get("description") ?? "",
-      file,
-    });
+    try {
+      const head = fs.readFileSync(file, "utf8").slice(0, 2000);
+      const fm = /^---\s*\r?\n([\s\S]*?)\r?\n---/.exec(head);
+      const get = (key: string): string | undefined =>
+        fm ? new RegExp(`^${key}:\\s*(.+)$`, "m").exec(fm[1])?.[1]?.trim() : undefined;
+      metas.push({
+        name: capLine(get("name") ?? entry.name, NAME_MAX_CHARS),
+        description: capLine(get("description") ?? "", DESC_MAX_CHARS),
+        file,
+      });
+    } catch (err) {
+      // Unreadable or missing SKILL.md → that skill is skipped, the rest of
+      // the library (and the turn) survives.
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        console.warn(`[skills] ${entry.name}:`, err instanceof Error ? err.message : err);
+      }
+    }
   }
   return metas;
 }
@@ -43,14 +66,21 @@ export function skillsPromptSection(): string {
 
 /** Cheap change detector for the whole library (paths + sizes + mtimes). */
 export function skillsSnapshot(): string {
-  if (!fs.existsSync(SKILLS_DIR)) return "";
-  return fs
-    .readdirSync(SKILLS_DIR, { recursive: true })
-    .map(String)
-    .sort()
-    .map((rel) => {
-      const st = fs.statSync(path.join(SKILLS_DIR, rel));
-      return `${rel}:${st.isFile() ? st.size : "d"}:${st.mtimeMs}`;
-    })
-    .join("|");
+  try {
+    return fs
+      .readdirSync(SKILLS_DIR, { recursive: true })
+      .map(String)
+      .sort()
+      .map((rel) => {
+        try {
+          const st = fs.statSync(path.join(SKILLS_DIR, rel));
+          return `${rel}:${st.isFile() ? st.size : "d"}:${st.mtimeMs}`;
+        } catch {
+          return `${rel}:gone`; // deleted between readdir and stat
+        }
+      })
+      .join("|");
+  } catch {
+    return "";
+  }
 }

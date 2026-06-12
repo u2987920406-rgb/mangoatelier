@@ -17,6 +17,16 @@ import { deployProject } from "./deploy.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 
+// Last-resort safety net: a bug in a fire-and-forget background task (review,
+// compaction) or any forgotten await must never take the whole server down —
+// Node's default is to exit on unhandled rejections.
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandled-rejection]", reason instanceof Error ? (reason.stack ?? reason.message) : reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaught-exception]", err.stack ?? err.message);
+});
+
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
 app.use(cors());
