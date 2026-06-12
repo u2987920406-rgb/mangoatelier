@@ -12,6 +12,7 @@ export default function Chat({
   template,
   onPreviewUrl,
   onCost,
+  onContext,
   onAgentDone,
   autoPrompt,
   onAutoPromptConsumed,
@@ -134,6 +135,9 @@ export default function Chat({
       case "result":
         sessionRef.current = ev.sessionId;
         onCost(ev.costUsd);
+        if (ev.contextTokens && ev.contextWindow) {
+          onContext?.({ tokens: ev.contextTokens, window: ev.contextWindow });
+        }
         if (!ev.ok) push({ role: "error", text: `L'agent s'est arrêté : ${ev.error}` });
         break;
       case "error":

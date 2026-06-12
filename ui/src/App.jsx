@@ -20,6 +20,7 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
+  const [context, setContext] = useState(null); // { tokens, window } of the conversation
   const [versions, setVersions] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
   const [pendingPrompt, setPendingPrompt] = useState(null); // Home idea or fix request
@@ -106,6 +107,7 @@ export default function App() {
     setPreviewUrl(null);
     setPreviewErrors([]);
     setDeployedUrl(null);
+    setContext(null);
     setScreen("workspace");
   }
 
@@ -191,6 +193,7 @@ export default function App() {
             onDeploy={deploy}
             deployedUrl={deployedUrl}
             cost={cost}
+            context={context}
           />
           <div className="flex min-h-0 flex-1">
             <Chat
@@ -199,6 +202,7 @@ export default function App() {
               template={template}
               onPreviewUrl={setPreviewUrl}
               onCost={(c) => setCost((prev) => prev + c)}
+              onContext={setContext}
               onAgentDone={() => {
                 setPreviewErrors([]); // the reloaded iframe re-reports anything still broken
                 setPreviewKey((k) => k + 1);

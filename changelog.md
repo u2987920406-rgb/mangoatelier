@@ -1,5 +1,14 @@
 # Changelog — MangoAI
 
+## 2026-06-12 — Session 6 : compression de contexte (context_compressor d'Hermes transposé)
+- **Différence d'architecture identifiée** : Hermes possède sa liste de messages et la réécrit (seuil %, tête/queue protégées, résumé par modèle auxiliaire) ; MangoAI délègue l'historique au Claude Agent SDK (`resume: sessionId`) → transposition des concepts sur les primitives du SDK plutôt que portage du code
+- **Mesure** : `agent.ts` capture l'usage du dernier appel API du tour principal (input + cache tokens = taille réelle du contexte, subagents exclus via `parent_tool_use_id`) et la fenêtre du modèle (`modelUsage.contextWindow`) → champs `contextTokens`/`contextWindow` sur l'événement `result`
+- **Compaction proactive** : `server/src/compaction.ts` — au-delà de 70 % de la fenêtre (env `COMPACT_THRESHOLD`), un `/compact` avec instructions de préservation (demande en cours, décisions design, fichiers, conventions) tourne en fire-and-forget APRÈS la livraison (zéro latence, pattern review.ts), résumé écrit par **haiku** (modèle auxiliaire d'Hermes) ; le succès exige un `compact_boundary` (un result « success » seul couvre aussi « Not enough messages to compact ») ; anti-thrashing (pas de re-compaction tant que le contexte n'a pas regrossi de 10 %)
+- **Anti-collision** : un nouveau message utilisateur interrompt la compaction en cours (`interruptCompaction()` attendu au début de `/api/chat`) — elle retentera après le tour suivant
+- **UI** : jauge de contexte dans le header (barre + %, vert < 50 % / orange < 70 % / rouge au-delà, couleur `--color-warn` ajoutée au thème), ligne « 🗜 Contexte compressé (42k → 6k tokens) » dans l'historique
+- **Tests e2e** (seuil forcé à 1 %) : session courte → « nothing was compacted », aucune fausse ligne ✅ ; 3 tours puis compaction réelle **42k → 6k tokens**, `compact_boundary` unique vérifié dans le transcript ✅ ; reprise de session post-compaction avec souvenirs intacts (« Bella Napoli ») ✅ ; interruptions par messages entrants exercées sans casse ✅ ; `tsc --noEmit` propre
+- Constat : la base incompressible (system prompt + outils + mémoire) pèse ~33k tokens ; les pre/post du compact ne comptent que les messages
+
 ## 2026-06-12 — Session 5 : mémoire persistante par projet (inspirée d'Hermes Agent)
 - **Contexte** : l'utilisateur voulait Hermes Agent (Nous Research) mais sa connexion Claude exige plan Max + crédits payants. Hermes étant open source MIT, son code complet a été cloné (`C:\Users\PC-DELL\hermes-agent-study`) et analysé (3 agents Explore : mémoire, skills, subagents/cron)
 - **Roadmap « niveau Hermes »** ajoutée dans `statut.md` : mécanismes extraits (mémoire curée + frozen snapshot, nudge → revue en arrière-plan, prompts « quoi sauver / quoi NE PAS sauver », skills niveau classe avec divulgation progressive) et 5 priorités pour MangoAI

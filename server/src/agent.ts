@@ -12,7 +12,18 @@ export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 export type AgentEvent =
   | { type: "text"; text: string }
   | { type: "tool"; name: string; detail: string }
-  | { type: "result"; sessionId: string; costUsd: number; numTurns: number; ok: boolean; error?: string }
+  | {
+      type: "result";
+      sessionId: string;
+      costUsd: number;
+      numTurns: number;
+      ok: boolean;
+      error?: string;
+      // Size of the conversation context (prompt tokens of the turn's last
+      // API call) and the model's window — drives the proactive compaction.
+      contextTokens?: number;
+      contextWindow?: number;
+    }
   | { type: "error"; message: string };
 
 const SYSTEM_APPEND = `
@@ -91,8 +102,18 @@ export async function* runAgent(
       },
     });
     currentQuery = q;
+    // Usage of the most recent MAIN-loop API call (subagent calls excluded):
+    // input + cache tokens = how full the conversation context currently is.
+    let lastUsage: {
+      input_tokens?: number;
+      cache_read_input_tokens?: number | null;
+      cache_creation_input_tokens?: number | null;
+    } | null = null;
     for await (const message of q) {
       if (message.type === "assistant") {
+        if (!message.parent_tool_use_id && message.message.usage) {
+          lastUsage = message.message.usage;
+        }
         for (const block of message.message.content) {
           if (block.type === "text" && block.text.trim()) {
             yield { type: "text", text: block.text };
@@ -101,6 +122,15 @@ export async function* runAgent(
           }
         }
       } else if (message.type === "result") {
+        const contextTokens = lastUsage
+          ? (lastUsage.input_tokens ?? 0) +
+            (lastUsage.cache_read_input_tokens ?? 0) +
+            (lastUsage.cache_creation_input_tokens ?? 0)
+          : undefined;
+        const contextWindow =
+          Object.values(message.modelUsage ?? {})
+            .map((u) => u.contextWindow ?? 0)
+            .reduce((a, b) => Math.max(a, b), 0) || undefined;
         yield {
           type: "result",
           sessionId: message.session_id,
@@ -108,6 +138,8 @@ export async function* runAgent(
           numTurns: message.num_turns ?? 0,
           ok: message.subtype === "success",
           error: message.subtype === "success" ? undefined : message.subtype,
+          contextTokens,
+          contextWindow,
         };
       }
     }

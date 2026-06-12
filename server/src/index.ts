@@ -15,6 +15,7 @@ import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.
 import { ensureErrorRelay } from "./relay.js";
 import { deployProject } from "./deploy.js";
 import { spawnBackgroundReview } from "./review.js";
+import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
@@ -49,6 +50,9 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
   agentBusy = true;
+  // A background compaction may be rewriting this project's session — stop it
+  // and wait so the turn resumes a stable session id (old or new, both valid).
+  await interruptCompaction();
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -60,6 +64,9 @@ app.post("/api/chat", async (req, res) => {
   // the project's .chat-history.json once the turn ends.
   const turn: ChatEntry[] = [];
   let historyDir: string | null = null;
+  // Object ref (not a plain let): assigned inside streamAgentTurn's closure,
+  // read in the finally block — TS control-flow can't track the assignment.
+  const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
   const record = (role: ChatEntry["role"], text: string) =>
     turn.push({ role, text, ts: new Date().toISOString() });
   const recordEvent = (event: AgentEvent) => {
@@ -103,6 +110,9 @@ app.post("/api/chat", async (req, res) => {
         }
         if (event.type === "result" && event.sessionId) {
           saveSession(projectName, event.sessionId);
+          if (event.contextTokens && event.contextWindow) {
+            lastContext.current = { tokens: event.contextTokens, window: event.contextWindow };
+          }
         }
         recordEvent(event);
         send(event);
@@ -145,6 +155,15 @@ app.post("/api/chat", async (req, res) => {
       // response, so it never costs the user any latency.
       if (turn.some((e) => e.role === "agent") && !turn.some((e) => e.role === "error")) {
         spawnBackgroundReview(historyDir, turn);
+      }
+      // Hermes context_compressor transposed: compact between turns, in the
+      // background, once the context crosses the threshold.
+      const ctx = lastContext.current;
+      if (!turn.some((e) => e.role === "error") && ctx) {
+        const session = getSession(projectName);
+        if (session) {
+          maybeCompactSession(projectName, historyDir, session, ctx.tokens, ctx.window);
+        }
       }
     }
     send({ type: "done" });

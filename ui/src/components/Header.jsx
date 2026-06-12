@@ -20,6 +20,7 @@ export default function Header({
   onDeploy,
   deployedUrl,
   cost,
+  context,
 }) {
   const current = MODELS.find((m) => m.id === model) ?? MODELS[1];
 
@@ -142,6 +143,8 @@ export default function Header({
           </button>
         )}
 
+        {context && <ContextGauge tokens={context.tokens} window={context.window} />}
+
         <span
           className="font-mono text-xs text-faint"
           title="Coût cumulé de la session"
@@ -150,6 +153,24 @@ export default function Header({
         </span>
       </div>
     </header>
+  );
+}
+
+// Conversation context gauge — turns orange near the compaction threshold
+// (70%, where the backend compacts in the background) and red beyond it.
+function ContextGauge({ tokens, window: win }) {
+  const pct = Math.min(100, Math.round((tokens / win) * 100));
+  const color = pct >= 70 ? "bg-err" : pct >= 50 ? "bg-warn" : "bg-ok";
+  return (
+    <span
+      className="flex items-center gap-1.5 font-mono text-xs text-faint"
+      title={`Contexte de la conversation : ${Math.round(tokens / 1000)}k / ${Math.round(win / 1000)}k tokens — compression automatique au-delà de 70 %`}
+    >
+      <span className="h-1.5 w-12 overflow-hidden rounded-full bg-edge-soft">
+        <span className={`block h-full ${color}`} style={{ width: `${pct}%` }} />
+      </span>
+      {pct}%
+    </span>
   );
 }
 

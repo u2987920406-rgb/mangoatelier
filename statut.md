@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-12 (session Hermes — boucle d'apprentissage complète)*
+*Dernière mise à jour : 2026-06-12 (session compression de contexte)*
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
@@ -19,6 +19,7 @@
 - **Refonte UI complète** — Tailwind v4 + lucide-react + react-markdown : écran d'accueil (hero, templates, projets récents), workspace repolie (dropdowns, toasts, modal, mode mobile)
 - **Boucle d'apprentissage Hermes (5/5)** — mémoire par projet, profil utilisateur inter-projets, skills apprises, revue silencieuse en arrière-plan après chaque tâche, subagents `builder` parallèles (détail : roadmap Hermes ci-dessous)
 - **Panneau « 🧠 Mémoire »** dans le header — voir d'un clic ce que MangoAI sait : le projet, vous, les skills (`GET /api/knowledge/:name`)
+- **Compression de contexte** (context_compressor d'Hermes transposé) — mesure du contexte à chaque tour, compaction proactive en arrière-plan au-delà de 70 % (`server/src/compaction.ts`, résumé en haiku via /compact), jauge de contexte dans le header, ligne « 🗜 » dans l'historique
 - Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
 - **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
 
@@ -59,7 +60,7 @@
 6. Système prompt durci : interdiction des commandes git à l'agent (le backend versionne déjà chaque tour)
 
 ## 🔜 Aussi à faire
-1. **Compression de contexte** (à faire d'abord) — transposer le mécanisme `context_compressor` d'Hermes (`agent/conversation_loop.py` du clone d'étude) : compresser les vieux messages des très longues sessions pour ne jamais saturer la fenêtre de contexte de l'agent (les N premiers et derniers messages restent protégés)
+1. ✅ **Compression de contexte** — FAIT (2026-06-12) : `server/src/compaction.ts` — le SDK détient l'historique (pas de liste de messages à découper comme Hermes), donc transposition des CONCEPTS : taille du contexte mesurée sur le dernier appel API de chaque tour (`agent.ts` → événement `result`), au-delà de 70 % de la fenêtre un `/compact` tourne en arrière-plan après la livraison (zéro latence, résumé écrit par haiku, instructions de préservation style Hermes) ; un nouveau message de l'utilisateur interrompt la compaction (best-effort) ; anti-thrashing ; jauge de contexte dans le header (vert/orange/rouge) ; ligne « 🗜 Contexte compressé (42k → 6k tokens) » dans l'historique. Testé e2e : compaction réelle vérifiée dans le transcript (`compact_boundary`), reprise de session avec souvenirs intacts ✅. Seuil réglable via env `COMPACT_THRESHOLD`
 2. **Raisonnement analytique pour Opus/Sonnet (style Fable 5 / o1)** — activer l'**extended thinking natif** de Claude via le SDK (le vrai raisonnement interne du modèle, pas une balise simulée) quand le modèle choisi est Opus ou Sonnet. En complément, le system prompt doit exiger avant chaque réponse technique :
    - une analyse critique et profonde du besoin ;
    - l'exploration de 3 hypothèses techniques différentes avant de coder ;

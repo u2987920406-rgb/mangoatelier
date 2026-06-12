@@ -1,7 +1,7 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-12 — fin de session Hermes)
-- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5)** : tout est FAIT, testé de bout en bout et poussé — détail dans `statut.md` et `changelog.md`
+## État actuel (2026-06-12 — fin de session compression de contexte)
+- **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
 - **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog
@@ -14,7 +14,8 @@
 - **Qui écrit ?** La revue en arrière-plan (`server/src/review.ts`) : agent haiku silencieux, fire-and-forget après chaque tour livré sans erreur, cwd = workspace, outils Read/Write/Edit, verrou anti-empilement, pas de récursion. L'agent principal ne cure PAS (sauf demande explicite de l'utilisateur)
 - **Subagents** : agent `builder` via `options.agents` du SDK — outils fichiers seulement (pas de Bash → pas de conflit npm/preview entre builders), délégation réservée aux gros chantiers à volets indépendants
 - **Panneau « 🧠 Mémoire »** dans le header : `GET /api/knowledge/:name` + `ui/src/components/Knowledge.jsx` (fetch à l'ouverture du menu = toujours frais)
-- Clone d'étude Hermes : `C:\Users\PC-DELL\hermes-agent-study` — à NE PAS committer ; y retourner pour la compression de contexte (`agent/conversation_loop.py`, `context_compressor`)
+- **Compression de contexte** (`server/src/compaction.ts`) : le SDK détient l'historique → on déclenche son `/compact` en arrière-plan (haiku) quand `contextTokens` (dernier appel API, mesuré dans `agent.ts`) dépasse 70 % de la fenêtre ; succès = présence d'un `compact_boundary` (un result « success » seul peut signifier « Not enough messages ») ; `interruptCompaction()` au début de `/api/chat` évite toute collision de session ; base incompressible ~33k tokens (system prompt + outils + mémoire)
+- Clone d'étude Hermes : `C:\Users\PC-DELL\hermes-agent-study` — à NE PAS committer
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais
