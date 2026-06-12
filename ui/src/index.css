@@ -102,6 +102,41 @@ body {
   color: var(--accent-hover);
 }
 
+.deploy-btn {
+  background: var(--ok);
+  color: #04210f;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deploy-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.deploy-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.deployed-link {
+  color: var(--ok);
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 12px;
+  text-decoration: none;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deployed-link:hover {
+  text-decoration: underline;
+}
+
 .cost {
   margin-left: auto;
   color: var(--text-dim);

@@ -43,6 +43,32 @@ export default function App() {
   const [versions, setVersions] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
   const [fixRequest, setFixRequest] = useState(null);
+  const [deploying, setDeploying] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState(null);
+
+  useEffect(() => {
+    setDeployedUrl(null);
+  }, [projectName]);
+
+  async function deploy() {
+    if (deploying) return;
+    setDeploying(true);
+    try {
+      const res = await fetch(`/api/deploy/${encodeURIComponent(projectName)}`, {
+        method: "POST",
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(d.error ?? `Erreur HTTP ${res.status}`);
+        return;
+      }
+      setDeployedUrl(d.url);
+    } catch (err) {
+      alert(String(err));
+    } finally {
+      setDeploying(false);
+    }
+  }
 
   // Runtime errors reported by the generated app (error-relay script)
   useEffect(() => {
@@ -182,6 +208,21 @@ export default function App() {
         >
           ⬇ Zip
         </a>
+        {projects.includes(projectName) && (
+          <button
+            className="deploy-btn"
+            onClick={deploy}
+            disabled={deploying}
+            title="Publier le site en ligne (Cloudflare Pages)"
+          >
+            {deploying ? "⏳ Publication…" : "🚀 Publier"}
+          </button>
+        )}
+        {deployedUrl && (
+          <a className="deployed-link" href={deployedUrl} target="_blank" rel="noreferrer">
+            🌍 {deployedUrl.replace("https://", "")}
+          </a>
+        )}
         <span className="cost">Coût session : ${cost.toFixed(4)}</span>
       </header>
       <div className="columns">

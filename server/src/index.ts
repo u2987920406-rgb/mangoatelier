@@ -11,6 +11,7 @@ import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
 import { ensureErrorRelay } from "./relay.js";
+import { deployProject } from "./deploy.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
@@ -159,6 +160,25 @@ app.post("/api/preview/:name", async (req, res) => {
     const dir = projectDir(name);
     ensureErrorRelay(dir);
     const { url } = await startPreview(dir);
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// One-click deploy to Cloudflare Pages (build + upload, ~30-90 s)
+app.post("/api/deploy/:name", async (req, res) => {
+  const name = req.params.name;
+  if (!projectExists(name)) {
+    res.status(404).json({ error: `Project "${name}" not found` });
+    return;
+  }
+  if (agentBusy) {
+    res.status(409).json({ error: "L'agent travaille — attends la fin avant de publier" });
+    return;
+  }
+  try {
+    const { url } = await deployProject(projectDir(name), name);
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

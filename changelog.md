@@ -49,6 +49,12 @@
   - Architecture overlay : le starter se superpose au template de base React+Vite à la création (`createProject(name, template)`), `listTemplates()` scanne le dossier
   - UI : sélecteur 📦 dans le header, visible uniquement quand le nom de projet saisi n'existe pas encore ; envoyé avec le premier message
   - Vérifié : les 4 templates buildent sans erreur (vite build) ; `tsc --noEmit` propre
+- **Déploiement 1-clic** (priorité 5 de la roadmap — roadmap complète 🎉) :
+  - `server/src/deploy.ts` : `vite build` du projet → `wrangler pages deploy` → URL canonique `https://<projet>.pages.dev` (nom sanitisé pour Pages)
+  - Endpoint POST `/api/deploy/:name` (refusé si l'agent travaille) ; erreurs Cloudflare traduites en messages clairs (dont « non connecté → npx wrangler login »)
+  - UI : bouton « 🚀 Publier » dans le header (visible pour les projets existants), spinner pendant la publication, lien 🌍 vers le site une fois en ligne
+  - wrangler ajouté en devDependency du serveur ; `CI=true` pour éviter tout prompt interactif depuis le backend
+  - Prérequis utilisateur (une fois) : compte Cloudflare gratuit + `npx wrangler login` dans `server/`
 
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours
