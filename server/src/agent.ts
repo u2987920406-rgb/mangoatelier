@@ -1,6 +1,7 @@
 // Wraps the Claude Agent SDK: runs one chat turn against a generated project
 // and yields simplified events the frontend can render.
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -22,7 +23,8 @@ Rules:
 - Do NOT run "npm run dev" or start servers — the host application manages the dev server.
 - Only run npm installs when a new dependency is truly required.
 - Never remove or modify the <script data-mangoai="error-relay"> block in index.html — the host application needs it.
-- Answer the user briefly in French; code and comments stay in English.`;
+- Answer the user briefly in French; code and comments stay in English.
+${MEMORY_RULES}`;
 
 // Handle to the in-flight query so the HTTP layer can interrupt it.
 let currentQuery: ReturnType<typeof query> | null = null;
@@ -53,7 +55,14 @@ export async function* runAgent(
         maxTurns: 40,
         permissionMode: "acceptEdits",
         allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
-        systemPrompt: { type: "preset", preset: "claude_code", append: SYSTEM_APPEND },
+        // Memory is appended per turn as a frozen snapshot (Hermes pattern):
+        // mid-turn writes to .memory.md land on disk and are picked up at the
+        // start of the NEXT turn, keeping this turn's prompt stable.
+        systemPrompt: {
+          type: "preset",
+          preset: "claude_code",
+          append: SYSTEM_APPEND + memoryPromptSection(projectDir),
+        },
         ...(sessionId ? { resume: sessionId } : {}),
       },
     });

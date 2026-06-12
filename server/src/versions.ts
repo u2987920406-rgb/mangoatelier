@@ -5,6 +5,7 @@ import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { HISTORY_FILE_NAME } from "./history.js";
+import { MEMORY_FILE_NAME } from "./memory.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -22,9 +23,11 @@ function hasRepo(dir: string): boolean {
   return fs.existsSync(path.join(dir, ".git"));
 }
 
-// Chat history lives in the project dir but must not be versioned: a rollback
-// should restore the code, not erase the conversation.
-const IGNORED = ["node_modules/", "dist/", HISTORY_FILE_NAME];
+// Chat history and agent memory live in the project dir but must not be
+// versioned: a rollback should restore the code, not erase the conversation
+// or what the agent has learned.
+const PRESERVED_FILES = [HISTORY_FILE_NAME, MEMORY_FILE_NAME];
+const IGNORED = ["node_modules/", "dist/", ...PRESERVED_FILES];
 
 function ensureGitignore(dir: string): void {
   const gitignore = path.join(dir, ".gitignore");
@@ -67,13 +70,17 @@ export async function listVersions(dir: string): Promise<Version[]> {
 /** Hard-resets the project to the given version; versions after it are discarded. */
 export async function rollbackTo(dir: string, hash: string): Promise<void> {
   if (!/^[0-9a-f]{4,40}$/i.test(hash)) throw new Error("Invalid version hash");
-  // The chat history must survive even when the target commit predates the
-  // history feature (its .gitignore doesn't shield the file from git clean).
-  const historyFile = path.join(dir, HISTORY_FILE_NAME);
-  const savedHistory = fs.existsSync(historyFile) ? fs.readFileSync(historyFile) : null;
+  // Chat history and memory must survive even when the target commit predates
+  // these features (its .gitignore doesn't shield the files from git clean).
+  const saved = new Map<string, Buffer>();
+  for (const name of PRESERVED_FILES) {
+    const file = path.join(dir, name);
+    if (fs.existsSync(file)) saved.set(file, fs.readFileSync(file));
+  }
   await git(dir, ["reset", "--hard", hash]);
-  await git(dir, ["clean", "-fd", "-e", HISTORY_FILE_NAME]); // respects .gitignore → node_modules untouched
-  if (savedHistory !== null) fs.writeFileSync(historyFile, savedHistory);
+  // respects .gitignore → node_modules untouched
+  await git(dir, ["clean", "-fd", ...PRESERVED_FILES.flatMap((name) => ["-e", name])]);
+  for (const [file, content] of saved) fs.writeFileSync(file, content);
 }
 
 function parseLine(line: string): Version {

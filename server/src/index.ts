@@ -12,6 +12,7 @@ import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
 import { ensureErrorRelay } from "./relay.js";
 import { deployProject } from "./deploy.js";
+import { spawnBackgroundReview } from "./review.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const app = express();
@@ -138,6 +139,11 @@ app.post("/api/chat", async (req, res) => {
       } catch (err) {
         console.error("[history]", err instanceof Error ? err.message : err);
       }
+      // Hermes pattern: review only delivered, non-failed turns — after the
+      // response, so it never costs the user any latency.
+      if (turn.some((e) => e.role === "agent") && !turn.some((e) => e.role === "error")) {
+        spawnBackgroundReview(historyDir, turn);
+      }
     }
     send({ type: "done" });
     res.end();
@@ -216,7 +222,7 @@ app.get("/api/export/:name", (req, res) => {
   archive.glob("**/*", {
     cwd: dir,
     dot: true,
-    ignore: ["node_modules/**", "dist/**", ".git/**", ".chat-history.json"],
+    ignore: ["node_modules/**", "dist/**", ".git/**", ".chat-history.json", ".memory.md"],
   });
   archive.finalize();
 });

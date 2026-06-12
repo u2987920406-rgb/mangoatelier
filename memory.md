@@ -10,6 +10,8 @@
 - Historique de chat persisté : FAIT — `workspace/<projet>/.chat-history.json` (exclu git/zip), endpoint `GET /api/history/:name`, rechargé par l'UI à l'ouverture du projet (`ui/src/Chat.jsx`)
 - Roadmap concurrence (rollback git, auto-réparation, templates, déploiement Cloudflare) : tout FAIT — voir statut.md
 - **Refonte UI FAITE** (2026-06-12) : Tailwind v4 + lucide-react + react-markdown, écran d'accueil Home + workspace repolie, toasts/modal custom — voir design.md et changelog.md. Vérifiée sous Edge headless, 0 erreur console
+- **Mémoire par projet FAITE** (2026-06-12) : `workspace/<projet>/.memory.md`, snapshot injecté au system prompt à chaque tour (`server/src/memory.ts`), survit au rollback, exclu git/zip — concepts extraits du code source d'Hermes Agent (clone d'étude : `C:\Users\PC-DELL\hermes-agent-study`, à NE PAS committer)
+- **Revue en arrière-plan FAITE** (2026-06-12) : `server/src/review.ts` — agent haiku silencieux après chaque tour réussi, cure `.memory.md` (c'est lui qui cure, plus l'agent principal). Suite de la roadmap Hermes (profil utilisateur global P2, skills apprises P3) : voir `statut.md`
 
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais

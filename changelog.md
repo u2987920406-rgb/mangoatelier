@@ -1,5 +1,14 @@
 # Changelog — MangoAI
 
+## 2026-06-12 — Session 5 : mémoire persistante par projet (inspirée d'Hermes Agent)
+- **Contexte** : l'utilisateur voulait Hermes Agent (Nous Research) mais sa connexion Claude exige plan Max + crédits payants. Hermes étant open source MIT, son code complet a été cloné (`C:\Users\PC-DELL\hermes-agent-study`) et analysé (3 agents Explore : mémoire, skills, subagents/cron)
+- **Roadmap « niveau Hermes »** ajoutée dans `statut.md` : mécanismes extraits (mémoire curée + frozen snapshot, nudge → revue en arrière-plan, prompts « quoi sauver / quoi NE PAS sauver », skills niveau classe avec divulgation progressive) et 5 priorités pour MangoAI
+- **P1 implémentée — mémoire par projet** : `server/src/memory.ts` — l'agent maintient lui-même `workspace/<projet>/.memory.md` (décisions design, préférences, conventions) ; règles de curation dans le system prompt (transposées des prompts de revue d'Hermes), snapshot gelé injecté à chaque tour (cache préservé), plafond 6 000 caractères
+- `.memory.md` exclu du git projet et du zip, survit au rollback (`versions.ts` : liste `PRESERVED_FILES` générique remplace le cas spécial historique)
+- **Tests** : rollback préserve mémoire + historique (projet jetable) ✅ ; e2e réel : « le vert #2E7D32 est la règle » → l'agent crée `.memory.md` spontanément ($0.12, haiku) ; session effacée puis question couleur → réponse exacte en 1 tour sans aucun outil (preuve : injection system prompt) ($0.02) ✅ ; zip sans `.memory.md` ✅ ; `tsc --noEmit` propre
+- **P4 implémentée — revue en arrière-plan** (le vrai moteur d'auto-amélioration d'Hermes, `background_review.py` transposé) : `server/src/review.ts` — après chaque tour livré sans erreur, un agent haiku séparé (maxTurns 8, outils Read/Write/Edit seulement, fire-and-forget) relit le transcript du tour et cure `.memory.md` ; verrou anti-empilement, pas de récursion ; ligne « 🧠 Mémoire du projet mise à jour » ajoutée à l'historique quand le fichier change. L'agent principal ne cure plus la mémoire (sauf demande explicite de l'utilisateur) — `MEMORY_RULES` allégées
+- **Test P4 e2e** : préférence implicite « je n'aime pas les coins trop arrondis, 4px max » (jamais demandé de mémoriser) → tour principal $0.06 sans toucher la mémoire, puis la revue capte la préférence et la **fusionne** sous la section design existante sans doublon ($0.04) ✅ ; statut visible dans `.chat-history.json` ✅
+
 ## 2026-06-11 — Session 1 : initialisation
 - Plan validé : agent style Lovable local (chat + aperçu live), Claude Agent SDK TS, apps React+Vite
 - Structure du projet créée : `server/`, `ui/`, `workspace/`, docs (`idee.md`, `plan.md`, `memory.md`, `design.md`)
