@@ -18,7 +18,7 @@ import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
 import { ensureErrorRelay, ensureInspectRelay } from "./relay.js";
 import { ensureClickSourcePlugin, readSourceSnippet, buildVisualEditPrompt, type EditTarget } from "./clicksource.js";
-import { deployProject } from "./deploy.js";
+import { deployProject, isDeployTarget } from "./deploy.js";
 import { githubConfigured, pushToGitHub } from "./github.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
@@ -405,11 +405,16 @@ app.post("/api/preview/:name", async (req, res) => {
   }
 });
 
-// One-click deploy to Cloudflare Pages (build + upload, ~30-90 s)
+// One-click deploy to a static host — Cloudflare/Vercel/Netlify (build + upload)
 app.post("/api/deploy/:name", async (req, res) => {
   const name = req.params.name;
+  const target = (req.body as { target?: unknown })?.target ?? "cloudflare";
   if (!projectExists(name)) {
     res.status(404).json({ error: `Project "${name}" not found` });
+    return;
+  }
+  if (!isDeployTarget(target)) {
+    res.status(400).json({ error: `Cible de déploiement inconnue : ${String(target)}` });
     return;
   }
   if (agentBusy) {
@@ -417,8 +422,8 @@ app.post("/api/deploy/:name", async (req, res) => {
     return;
   }
   try {
-    const { url } = await deployProject(projectDir(name), name);
-    res.json({ url });
+    const { url } = await deployProject(projectDir(name), name, target);
+    res.json({ url, target });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }

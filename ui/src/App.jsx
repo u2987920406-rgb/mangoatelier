@@ -148,12 +148,14 @@ export default function App() {
     setScreen("home");
   }
 
-  async function deploy() {
+  async function deploy(target = "cloudflare") {
     if (deploying) return;
     setDeploying(true);
     try {
       const res = await fetch(`/api/deploy/${encodeURIComponent(projectName)}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {

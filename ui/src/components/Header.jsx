@@ -1,7 +1,15 @@
-import { BarChart3, Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, GraduationCap, History, Loader2, Rocket, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, History, Loader2, Rocket, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
+
+// Static-host targets for one-click publish (idea 18). Each maps to a CLI in
+// server/src/deploy.ts; the id is sent as { target } to POST /api/deploy.
+const DEPLOY_TARGETS = [
+  { id: "cloudflare", label: "Cloudflare Pages", hint: "Edge gratuit — défaut", icon: Cloud },
+  { id: "vercel", label: "Vercel", hint: "Idéal Next.js / SSR", icon: Triangle },
+  { id: "netlify", label: "Netlify", hint: "Sites statiques + forms", icon: Globe },
+];
 
 const MODELS = [
   { id: "haiku", label: "Haiku", hint: "Rapide, projets simples", icon: Zap },
@@ -214,15 +222,33 @@ export default function Header({
         )}
 
         {canDeploy && (
-          <button
-            onClick={onDeploy}
+          <Dropdown
+            width="w-64"
+            align="right"
+            button={
+              <>
+                {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+                {deploying ? "Publication…" : "Publier"}
+              </>
+            }
+            buttonClass="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-white shadow-lg shadow-accent/25 hover:bg-accent-soft disabled:opacity-60 transition"
             disabled={deploying}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-white shadow-lg shadow-accent/25 hover:bg-accent-soft disabled:opacity-60 transition"
-            title="Publier le site en ligne (Cloudflare Pages)"
           >
-            {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
-            {deploying ? "Publication…" : "Publier"}
-          </button>
+            {(close) =>
+              DEPLOY_TARGETS.map((t) => (
+                <DropdownItem
+                  key={t.id}
+                  icon={t.icon}
+                  label={t.label}
+                  hint={t.hint}
+                  onClick={() => {
+                    onDeploy(t.id);
+                    close();
+                  }}
+                />
+              ))
+            }
+          </Dropdown>
         )}
 
         {context && <ContextGauge tokens={context.tokens} window={context.window} />}
