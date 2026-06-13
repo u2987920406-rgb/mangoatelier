@@ -17,6 +17,8 @@ export default function Chat({
   onAgentDone,
   autoPrompt,
   onAutoPromptConsumed,
+  seedInput,
+  onSeedConsumed,
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -138,6 +140,23 @@ export default function Chat({
     onAutoPromptConsumed?.();
     send(autoPrompt);
   }, [autoPrompt, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Précharge le composer depuis la sélection clic→source (#5) — SANS envoyer :
+  // l'utilisateur complète par le changement voulu, puis envoie lui-même.
+  useEffect(() => {
+    if (!seedInput) return;
+    onSeedConsumed?.();
+    setInput(seedInput);
+    const el = inputRef.current;
+    if (el) {
+      el.focus();
+      requestAnimationFrame(() => {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    }
+  }, [seedInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function send(textArg) {
     const typed = (typeof textArg === "string" ? textArg : input).trim();

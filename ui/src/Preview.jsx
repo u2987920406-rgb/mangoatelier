@@ -1,16 +1,43 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ExternalLink,
   Monitor,
   MonitorX,
+  MousePointerClick,
   RefreshCw,
   Smartphone,
   TriangleAlert,
   Wrench,
 } from "lucide-react";
 
-export default function Preview({ url, reloadKey, errors = [], onFix, onReload }) {
+export default function Preview({
+  url,
+  reloadKey,
+  errors = [],
+  onFix,
+  onReload,
+  inspecting = false,
+  onToggleInspect,
+}) {
   const [device, setDevice] = useState("desktop");
+  const iframeRef = useRef(null);
+
+  // Relais clic→source (#5) : on (dé)active le mode inspection dans l'aperçu via
+  // postMessage. Re-déclenché quand l'iframe se recharge (reloadKey/url) pour que
+  // le mode survive à un rechargement. Cross-origin : la cible "*" est volontaire.
+  useEffect(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const send = () =>
+      win.postMessage(
+        { source: "mangoai-builder", type: inspecting ? "inspect-on" : "inspect-off" },
+        "*",
+      );
+    send();
+    // L'iframe peut ne pas avoir fini de charger son script au moment du toggle.
+    const t = setTimeout(send, 400);
+    return () => clearTimeout(t);
+  }, [inspecting, reloadKey, url]);
 
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-bg">
@@ -47,6 +74,22 @@ export default function Preview({ url, reloadKey, errors = [], onFix, onReload }
           </button>
         </div>
 
+        <button
+          onClick={onToggleInspect}
+          disabled={!url}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30 ${
+            inspecting
+              ? "bg-accent/15 text-accent ring-1 ring-accent/40"
+              : "text-dim hover:bg-panel hover:text-ink"
+          }`}
+          title={
+            inspecting
+              ? "Mode inspection actif — clique un élément de l'aperçu"
+              : "Inspecter : clique un élément pour l'éditer (clic→code)"
+          }
+        >
+          <MousePointerClick size={14} />
+        </button>
         <button
           onClick={onReload}
           disabled={!url}
@@ -95,6 +138,7 @@ export default function Preview({ url, reloadKey, errors = [], onFix, onReload }
             }`}
           >
             <iframe
+              ref={iframeRef}
               key={`${url}-${reloadKey}`}
               src={url}
               title="Aperçu de l'app générée"

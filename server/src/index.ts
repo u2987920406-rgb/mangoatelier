@@ -16,7 +16,8 @@ import { inferProjectType } from "./blueprints.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
-import { ensureErrorRelay } from "./relay.js";
+import { ensureErrorRelay, ensureInspectRelay } from "./relay.js";
+import { ensureClickSourcePlugin, readSourceSnippet } from "./clicksource.js";
 import { deployProject } from "./deploy.js";
 import { githubConfigured, pushToGitHub } from "./github.js";
 import { spawnBackgroundReview } from "./review.js";
@@ -121,6 +122,10 @@ app.post("/api/chat", async (req, res) => {
       dir = projectDir(projectName);
     }
     ensureErrorRelay(dir);
+    // #5 : tampon de source (dev-only, vite.config.js) + relais clic→source
+    // (index.html) — pour l'édition visuelle. Idempotents, sans effet en prod.
+    ensureClickSourcePlugin(dir);
+    ensureInspectRelay(dir);
     // Snapshot the pre-agent state so the first rollback point always exists
     await ensureRepo(dir);
     historyDir = dir;
@@ -311,6 +316,27 @@ app.post("/api/snap", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// Relais clic→source (#5) : le builder a capté un data-mango-src (fichier:ligne)
+// via le clic en mode inspection ; il demande ici l'extrait de code pointé (pour
+// l'afficher et, plus tard #6, alimenter l'édition chirurgicale via la Coque Rigide).
+app.post("/api/inspect", (req, res) => {
+  const { projectName, src } = req.body as { projectName?: string; src?: string };
+  if (!projectName?.trim() || !src?.trim()) {
+    res.status(400).json({ error: "projectName and src are required" });
+    return;
+  }
+  if (!projectExists(projectName)) {
+    res.status(404).json({ error: `Project "${projectName}" not found` });
+    return;
+  }
+  const result = readSourceSnippet(projectDir(projectName), src);
+  if ("error" in result) {
+    res.status(404).json(result);
+    return;
+  }
+  res.json(result);
 });
 
 // Start (or reuse) the live preview of an existing project — lets the UI

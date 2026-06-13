@@ -26,6 +26,8 @@ export default function App() {
   const [versions, setVersions] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
   const [pendingPrompt, setPendingPrompt] = useState(null); // Home idea or fix request
+  const [inspecting, setInspecting] = useState(false); // mode inspection clic→source (#5)
+  const [seedInput, setSeedInput] = useState(null); // texte préchargé dans le composer (sélection)
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState(null);
   const [githubEnabled, setGithubEnabled] = useState(false);
@@ -81,18 +83,35 @@ export default function App() {
       .catch(() => {});
   }, [screen, projectName]);
 
-  // Runtime errors reported by the generated app (error-relay script)
+  // Messages de l'aperçu : erreurs runtime (error-relay) ET sélections clic→source
+  // (inspect-relay, #5). Un seul écouteur global, on aiguille sur le type.
   useEffect(() => {
     const onMessage = (e) => {
       const d = e.data;
-      if (!d || d.source !== "mangoai-preview" || !d.message) return;
+      if (!d || d.source !== "mangoai-preview") return;
+      // Relais clic→source : l'utilisateur a cliqué un élément en mode inspection.
+      if (d.type === "inspect-pick") {
+        setInspecting(false);
+        const label = d.text ? `« ${d.text} »` : `<${d.tag}>`;
+        if (d.src) {
+          // On précharge le composer avec la référence source EXACTE (fichier:ligne) ;
+          // l'utilisateur n'a plus qu'à dire le changement voulu (l'édition = #6).
+          setSeedInput(`Modifie l'élément ${label} (source : ${d.src}) : `);
+          pushToast("success", `Élément ciblé : ${d.src}`);
+        } else {
+          setSeedInput(`Modifie l'élément <${d.tag}> ${label} : `);
+          pushToast("error", "Élément ciblé (source non tracée — recharge l'aperçu)");
+        }
+        return;
+      }
+      if (!d.message) return;
       setPreviewErrors((prev) =>
         prev.includes(d.message) || prev.length >= 10 ? prev : [...prev, d.message],
       );
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [pushToast]);
 
   const refreshVersions = useCallback(() => {
     if (!projectName.trim()) {
@@ -251,6 +270,8 @@ export default function App() {
               }}
               autoPrompt={pendingPrompt}
               onAutoPromptConsumed={() => setPendingPrompt(null)}
+              seedInput={seedInput}
+              onSeedConsumed={() => setSeedInput(null)}
             />
             <Preview
               url={previewUrl}
@@ -258,6 +279,8 @@ export default function App() {
               errors={previewErrors}
               onFix={requestFix}
               onReload={() => setPreviewKey((k) => k + 1)}
+              inspecting={inspecting}
+              onToggleInspect={() => setInspecting((v) => !v)}
             />
           </div>
         </div>
