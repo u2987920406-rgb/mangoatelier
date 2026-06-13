@@ -2,6 +2,28 @@
 
 *Dernière mise à jour : 2026-06-13 (Jalon D LIVRÉ — Élève Qwen local + boucle de relais + dashboard de compagnonnage & Audit Scan)*
 
+## 🧭 Feuille de route ordonnée (plan de bord — 2026-06-13)
+*Séquencée par dépendances. « Temps » = sessions de travail focalisé. Ligne de conduite à chaque étape : règle « natif d'abord » + test déterministe + `tsc` propre + preuve e2e + save.*
+⏰ **Dates fixes** : audit coûts (idée 13) le **2026-06-22** ; veille mensuelle (idée 15) le **13 de chaque mois**.
+
+| # | Quoi | Pourquoi maintenant (dépendance) | Temps | Statut |
+|---|------|----------------------------------|-------|--------|
+| — | 🔔 Veille mensuelle (idée 15) | Due le 13 ; SDK Agent, modèles, Qwen-coder, MCP | ½ | 💤 |
+| **1** | **Contenu du fichier cible à l'Élève** (piste future n°1) | LA plus rentable : audit durci chiffré à 89 % par les edits aveugles. Débloque les edits ET prépare l'édition visuelle. **✅ FAIT (2026-06-13)** : `buildEleveUser` injecte le contenu des fichiers **cités par la tâche** (sélectif — déverser tout sature le modèle, régression attrapée par l'audit puis corrigée). Audit durci 89 %→**100 % build**, vitesse intacte. *Caveat : critère build-seul ne prouve pas l'effet d'un edit → affinage = piste future* | 1 | ✅ FAIT |
+| 2 | Discipline d'ablation (`--ablate` après chaque axiome) + accumuler de vrais tours | Remplit la courbe d'émancipation, valide le flywheel, garde le registre sain | ½ | 💤 |
+| 3 | `selectAxioms` v2.1 — type depuis la mémoire projet | Récupération plus robuste que les mots-clés ; finit le Jalon D | ½ | 💤 |
+| 4 | 📅 Audit des coûts (idée 13) — *2026-06-22* | Date choisie (fin de Fable) ; dégraissage prompt (Coque Souple v2) | 1 | 📅 |
+| 5 | Relais clic → source (`elementFromPoint` + `_debugSource`) | Pont déterministe pixel→code, natif (pas de SAM). Dépend de #1 | 1 | 💤 |
+| 6 | Édition visuelle chirurgicale (idées 27+2, native) | Claude édite l'élément cliqué via la Coque Rigide. Dépend de #1 et #5 | 1-2 | 💤 |
+| 7 | MCP Figma (idée 25) | Design-to-code pro, priorité haute, indépendant | 2 | 💤 |
+| 8 | Inspiration web contextuelle (idée 7) | Niveau « senior » ; natif (WebSearch déjà en Élite) | 1-2 | 💤 |
+| 9 | Tests auto Vitest/Playwright (idée 24, Élite) | Robustesse ; se branche sur le mode Élite | 1-2 | 💤 |
+| 10 | Déploiement Vercel + Netlify (idée 18) | Complète Cloudflare ; bien borné (`deploy.ts`) | 1 | 💤 |
+| 11 | Déléguer l'édition visuelle à un Qwen-VL local (suite de #6) | Coût zéro façon compagnonnage, après preuve avec Claude | 1-2 | 💤 |
+| 12+ | Maturité : QA temporel (1), généalogie visuelle (3), doc multimodale (4), multi-projets (26), guide user (5) | Quand le socle est mûr | var. | 💤 |
+
+*Voie parallèle — formation (mise de côté, à la demande) : tokenisation (20), lab de prompts (19), RAG perso (22), veille IA (23).*
+
 ## 💡 Idées en attente — à relire avant de commencer à coder
 
 | # | Idée | Détail | Priorité | Statut |
@@ -66,6 +88,7 @@ Couche de pilotage de l'émancipation, posée sur les métriques existantes. **R
 4. **Tâches d'audit avec dépendances** (recharts, date-fns…) — actuellement évitées car le `node_modules` jonctionné les ferait écrire dans le vrai `test-pipeline`. Faire une vraie copie de `node_modules` (ou un projet support dédié) pour tester si l'Élève pense à `<run> npm install`.
 5. **Modèle Élève plus fort en option** — `qwen2.5-coder:14b` (tient en 11 Go, plus lent) ou un futur modèle local, comparé via l'Audit Scan (`--ablate` mesure déjà l'effet des axiomes ; même protocole pour comparer deux modèles).
 6. **Veille mensuelle** : surveiller les modèles de code locaux (Qwen3-coder MoE quand il tiendra en 11 Go, etc.).
+7. **Critère de succès des `<edit>` au-delà du build** — un build qui passe prouve que le projet compile, PAS que l'edit a bien été appliqué (un edit silencieusement raté laisse le projet pristine, qui build). Vérifier l'EFFET de l'edit (ex. présence de la chaîne attendue, ou diff non vide) rendrait l'Audit Scan plus strict sur les tâches de retouche. *(Identifié au #1, 2026-06-13.)*
 
 ### 📌 Note d'analyse — idée 27 « Click-to-Segment » (édition visuelle chirurgicale), 2026-06-13
 **Verdict : excellente DESTINATION, mais la stack proposée (SAM ONNX + VLM séparé) est largement SUPERFLUE — Claude + le DOM qu'on contrôle la font, avec beaucoup moins d'infra.** (Analyse appliquant la règle « natif d'abord ».)

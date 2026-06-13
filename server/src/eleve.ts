@@ -28,6 +28,11 @@ const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
 const MAX_ELEVE_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? 2);
 // Anti-saturation : nombre max d'axiomes injectés à l'Élève (modèle faible).
 const ELEVE_AXIOM_CAP = Number(process.env.ELEVE_AXIOM_CAP ?? 5);
+// Contenu des fichiers fourni à l'Élève (piste future n°1) : sans lui, un <edit>
+// sur un fichier existant devine un <find> qui ne matche pas. Plafonné pour ne
+// pas saturer un petit modèle : budget total + cap par fichier (caractères).
+const ELEVE_FILE_BUDGET = Number(process.env.ELEVE_FILE_BUDGET ?? 9000);
+const ELEVE_FILE_MAX = Number(process.env.ELEVE_FILE_MAX ?? 2500);
 
 export type ResolvedBy = "eleve" | "maitre" | "none";
 
@@ -105,6 +110,40 @@ function listProjectFiles(projectDir: string, cap = 40): string[] {
   return out;
 }
 
+/** Lit le contenu des fichiers PERTINENTS (mentionnés dans la tâche), plafonné,
+ * pour que l'Élève produise des `<find>` exacts sur les fichiers à retoucher.
+ * Filtrage volontaire : déverser tout le projet sature un petit modèle et
+ * dégrade même les tâches de création (mesuré par l'Audit Scan). On ne donne
+ * donc le contenu QUE des fichiers cités par la tâche (le cas des `<edit>`). */
+function readListedFiles(
+  projectDir: string,
+  files: string[],
+  task: string,
+): Array<{ path: string; content: string; truncated: boolean }> {
+  const taskLow = task.toLowerCase();
+  const relevant = files.filter((f) => {
+    const base = (f.split("/").pop() ?? f).toLowerCase();
+    return taskLow.includes(f.toLowerCase()) || taskLow.includes(base);
+  });
+  const out: Array<{ path: string; content: string; truncated: boolean }> = [];
+  let budget = ELEVE_FILE_BUDGET;
+  for (const f of relevant) {
+    if (budget <= 0) break;
+    let raw: string;
+    try {
+      raw = fs.readFileSync(path.join(projectDir, f), "utf8");
+    } catch {
+      continue; // binaire/illisible → on saute
+    }
+    const cap = Math.min(ELEVE_FILE_MAX, budget);
+    const truncated = raw.length > cap;
+    const content = truncated ? raw.slice(0, cap) : raw;
+    budget -= content.length;
+    out.push({ path: f, content, truncated });
+  }
+  return out;
+}
+
 /** Message « utilisateur » envoyé à l'Élève : tâche + contexte + axiomes +
  * (en cas de reprise) la raison objective de l'échec précédent à corriger. */
 function buildEleveUser(task: string, projectDir: string, lastError: string): string {
@@ -119,6 +158,19 @@ function buildEleveUser(task: string, projectDir: string, lastError: string): st
     "Fichiers existants du projet :",
     files.length ? files.map((f) => `- ${f}`).join("\n") : "(projet vide)",
   ];
+  // Contenu des fichiers (piste n°1) : indispensable pour les <edit> ciblés —
+  // le <find> doit reprendre un extrait EXACT du contenu ci-dessous. Limité aux
+  // fichiers cités par la tâche (sinon on sature l'Élève — mesuré par l'audit).
+  const contents = readListedFiles(projectDir, files, task);
+  if (contents.length) {
+    parts.push(
+      "",
+      "Contenu des fichiers cités (pour un <edit>, le <find> doit correspondre EXACTEMENT à un extrait ci-dessous) :",
+      ...contents.map(
+        (c) => `\n----- ${c.path}${c.truncated ? " (tronqué)" : ""} -----\n${c.content}`,
+      ),
+    );
+  }
   if (axioms) parts.push("", axioms);
   if (lastError) {
     parts.push(
