@@ -61,6 +61,23 @@ export default function Metrics() {
   const days = Object.entries(perDay).sort((a, b) => a[0].localeCompare(b[0]));
   const maxDayCost = Math.max(...days.map(([, v]) => v.cost), 0.0001);
 
+  // Intervention rate (Phase Ultime jalon D): among turns run by the local
+  // student (resolvedBy set), the share where Claude had to step in (anything
+  // but "eleve"). The goal is this curve trending to 0 % — the student graduated.
+  const relayRows = rows.filter((r) => r.resolvedBy);
+  const eleveSolo = relayRows.filter((r) => r.resolvedBy === "eleve").length;
+  const interventionPct = relayRows.length
+    ? Math.round((1 - eleveSolo / relayRows.length) * 100)
+    : 0;
+  const relayPerDay = {};
+  for (const r of relayRows) {
+    const d = (r.ts ?? "").slice(0, 10) || "?";
+    const x = (relayPerDay[d] ??= { total: 0, intervened: 0 });
+    x.total++;
+    if (r.resolvedBy !== "eleve") x.intervened++;
+  }
+  const relayDays = Object.entries(relayPerDay).sort((a, b) => a[0].localeCompare(b[0]));
+
   return (
     <div className="space-y-3 px-2 py-2">
       <div className="grid grid-cols-2 gap-2">
@@ -101,9 +118,51 @@ export default function Metrics() {
         </Section>
       </div>
 
+      {relayRows.length > 0 && (
+        <Section title="Taux d'intervention (Élève → Maître)">
+          <div className="mb-2 grid grid-cols-2 gap-2">
+            <Stat
+              label="Intervention Claude"
+              value={`${interventionPct} %`}
+              tone={interventionPct <= 20 ? "ok" : "err"}
+            />
+            <Stat
+              label="Autonomie Élève"
+              value={`${100 - interventionPct} %`}
+              tone={interventionPct <= 20 ? "ok" : undefined}
+            />
+          </div>
+          <div className="space-y-1">
+            {relayDays.map(([d, v]) => {
+              const pct = Math.round((v.intervened / v.total) * 100);
+              return (
+                <div key={d} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-16 shrink-0 font-mono text-faint">{d.slice(5)}</span>
+                  <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-edge-soft">
+                    <span
+                      className={`block h-full rounded-full ${pct <= 20 ? "bg-ok" : "bg-err"}`}
+                      style={{ width: `${Math.max(4, pct)}%` }}
+                    />
+                  </span>
+                  <span className={`w-10 shrink-0 text-right font-mono ${pct <= 20 ? "text-ok" : "text-err"}`}>
+                    {pct} %
+                  </span>
+                  <span className="w-8 shrink-0 text-right font-mono text-faint">{v.total}t</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 px-1 text-[10px] leading-snug text-faint">
+            Part des tours de l'Élève local où Claude a dû reprendre. Objectif :
+            <span className="text-ok"> 0 %</span> = l'Élève est diplômé, la routine tourne à coût zéro.
+          </p>
+        </Section>
+      )}
+
       <p className="px-1 text-[10px] leading-snug text-faint">
-        Moyenne {avgTurns.toFixed(1)} tours/tâche. La « courbe du taux
-        d'intervention » s'ajoutera ici quand l'élève local sera branché.
+        Moyenne {avgTurns.toFixed(1)} tours/tâche.
+        {relayRows.length === 0 &&
+          " La courbe du taux d'intervention apparaîtra dès le premier tour avec le cerveau 🎓 Élève local."}
       </p>
     </div>
   );
