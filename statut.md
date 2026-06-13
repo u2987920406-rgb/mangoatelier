@@ -50,6 +50,14 @@
 
 *Garde-fous actés (corrections du pré-test) : escalade sur signaux objectifs (jamais « le visuel est correct »), récupération d'axiomes par pertinence (un petit modèle sature), réparation avant rejet, axiomes validés contre l'Élève. Le contrat complet (C/D) attend un vrai modèle local — pas de construction à l'aveugle.*
 
+### 📌 Conclusion : faut-il créer des agents spécialisés (locaux/code) pour les tâches auxiliaires ? — NON (analyse 2026-06-13)
+Inventaire complet du code fait. Deux voies distinctes : **Voie A** = déplacer le cœur de MangoAI sur un modèle local (indépendance, mais on met le modèle le plus faible sur la tâche la plus dure → risque qualité ; = Jalon D, plus tard, par *tiering* pas big-bang) ; **Voie B** = déléguer des sous-tâches bornées à des agents spécialisés (économie, faible risque). **Verdict : pas de besoin réel maintenant.**
+- Presque tout l'auxiliaire est **déjà du code pur, donc gratuit** : git/versions, deploy, github, preview, npm, Playwright, métriques. Rien à déléguer.
+- La **seule** tâche LLM auxiliaire récurrente (la revue de fond, `review.ts`) tourne **déjà sur haiku** (le moins cher) — la Voie B est donc déjà appliquée là où elle a du sens.
+- La déplacer en local serait un **mauvais calcul** : la revue est du jugement (extraction d'axiomes) ; un modèle local plus faible dégraderait le flywheel, pour un coût d'infra > à l'économie.
+- **Le vrai levier de coût = le tour de build principal**, pas l'auxiliaire. Leviers déjà en place : MVP, choix du modèle, blueprints ; planifié : dégraissage du prompt (idée 13 / Coque Souple v2) ; à terme : Voie A pour les builds faciles.
+- Seul micro-levier optionnel identifié : déclencher la revue tous les N tours (façon nudge Hermes) au lieu de chaque tour (÷3-5 du coût de revue, perte d'apprentissage négligeable) — marginal car haiku déjà bon marché. Non appliqué.
+
 ---
 
 ## 🚀 Montée en puissance — ordre de priorité recommandé
