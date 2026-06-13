@@ -1,4 +1,4 @@
-import { BarChart3, Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, GraduationCap, History, Loader2, Rocket, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -7,6 +7,9 @@ const MODELS = [
   { id: "haiku", label: "Haiku", hint: "Rapide, projets simples", icon: Zap },
   { id: "sonnet", label: "Sonnet", hint: "Équilibré (recommandé)", icon: Gauge },
   { id: "opus", label: "Opus", hint: "Puissant, plus cher", icon: Brain },
+  // Phase Ultime jalon D — 3e cerveau : le modèle local (Qwen via Ollama) traite
+  // la tâche à coût zéro, Claude n'intervient qu'en secours (escalade objective).
+  { id: "eleve", label: "Élève local", hint: "Qwen local (gratuit) — Claude en secours", icon: GraduationCap },
 ];
 
 // Effort mode (idea 12) — orthogonal to the model: which rigour, not which brain.

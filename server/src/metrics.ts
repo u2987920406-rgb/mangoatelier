@@ -20,6 +20,11 @@ export type TurnMetrics = {
   snapshots: number;
   durationMs: number;
   error: boolean;
+  // Phase Ultime jalon D : qui a résolu le tour quand l'Élève local est aux
+  // commandes. Optionnels → les lignes Claude classiques restent valides.
+  // Matière première de la courbe du taux d'intervention (→ 0 % = Élève diplômé).
+  resolvedBy?: "eleve" | "maitre" | "none";
+  attempts?: number;
 };
 
 /** Best-effort append — losing one metric must never affect a turn. */

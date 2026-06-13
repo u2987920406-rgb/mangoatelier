@@ -22,6 +22,7 @@ import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
 import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./vision.js";
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
+import { runRelay } from "./eleve.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -60,6 +61,10 @@ app.post("/api/chat", async (req, res) => {
     mode?: string;
     template?: string;
   };
+  // Third brain option (Phase Ultime jalon D): "eleve" routes the turn to the
+  // local student (Qwen via Ollama) through the relay loop instead of Claude.
+  // Claude stays the escalation tier. Any other value = a normal Claude turn.
+  const useEleve = model === "eleve";
   const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
     ? (model as ModelChoice)
     : undefined;
@@ -91,6 +96,8 @@ app.post("/api/chat", async (req, res) => {
   // read in the finally block — TS control-flow can't track the assignment.
   const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
   const lastResult: { current: { costUsd: number; numTurns: number } | null } = { current: null };
+  // Élève relay outcome (jalon D), folded into this turn's metrics line.
+  const relayMeta: { current: { resolvedBy: "eleve" | "maitre" | "none"; attempts: number } | null } = { current: null };
   const turnStart = Date.now();
   const record = (role: ChatEntry["role"], text: string) =>
     turn.push({ role, text, ts: new Date().toISOString() });
@@ -154,14 +161,42 @@ app.post("/api/chat", async (req, res) => {
       return "ok";
     };
 
-    // Resume the project's previous conversation if the client didn't pass one
-    const effectiveSession = sessionId ?? getSession(projectName);
-    send({ type: "status", text: "L'agent travaille…" });
-    const outcome = await streamAgentTurn(effectiveSession);
-    if (outcome === "session-not-found") {
-      clearSession(projectName);
-      send({ type: "status", text: "Ancienne conversation introuvable — nouvelle conversation démarrée." });
-      await streamAgentTurn(undefined);
+    if (useEleve) {
+      // Élève path (jalon D): the local student attempts the task at zero cost,
+      // an objective build judges it, and only an objective failure escalates to
+      // Claude. We stream the relay trace as status lines.
+      send({ type: "status", text: "🎓 L'Élève local (Qwen) prend la main…" });
+      const r = await runRelay(prompt, dir, {
+        onLog: (line) => {
+          record("status", line);
+          send({ type: "status", text: line });
+        },
+      });
+      relayMeta.current = { resolvedBy: r.resolvedBy, attempts: r.attempts };
+      lastResult.current = { costUsd: r.costUsd, numTurns: r.attempts };
+      const verdict =
+        r.resolvedBy === "eleve"
+          ? `✅ Résolu par l'Élève (Qwen local) en ${r.attempts} tentative(s) — coût Claude $0.00.`
+          : r.resolvedBy === "maitre"
+            ? `👑 L'Élève a buté → escaladé au Maître (Claude), corrigé${r.axiom ? " + 1 axiome appris" : ""} — coût $${r.costUsd.toFixed(4)}.`
+            : `❌ Échec : ni l'Élève ni le Maître n'ont fait passer le build (${r.inspection.signal}).`;
+      if (r.success) {
+        record("agent", verdict);
+        send({ type: "text", text: verdict });
+      } else {
+        record("error", verdict);
+        send({ type: "error", message: verdict });
+      }
+    } else {
+      // Resume the project's previous conversation if the client didn't pass one
+      const effectiveSession = sessionId ?? getSession(projectName);
+      send({ type: "status", text: "L'agent travaille…" });
+      const outcome = await streamAgentTurn(effectiveSession);
+      if (outcome === "session-not-found") {
+        clearSession(projectName);
+        send({ type: "status", text: "Ancienne conversation introuvable — nouvelle conversation démarrée." });
+        await streamAgentTurn(undefined);
+      }
     }
 
     const version = await commitVersion(dir, prompt.replace(/\s+/g, " ").slice(0, 72));
@@ -201,7 +236,7 @@ app.post("/api/chat", async (req, res) => {
     recordTurnMetrics({
       ts: new Date().toISOString(),
       project: projectName,
-      model: chosenModel ?? "sonnet",
+      model: useEleve ? "eleve" : (chosenModel ?? "sonnet"),
       mode: chosenMode,
       costUsd: lastResult.current?.costUsd ?? 0,
       numTurns: lastResult.current?.numTurns ?? 0,
@@ -210,6 +245,9 @@ app.post("/api/chat", async (req, res) => {
       snapshots: visionStatus().used,
       durationMs: Date.now() - turnStart,
       error: turn.some((e) => e.role === "error"),
+      ...(relayMeta.current
+        ? { resolvedBy: relayMeta.current.resolvedBy, attempts: relayMeta.current.attempts }
+        : {}),
     });
     send({ type: "done" });
     res.end();

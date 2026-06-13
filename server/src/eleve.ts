@@ -43,6 +43,8 @@ export interface RelayOptions {
   maxEleveAttempts?: number;
   /** Modèle Claude pour l'escalade (défaut sonnet). */
   maitreModel?: string;
+  /** Reçoit chaque ligne de trace en direct (pour le streaming SSE). */
+  onLog?: (line: string) => void;
 }
 
 /** Les deux cerveaux + les effets de bord, injectables pour les tests. */
@@ -232,6 +234,7 @@ export async function runRelay(
   const push = (s: string) => {
     log.push(s);
     console.log(`[relay] ${s}`);
+    opts.onLog?.(s);
   };
 
   // Sans dépendances, l'inspection renverrait un faux "no-deps" — on les pose une fois.
