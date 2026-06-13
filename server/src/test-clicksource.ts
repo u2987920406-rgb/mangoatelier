@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { parseSrcRef, readSourceSnippet, ensureClickSourcePlugin } from "./clicksource.js";
+import { parseSrcRef, readSourceSnippet, ensureClickSourcePlugin, buildVisualEditPrompt } from "./clicksource.js";
 
 const line = (c = "─") => console.log(c.repeat(64));
 let failures = 0;
@@ -67,7 +67,22 @@ try {
   check("idempotent (inchangé au 2e appel)", after2 === after);
   check("une seule occurrence de la fabrique", (after2.match(/function mangoClickSource/g) ?? []).length === 1);
 
-  // 4) config personnalisée (react déjà paramétré) → on ne touche pas
+  // 4) buildVisualEditPrompt (#6) — enrichit la tâche pour un edit chirurgical
+  console.log("\n  [4] buildVisualEditPrompt :");
+  const built = buildVisualEditPrompt(proj, { src: "src/App.jsx:6", tag: "button", text: "Clique" }, "agrandis le bouton");
+  const okBuilt = built !== null;
+  check("renvoie un prompt enrichi", okBuilt);
+  if (okBuilt) {
+    check("cite le fichier:ligne exact", built.prompt.includes("src/App.jsx, ligne 6") && built.file === "src/App.jsx" && built.line === 6);
+    check("inclut l'extrait (ligne 6 marquée)", /→\s+6 \|/.test(built.prompt) && built.prompt.includes("<button>Clique</button>"));
+    check("impose un edit CHIRURGICAL", /CHIRURGICAL/.test(built.prompt));
+    check("reporte la demande utilisateur", built.prompt.includes("agrandis le bouton"));
+    check("mentionne l'élément cliqué (button/texte)", built.prompt.includes("button") && built.prompt.includes("Clique"));
+  }
+  check("cible invalide (fichier absent) → null", buildVisualEditPrompt(proj, { src: "src/Nope.jsx:1" }, "x") === null);
+  check("référence malformée → null", buildVisualEditPrompt(proj, { src: "pas-de-ligne" }, "x") === null);
+
+  // 5) config personnalisée (react déjà paramétré) → on ne touche pas
   const proj2 = path.join(dir, "proj2");
   fs.mkdirSync(proj2, { recursive: true });
   const custom = 'import react from "@vitejs/plugin-react";\nexport default { plugins: [react({ jsxRuntime: "classic" })] };\n';

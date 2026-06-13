@@ -19,6 +19,8 @@ export default function Chat({
   onAutoPromptConsumed,
   seedInput,
   onSeedConsumed,
+  editTarget,
+  onEditTargetConsumed,
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -163,10 +165,14 @@ export default function Chat({
     // Auto-prompts (fix requests) never carry attachments
     const files = typeof textArg === "string" ? [] : attachments;
     if ((!typed && files.length === 0) || busy) return;
+    // Cible d'édition visuelle (#6) : seulement pour un envoi utilisateur (pas un
+    // auto-prompt), capturée puis consommée pour ce message.
+    const useEdit = typeof textArg !== "string" ? editTarget : null;
     if (typeof textArg !== "string") {
       setInput("");
       setAttachments([]);
       if (inputRef.current) inputRef.current.style.height = "auto";
+      if (useEdit) onEditTargetConsumed?.();
     }
     setBusy(true);
 
@@ -199,6 +205,7 @@ export default function Chat({
           mode,
           template: template || undefined,
           sessionId: sessionRef.current ?? undefined,
+          editTarget: useEdit ?? undefined,
         }),
       });
       if (!res.ok) {

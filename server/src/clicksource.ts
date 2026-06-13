@@ -97,6 +97,42 @@ export interface SourceSnippet extends SourceRef {
   content: string; // contenu intégral du fichier (pour un <edit> exact via la Coque Rigide)
 }
 
+/** Cible d'une édition visuelle (#6) : ce que le clic en mode inspection a remonté. */
+export interface EditTarget {
+  src: string; // "src/App.jsx:96"
+  tag?: string;
+  text?: string;
+}
+
+/** Construit le prompt d'ÉDITION VISUELLE CIBLÉE (#6) : à partir du clic, on
+ * donne à l'agent le fichier:ligne EXACT + l'extrait, et on impose un edit
+ * CHIRURGICAL de cet élément. Marche pour Claude (runAgent) comme pour l'Élève
+ * (runRelay : le chemin cité déclenche l'injection du contenu, piste n°1).
+ * Renvoie null si la cible est invalide (on retombe alors sur un tour normal). */
+export function buildVisualEditPrompt(
+  projectDir: string,
+  target: EditTarget,
+  userText: string,
+): { prompt: string; file: string; line: number } | null {
+  const snip = readSourceSnippet(projectDir, target.src);
+  if ("error" in snip) return null;
+  const label = target.text ? `« ${target.text} »` : target.tag ? `<${target.tag}>` : "l'élément";
+  const prompt = [
+    "[ÉDITION VISUELLE CIBLÉE]",
+    `L'utilisateur a cliqué un élément ${target.tag ? `<${target.tag}> ` : ""}${label} dans l'aperçu live.`,
+    `Code source EXACT de cet élément : ${snip.file}, ligne ${snip.line}.`,
+    "",
+    "Extrait (→ marque la ligne cliquée) :",
+    snip.snippet,
+    "",
+    `Consigne IMPÉRATIVE : applique un EDIT CHIRURGICAL de CET élément (autour de la ligne ${snip.line}) — modifie le strict nécessaire, ne réécris pas tout le fichier, ne touche pas au reste. Le contenu complet de ${snip.file} t'est accessible.`,
+    "",
+    "Demande de l'utilisateur :",
+    userText,
+  ].join("\n");
+  return { prompt, file: snip.file, line: snip.line };
+}
+
 /** Lit le code pointé par un data-mango-src : l'extrait autour de la ligne
  * (pour montrer/raisonner) + le contenu intégral (pour un <edit> exact). */
 export function readSourceSnippet(

@@ -17,7 +17,7 @@ import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
 import { ensureErrorRelay, ensureInspectRelay } from "./relay.js";
-import { ensureClickSourcePlugin, readSourceSnippet } from "./clicksource.js";
+import { ensureClickSourcePlugin, readSourceSnippet, buildVisualEditPrompt, type EditTarget } from "./clicksource.js";
 import { deployProject } from "./deploy.js";
 import { githubConfigured, pushToGitHub } from "./github.js";
 import { spawnBackgroundReview } from "./review.js";
@@ -56,13 +56,14 @@ app.get("/api/projects", (_req, res) => {
 // Body: { prompt: string, projectName: string, sessionId?: string }
 // Streams AgentEvent objects as SSE. Creates the project on first message.
 app.post("/api/chat", async (req, res) => {
-  const { prompt, projectName, sessionId, model, mode, template } = req.body as {
+  const { prompt, projectName, sessionId, model, mode, template, editTarget } = req.body as {
     prompt?: string;
     projectName?: string;
     sessionId?: string;
     model?: string;
     mode?: string;
     template?: string;
+    editTarget?: EditTarget; // #6 : cible d'une édition visuelle (clic→source)
   };
   // Third brain option (Phase Ultime jalon D): "eleve" routes the turn to the
   // local student (Qwen via Ollama) through the relay loop instead of Claude.
@@ -131,6 +132,30 @@ app.post("/api/chat", async (req, res) => {
     historyDir = dir;
     record("user", prompt);
 
+    // Édition visuelle ciblée (#6) : si le tour vient d'un clic→source, on enrichit
+    // la tâche envoyée à l'agent avec le fichier:ligne EXACT + l'extrait (edit
+    // chirurgical), sans polluer le message affiché ni le titre de version. On
+    // capture aussi les octets du fichier cible pour VÉRIFIER objectivement que
+    // l'édition a pris (diff non vide — la discipline de mesure appliquée en prod).
+    let agentPrompt = prompt;
+    let editFile: string | null = null;
+    let editBytesBefore: string | null = null;
+    if (editTarget?.src) {
+      const built = buildVisualEditPrompt(dir, editTarget, prompt);
+      if (built) {
+        agentPrompt = built.prompt;
+        editFile = built.file;
+        try {
+          editBytesBefore = fs.readFileSync(path.join(dir, built.file), "utf8");
+        } catch {
+          editBytesBefore = null;
+        }
+        send({ type: "status", text: `🎯 Édition ciblée : ${built.file}:${built.line}` });
+      } else {
+        send({ type: "status", text: "⚠ Source de l'élément introuvable — édition en tour normal." });
+      }
+    }
+
     send({ type: "status", text: "Démarrage de l'aperçu…" });
     const { url } = await startPreview(dir);
     send({ type: "preview", url });
@@ -144,7 +169,7 @@ app.post("/api/chat", async (req, res) => {
     // event is held back until we know it isn't that case.
     const streamAgentTurn = async (session?: string): Promise<"ok" | "session-not-found"> => {
       let pendingFailure: unknown = null;
-      for await (const event of runAgent(prompt, dir, session, chosenModel, chosenMode)) {
+      for await (const event of runAgent(agentPrompt, dir, session, chosenModel, chosenMode)) {
         if (session && event.type === "error" && /No conversation found/i.test(event.message)) {
           return "session-not-found";
         }
@@ -174,7 +199,7 @@ app.post("/api/chat", async (req, res) => {
       // an objective build judges it, and only an objective failure escalates to
       // Claude. We stream the relay trace as status lines.
       send({ type: "status", text: "🎓 L'Élève local (Qwen) prend la main…" });
-      const r = await runRelay(prompt, dir, {
+      const r = await runRelay(agentPrompt, dir, {
         onLog: (line) => {
           record("status", line);
           send({ type: "status", text: line });
@@ -205,6 +230,25 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "status", text: "Ancienne conversation introuvable — nouvelle conversation démarrée." });
         await streamAgentTurn(undefined);
       }
+    }
+
+    // Vérification d'effet de l'édition visuelle (#6) : signal OBJECTIF que le
+    // changement a pris (le fichier cible a changé d'octets), au lieu de le
+    // supposer. C'est la parade du caveat n°7 appliquée à la production, dans le
+    // seul cas où l'on connaît la cible : un clic→source.
+    if (editFile && !turn.some((e) => e.role === "error")) {
+      let after: string | null = null;
+      try {
+        after = fs.readFileSync(path.join(dir, editFile), "utf8");
+      } catch {
+        after = null;
+      }
+      const changed = after !== null && after !== editBytesBefore;
+      const msg = changed
+        ? `✓ Élément modifié — ${editFile} a bien changé.`
+        : `⚠ ${editFile} n'a PAS changé — l'édition n'a peut-être pas pris. Reformule ou précise l'élément.`;
+      record("status", msg);
+      send({ type: changed ? "status" : "error", ...(changed ? { text: msg } : { message: msg }) });
     }
 
     const version = await commitVersion(dir, prompt.replace(/\s+/g, " ").slice(0, 72));

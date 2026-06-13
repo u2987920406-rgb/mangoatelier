@@ -28,6 +28,7 @@ export default function App() {
   const [pendingPrompt, setPendingPrompt] = useState(null); // Home idea or fix request
   const [inspecting, setInspecting] = useState(false); // mode inspection clic→source (#5)
   const [seedInput, setSeedInput] = useState(null); // texte préchargé dans le composer (sélection)
+  const [editTarget, setEditTarget] = useState(null); // cible d'édition visuelle (#6) : { src, tag, text }
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState(null);
   const [githubEnabled, setGithubEnabled] = useState(false);
@@ -94,11 +95,13 @@ export default function App() {
         setInspecting(false);
         const label = d.text ? `« ${d.text} »` : `<${d.tag}>`;
         if (d.src) {
-          // On précharge le composer avec la référence source EXACTE (fichier:ligne) ;
-          // l'utilisateur n'a plus qu'à dire le changement voulu (l'édition = #6).
+          // On précharge le composer ET on arme la cible structurée (#6) : le
+          // prochain message déclenchera un edit CHIRURGICAL à ce fichier:ligne.
+          setEditTarget({ src: d.src, tag: d.tag, text: d.text });
           setSeedInput(`Modifie l'élément ${label} (source : ${d.src}) : `);
           pushToast("success", `Élément ciblé : ${d.src}`);
         } else {
+          setEditTarget(null);
           setSeedInput(`Modifie l'élément <${d.tag}> ${label} : `);
           pushToast("error", "Élément ciblé (source non tracée — recharge l'aperçu)");
         }
@@ -272,6 +275,8 @@ export default function App() {
               onAutoPromptConsumed={() => setPendingPrompt(null)}
               seedInput={seedInput}
               onSeedConsumed={() => setSeedInput(null)}
+              editTarget={editTarget}
+              onEditTargetConsumed={() => setEditTarget(null)}
             />
             <Preview
               url={previewUrl}
