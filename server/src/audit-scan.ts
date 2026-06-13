@@ -130,11 +130,18 @@ async function fingerprint() {
   const tags = (await getJSON(`${OLLAMA}/api/tags`)) as { models?: Array<{ name: string; digest?: string }> } | null;
   const digest = tags?.models?.find((m) => m.name === ELEVE_MODEL)?.digest ?? "?";
   const axiomsText = loadAxioms(WORKSPACE_DIR);
+  // Empreinte de la suite : comparer deux scans n'a de sens QUE pour la même
+  // suite de tâches (changer la suite invalide toute comparaison temporelle).
+  const suiteHash = createHash("sha1")
+    .update(AUDIT_TASKS.map((t) => `${t.id}::${t.prompt}`).join("\n"))
+    .digest("hex")
+    .slice(0, 12);
   return {
     ollamaVersion: ver?.version ?? "?",
     modelDigest: digest.slice(0, 12),
     axiomsHash: axiomsText ? createHash("sha1").update(axiomsText).digest("hex").slice(0, 12) : "vide",
     axiomsCount: (axiomsText.match(/AXIOME-/g) ?? []).length,
+    suiteHash,
   };
 }
 
@@ -144,7 +151,7 @@ function printHealth(h: Health): void {
   );
 }
 
-function readScans(): Array<{ ts: string; health: Health; axiomsHash: string; perTask: TaskScore[] }> {
+function readScans(): Array<{ ts: string; health: Health; axiomsHash: string; suiteHash?: string; perTask: TaskScore[] }> {
   try {
     return fs
       .readFileSync(AUDIT_LOG, "utf8")
@@ -160,7 +167,8 @@ function readScans(): Array<{ ts: string; health: Health; axiomsHash: string; pe
 // ── Modes ────────────────────────────────────────────────────────────────────
 async function normalScan(): Promise<void> {
   const fp = await fingerprint();
-  const previous = readScans().at(-1) ?? null;
+  // Ne comparer qu'aux scans de la MÊME suite (sinon pommes vs oranges).
+  const previous = readScans().filter((s) => s.suiteHash === fp.suiteHash).at(-1) ?? null;
   const results = await runSuite("Scan");
   const health = aggregate(results);
 
@@ -169,7 +177,7 @@ async function normalScan(): Promise<void> {
   line();
   printHealth(health);
   console.log(
-    `   modèle ${fp.modelDigest} · ollama ${fp.ollamaVersion} · axiomes ${fp.axiomsCount} (${fp.axiomsHash})`,
+    `   modèle ${fp.modelDigest} · ollama ${fp.ollamaVersion} · axiomes ${fp.axiomsCount} (${fp.axiomsHash}) · suite ${fp.suiteHash} (${AUDIT_TASKS.length} tâches)`,
   );
 
   if (previous) {
@@ -191,7 +199,7 @@ async function normalScan(): Promise<void> {
       console.log(`   ✓ aucune régression de build.`);
     }
   } else {
-    console.log(`\n   (premier scan — pas de comparaison ; les suivants détecteront les dérives)`);
+    console.log(`\n   (première mesure de CETTE suite (${fp.suiteHash}) — pas de comparaison ; les suivants détecteront les dérives)`);
   }
 
   fs.appendFileSync(AUDIT_LOG, `${JSON.stringify({ ts: new Date().toISOString(), ...fp, health, perTask: results })}\n`);

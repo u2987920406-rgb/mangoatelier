@@ -12,7 +12,7 @@
 
 export interface AuditTask {
   id: string;
-  complexity: "simple" | "moyen" | "composite";
+  complexity: "simple" | "moyen" | "composite" | "difficile";
   prompt: string;
 }
 
@@ -46,5 +46,35 @@ export const AUDIT_TASKS: AuditTask[] = [
     complexity: "composite",
     prompt:
       'Crée DEUX fichiers : le composant React "src/components/StatCard.jsx" (export default, props "label" et "value") ET sa feuille de style "src/components/StatCard.css" importée par le composant.',
+  },
+
+  // ── Tâches DIFFICILES (discriminantes) ──────────────────────────────────────
+  // Le `vite build` ne juge que la COMPILATION : pour faire trébucher un 7B, il
+  // faut des contraintes que le build sait vérifier (imports inter-fichiers qui
+  // doivent résoudre, dépendances manquantes) ou une retouche d'un fichier que
+  // l'Élève ne voit pas (il ne reçoit que la LISTE des fichiers, pas leur contenu).
+  {
+    id: "storage-hook",
+    complexity: "difficile",
+    prompt:
+      'Crée DEUX fichiers COHÉRENTS : "src/lib/storage.js" exportant saveItem(key, value) et loadItem(key) (via window.localStorage + JSON), ET "src/hooks/useStorage.js" qui IMPORTE saveItem et loadItem depuis "../lib/storage.js" et exporte useStorage(key, initial). Les noms importés doivent correspondre EXACTEMENT aux exports, sinon le build casse.',
+  },
+  {
+    id: "dashboard-grid",
+    complexity: "difficile",
+    prompt:
+      'Crée "src/components/Dashboard.jsx" (export default) qui IMPORTE le composant Metric depuis "./Metric" et en affiche trois dans une grille. Crée AUSSI "src/components/Metric.jsx" (export default, props label/value) — sinon l\'import "./Metric" ne se résoudra pas et le build échouera.',
+  },
+  {
+    id: "accordion",
+    complexity: "difficile",
+    prompt:
+      'Crée "src/components/Accordion.jsx" (export default) : un composant React avec useState recevant une prop "items" (tableau de { title, content }) et n\'affichant qu\'UNE section ouverte à la fois (cliquer un titre ouvre/ferme sa section).',
+  },
+  {
+    id: "edit-app-header",
+    complexity: "difficile",
+    prompt:
+      'Modifie le fichier EXISTANT "src/App.jsx" par un EDIT ciblé (find/replace, sans réécrire tout le fichier) : insère, juste après la balise ouvrante de l\'élément racine retourné, un <header><h1>Bella Napoli</h1></header>. Conserve tout le reste du fichier intact.',
   },
 ];
