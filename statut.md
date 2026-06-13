@@ -1,6 +1,8 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-13 (Jalon D LIVRÉ — Élève Qwen local + boucle de relais + dashboard de compagnonnage & Audit Scan)*
+*Dernière mise à jour : 2026-06-13 (Jalon D CLOS + chaîne d'édition visuelle native #1→#5→#6 livrée + trou de mesure « caveat n°7 » fermé)*
+
+> **🟢 Où on en est (point de reprise) — 2026-06-13.** Tout compile (`tsc` serveur 0, build UI OK), tout est poussé (dernier commit `42b6f5f`). **Fait cette session** : #1 (contenu fichier à l'Élève), #2 (discipline d'ablation), #3 (`selectAxioms` v2.1), veille mensuelle (re-check), #5 (relais clic→source — tampon Babel `data-mango-src`, pas `_debugSource`), **fermeture du trou de mesure** (`audit-verify.ts` → l'audit mesure le RENDEMENT RÉEL build+effet), #6 (édition visuelle chirurgicale, prouvée e2e à $0), idée 28 inscrite. **Positionnement acté (non gravé en mémoire, sur demande)** : MangoAI = **outil perso local-first** pour produire des livrables clients ; phase « installation/externalisation » = plus tard, seulement si un client paie le prix fort. **Prochaine vague recommandée** (pertinence × facilité) : #10 Déploiement étendu 🟢 → #7 MCP Figma 🟡 (le serveur MCP est déjà accessible) → #21 Métriques avancées 🟢 (avant l'audit du 22/06) → #9 Tests auto 🟡 → #8 Inspiration web 🟡. Pour relancer : voir « 🚀 Pour relancer après redémarrage » en bas.
 
 ## 🧭 Feuille de route ordonnée (plan de bord — 2026-06-13)
 *Séquencée par dépendances. « Temps » = sessions de travail focalisé. Ligne de conduite à chaque étape : règle « natif d'abord » + test déterministe + `tsc` propre + preuve e2e + save.*
@@ -258,3 +260,11 @@ cd D:\IA\mangoai\ui
 npm run dev
 ```
 Puis ouvrir **http://localhost:5173** — les conversations des projets reprennent automatiquement (sessions persistées).
+
+**Pour le cerveau Élève local (Qwen) — facultatif, requis seulement si on choisit « 🎓 Élève local »** :
+```
+ollama serve
+```
+(modèles sur `D:\ollama\models` via `OLLAMA_MODELS` ; modèle `qwen2.5-coder:7b`. 1er appel ~60 s à froid, puis ~5 s.) **Santé de l'Élève** : `cd server && npx tsx src/audit-scan.ts` (scan, mesure le RENDEMENT RÉEL build+effet) · `… --ablate` (après un nouvel axiome).
+
+**Bancs / tests déterministes utiles** (`cd server`) : `npx tsx src/test-clicksource.ts` (relais clic→source + édition visuelle), `npx tsx src/test-audit-verify.ts` (vérification d'effet), `npx tsx src/test-axioms.ts` (récupération v2.1). Bancs live (Ollama requis) : `exp-clicksource-{live,relay}.ts`, `exp-visual-edit.ts`.
