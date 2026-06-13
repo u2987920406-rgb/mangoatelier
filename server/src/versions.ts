@@ -30,7 +30,16 @@ const PRESERVED_FILES = [HISTORY_FILE_NAME, MEMORY_FILE_NAME];
 // User-uploaded attachments and vision snapshots: inputs/artifacts, not code —
 // never versioned, and a rollback's clean must not delete them.
 const PRESERVED_DIRS = [".assets", ".snapshots"];
-const IGNORED = ["node_modules/", "dist/", ...PRESERVED_FILES, ...PRESERVED_DIRS.map((d) => `${d}/`)];
+// Secrets (Supabase keys etc., idea 17) must never be versioned — else a
+// commit would carry them into the GitHub push (idea 16) or the zip export.
+const SECRETS = [".env", ".env.local"];
+const IGNORED = [
+  "node_modules/",
+  "dist/",
+  ...SECRETS,
+  ...PRESERVED_FILES,
+  ...PRESERVED_DIRS.map((d) => `${d}/`),
+];
 
 function ensureGitignore(dir: string): void {
   const gitignore = path.join(dir, ".gitignore");

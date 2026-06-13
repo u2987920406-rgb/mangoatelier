@@ -376,6 +376,8 @@ app.get("/api/export/:name", (req, res) => {
       "node_modules/**",
       "dist/**",
       ".git/**",
+      ".env",
+      ".env.local",
       ".chat-history.json",
       ".memory.md",
       `${ASSETS_DIR_NAME}/**`,

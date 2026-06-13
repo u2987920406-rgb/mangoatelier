@@ -86,6 +86,16 @@ const VISION_RULES_ELITE = `${VISION_INPUTS}
 const VISION_RULES_MVP = `${VISION_INPUTS}
 - Visual self-check is minimal in this mode: take at most ONE global snapshot to confirm a major visual change rendered, and only if useful. No zoom iterations, no patch→re-snapshot loop — the snapshot budget is tight on purpose. Skip snapshots entirely for non-visual or trivial changes.`;
 
+// Idea 17 — real backend via Supabase (the main functional gap vs Lovable).
+// Kept tight on purpose: a few lines added to every turn's system prompt, the
+// agent expands them only when the project actually needs data/auth.
+const SUPABASE_RULES = `
+Backend, database and auth (Supabase) — when the app needs data persistence, user accounts/login, or a real database:
+- Use @supabase/supabase-js. Create a single client in src/lib/supabase.js reading import.meta.env.VITE_SUPABASE_URL and import.meta.env.VITE_SUPABASE_ANON_KEY. NEVER hardcode keys.
+- The user supplies the keys: tell them (briefly, in French) to create a free project at supabase.com and put VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the project's .env, then restart the preview.
+- You cannot run migrations — when a table is needed, give the user the exact SQL to paste in the Supabase SQL editor, and ALWAYS enable Row Level Security with sensible policies (a public app must not leave tables world-writable).
+- Degrade gracefully: if the keys are missing, the app must still render (show a clear "connecte Supabase" notice rather than crash).`;
+
 // Hermes-style parallel workstreams: an isolated builder subagent that owns
 // one well-scoped slice of the app. Tools restricted to file work — no Bash,
 // so parallel builders can't fight over npm or the dev server.
@@ -154,6 +164,7 @@ export async function* runAgent(
           append:
             MODE_RULES[effectiveMode] +
             SYSTEM_APPEND +
+            SUPABASE_RULES +
             (analytic ? ANALYTIC_RULES : "") +
             visionRules +
             memoryPromptSection(projectDir, WORKSPACE_DIR) +
