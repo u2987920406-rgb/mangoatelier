@@ -1,5 +1,10 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 8 (suite 3) : tableau d'idées + collecte de métriques (idée 14, volet 1)
+- **Tableau « 💡 Idées en attente »** ajouté en tête de `statut.md` (visible avant toute session de code, règle de rappel dans `memory.md`) — 14 idées consignées au fil de la discussion : QA temporel, design pair-programming, généalogie visuelle, doc multimodale, guide MangoAI, stacks/blueprints par type, inspiration web, Mango Plan (haute), Knowledge Flywheel, moodboard, sélecteur ⚡ MVP / 💎 Élite (haute, prérequis), audit des coûts (📅 2026-06-22, fin de Fable), tableau de bord d'évolution
+- **Ordre d'exécution recommandé** discuté et acté (5 phases : flywheel → templates v2 → brique web → Mango Plan+moodboard → vision avancée → livrables) ; analyse honnête coût/lourdeur : rien ne fait ramer la machine, le temps de réponse est le seul prix (accepté par l'utilisateur — usage perso), vraie limite = quota Claude
+- **Collecte de métriques ACTIVE** (volet 1 de l'idée 14) : `server/src/metrics.ts` — à la fin de chaque tour, une ligne JSON dans `workspace/.metrics.jsonl` (date, projet, modèle, coût, tours, tokens contexte, snapshots, durée, erreur), append best-effort (jamais d'impact sur le tour). Matière première de la courbe d'apprentissage et de l'audit du 22 juin. Testé : ligne enregistrée ✅, `tsc` propre
+
 ## 2026-06-13 — Session 8 (suite 2) : bouton Snap — capture interactive d'une zone de l'aperçu
 - **Pourquoi côté backend** : l'iframe de l'aperçu est cross-origin → impossible de capturer son contenu depuis le frontend ; l'overlay dessine la bounding box, le backend re-rend l'aperçu **à la taille exacte de l'iframe** (le rendu correspond à l'écran) et croppe la zone via l'infra Playwright du jalon vision
 - **Backend** : `snapZone(url, viewport, box)` dans `vision.ts` (PNG net ×2 pour l'OCR, hors budget vision — c'est la main de l'utilisateur, pas les yeux de l'agent) ; endpoint `POST /api/snap` (validation des nombres, 409 si l'agent travaille sur un autre projet, réutilise l'aperçu en cours)

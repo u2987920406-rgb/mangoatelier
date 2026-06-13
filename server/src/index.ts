@@ -18,7 +18,8 @@ import { deployProject } from "./deploy.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
-import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone } from "./vision.js";
+import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./vision.js";
+import { recordTurnMetrics } from "./metrics.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -77,9 +78,11 @@ app.post("/api/chat", async (req, res) => {
   // the project's .chat-history.json once the turn ends.
   const turn: ChatEntry[] = [];
   let historyDir: string | null = null;
-  // Object ref (not a plain let): assigned inside streamAgentTurn's closure,
+  // Object refs (not plain lets): assigned inside streamAgentTurn's closure,
   // read in the finally block — TS control-flow can't track the assignment.
   const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
+  const lastResult: { current: { costUsd: number; numTurns: number } | null } = { current: null };
+  const turnStart = Date.now();
   const record = (role: ChatEntry["role"], text: string) =>
     turn.push({ role, text, ts: new Date().toISOString() });
   const recordEvent = (event: AgentEvent) => {
@@ -127,6 +130,7 @@ app.post("/api/chat", async (req, res) => {
         }
         if (event.type === "result" && event.sessionId) {
           saveSession(projectName, event.sessionId);
+          lastResult.current = { costUsd: event.costUsd, numTurns: event.numTurns };
           if (event.contextTokens && event.contextWindow) {
             lastContext.current = { tokens: event.contextTokens, window: event.contextWindow };
           }
@@ -183,6 +187,20 @@ app.post("/api/chat", async (req, res) => {
         }
       }
     }
+    // One dated record per turn (idea 14): the raw material of the learning
+    // curve and of the 2026-06-22 cost audit.
+    recordTurnMetrics({
+      ts: new Date().toISOString(),
+      project: projectName,
+      model: chosenModel ?? "sonnet",
+      costUsd: lastResult.current?.costUsd ?? 0,
+      numTurns: lastResult.current?.numTurns ?? 0,
+      contextTokens: lastContext.current?.tokens,
+      contextWindow: lastContext.current?.window,
+      snapshots: visionStatus().used,
+      durationMs: Date.now() - turnStart,
+      error: turn.some((e) => e.role === "error"),
+    });
     send({ type: "done" });
     res.end();
   }
