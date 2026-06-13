@@ -12,6 +12,7 @@ import { loadMemory, loadUserProfile } from "./memory.js";
 import { listSkills } from "./skills.js";
 import { axiomStats, loadAxioms } from "./axioms.js";
 import { computeInsights } from "./metrics-insights.js";
+import { inferProjectType } from "./blueprints.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
@@ -70,6 +71,7 @@ app.post("/api/chat", async (req, res) => {
     ? (model as ModelChoice)
     : undefined;
   const chosenMode: Mode = ALLOWED_MODES.includes(mode as Mode) ? (mode as Mode) : "elite";
+  const projectType = inferProjectType(prompt ?? "");
   if (!prompt?.trim() || !projectName?.trim()) {
     res.status(400).json({ error: "prompt and projectName are required" });
     return;
@@ -246,6 +248,7 @@ app.post("/api/chat", async (req, res) => {
       snapshots: visionStatus().used,
       durationMs: Date.now() - turnStart,
       error: turn.some((e) => e.role === "error"),
+      projectType,
       ...(relayMeta.current
         ? { resolvedBy: relayMeta.current.resolvedBy, attempts: relayMeta.current.attempts }
         : {}),

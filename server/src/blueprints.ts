@@ -18,3 +18,19 @@ Project blueprints — when the request matches a type below, DEFAULT to its sta
 - Jeu 2D: HTML <canvas> + a fixed-timestep requestAnimationFrame loop. src/game/ (loop.js, entities.js, input.js, render.js), src/components/GameCanvas.jsx, App.jsx. Sync the canvas to devicePixelRatio before the first frame for crisp sprites; decouple update() from render().
 - Présentation / slides: src/slides/ (one component per slide), src/components/Deck.jsx (←/→ + space nav, progress bar, 16:9), App.jsx renders the deck. Keyboard-first.
 - Agent spécialisé (AI assistant app): install @anthropic-ai/sdk. src/lib/claude.js (client reading import.meta.env.VITE_ANTHROPIC_API_KEY, never hardcoded), src/prompts/ (the assistant's system prompt), src/components/Chat.jsx (message list + streaming), App.jsx. Default to a current model (claude-opus-4-8, or claude-sonnet-4-6 for speed) and stream responses. SECURITY: the key sits in .env (git-ignored, excluded from the zip, NEVER deployed) — this is fine for local/personal use; tell the user a production deploy needs a small backend proxy so the key isn't shipped to the browser.`;
+
+// Lightweight classifier (jalon D Phase 2): maps a prompt to one of the blueprint
+// types, for the metrics' "par type" breakdowns. Heuristic and order-sensitive —
+// the most specific types are tested first. Returns "autre" when nothing matches.
+export type ProjectType = "dashboard" | "jeu" | "slides" | "agent" | "vitrine" | "webapp" | "autre";
+
+export function inferProjectType(text: string): ProjectType {
+  const t = (text ?? "").toLowerCase();
+  if (/dashboard|tableau de bord|\badmin\b|graphique|\bchart|\bstat(s|istique)?\b/.test(t)) return "dashboard";
+  if (/\bjeu\b|\bgame\b|canvas|sprite|collision|arcade|platformer/.test(t)) return "jeu";
+  if (/\bslides?\b|présentation|presentation|powerpoint|\bdeck\b|diapo/.test(t)) return "slides";
+  if (/\bagent\b|chatbot|\bllm\b|assistant ia|\bia\b\s+(qui|conversationnel)/.test(t)) return "agent";
+  if (/vitrine|landing|page d'accueil|site (web|vitrine)|portfolio/.test(t)) return "vitrine";
+  if (/\bapp(lication)?\b|formulaire|\bauth\b|login|signup|\bcrud\b|supabase|panier|e-?commerce|todo/.test(t)) return "webapp";
+  return "autre";
+}

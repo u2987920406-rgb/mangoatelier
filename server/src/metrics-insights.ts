@@ -28,6 +28,8 @@ export interface Insights {
     pct: number; // % d'intervention du jour
     rollingPct: number; // % d'intervention cumulé (lisse les petits volumes)
   }>;
+  // Rendement & économies par type de projet (Phase 2) — où l'Élève excelle/peine.
+  byType: Array<{ type: string; turns: number; firstPassPct: number; savedUsd: number }>;
   axiomMap: AxiomStats;
 }
 
@@ -85,5 +87,26 @@ export function computeInsights(rows: TurnMetrics[], axiomMap: AxiomStats): Insi
       };
     });
 
-  return { relayTurns: relay.length, firstPassYield, sovereignty, emancipation, axiomMap };
+  // Par type de projet : rendement 1er tour + économies estimées, là où l'Élève
+  // est le plus sollicité. Révèle les types qu'il maîtrise vs ceux à renforcer.
+  const typeMap: Record<string, { turns: number; solo1: number; solved: number }> = {};
+  for (const r of relay) {
+    const t = r.projectType ?? "?";
+    const x = (typeMap[t] ??= { turns: 0, solo1: 0, solved: 0 });
+    x.turns++;
+    if (r.resolvedBy === "eleve") {
+      x.solved++;
+      if (r.attempts === 1) x.solo1++;
+    }
+  }
+  const byType = Object.entries(typeMap)
+    .map(([type, v]) => ({
+      type,
+      turns: v.turns,
+      firstPassPct: Math.round((v.solo1 / v.turns) * 100),
+      savedUsd: v.solved * baselineUsd,
+    }))
+    .sort((a, b) => b.turns - a.turns);
+
+  return { relayTurns: relay.length, firstPassYield, sovereignty, emancipation, byType, axiomMap };
 }

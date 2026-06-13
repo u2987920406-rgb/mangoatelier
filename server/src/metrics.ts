@@ -25,6 +25,9 @@ export type TurnMetrics = {
   // Matière première de la courbe du taux d'intervention (→ 0 % = Élève diplômé).
   resolvedBy?: "eleve" | "maitre" | "none";
   attempts?: number;
+  // Project type inferred from the prompt (jalon D Phase 2) — enables the
+  // "par type" breakdowns (rendement / souveraineté). Optional → legacy lines OK.
+  projectType?: string;
 };
 
 /** Best-effort append — losing one metric must never affect a turn. */

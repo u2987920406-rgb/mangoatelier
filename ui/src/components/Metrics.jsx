@@ -72,6 +72,7 @@ export default function Metrics() {
   const sov = insights?.sovereignty;
   const fpy = insights?.firstPassYield;
   const emancipation = insights?.emancipation ?? [];
+  const byType = insights?.byType ?? [];
   const axiomMap = insights?.axiomMap;
 
   return (
@@ -162,6 +163,25 @@ export default function Metrics() {
             Objectif <span className="text-ok">0 %</span> = l'Élève diplômé. La colonne «~» est la
             moyenne glissante (lisse les petits volumes). Le coût est <em>estimé</em>.
           </p>
+
+          {byType.length > 0 && (
+            <>
+              <h4 className="mb-1 mt-2 text-[10px] uppercase tracking-wide text-faint">
+                Rendement par type de projet
+              </h4>
+              <ul className="space-y-1">
+                {byType.map((t) => (
+                  <li key={t.type} className="flex items-baseline justify-between text-[11px]">
+                    <span className="font-mono text-dim">{t.type}</span>
+                    <span className="font-mono text-faint">
+                      <span className={t.firstPassPct >= 60 ? "text-ok" : ""}>{t.firstPassPct} %</span> 1er
+                      tour · {t.turns}t · {fmt$(t.savedUsd)} est.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Section>
       )}
 

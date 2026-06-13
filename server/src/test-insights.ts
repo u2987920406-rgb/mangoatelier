@@ -2,6 +2,7 @@
 // Lancer :  npx tsx src/test-insights.ts
 
 import { computeInsights } from "./metrics-insights.js";
+import { inferProjectType } from "./blueprints.js";
 import type { TurnMetrics } from "./metrics.js";
 import type { AxiomStats } from "./axioms.js";
 
@@ -31,11 +32,11 @@ const rows: TurnMetrics[] = [
   base({ model: "sonnet", costUsd: 0.2 }),
   base({ model: "opus", costUsd: 0.4 }),
   // tours Élève (jour 1)
-  base({ ts: "2026-06-13T09:00:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 1 }),
-  base({ ts: "2026-06-13T09:30:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 2 }),
+  base({ ts: "2026-06-13T09:00:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 1, projectType: "vitrine" }),
+  base({ ts: "2026-06-13T09:30:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 2, projectType: "dashboard" }),
   // tours Élève (jour 2)
-  base({ ts: "2026-06-14T09:00:00", model: "eleve", costUsd: 0.1, resolvedBy: "maitre", attempts: 2 }),
-  base({ ts: "2026-06-14T10:00:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 1 }),
+  base({ ts: "2026-06-14T09:00:00", model: "eleve", costUsd: 0.1, resolvedBy: "maitre", attempts: 2, projectType: "dashboard" }),
+  base({ ts: "2026-06-14T10:00:00", model: "eleve", costUsd: 0, resolvedBy: "eleve", attempts: 1, projectType: "vitrine" }),
 ];
 
 const axiomMap: AxiomStats = {
@@ -67,8 +68,23 @@ check("2 jours dans la courbe", ins.emancipation.length === 2);
 check("jour 1 : 0 % d'intervention", ins.emancipation[0].pct === 0);
 check("jour 2 : 50 % ponctuel, 25 % glissant", ins.emancipation[1].pct === 50 && ins.emancipation[1].rollingPct === 25);
 
+// Par type : vitrine 2 tours (100 % 1er tour, $0.60 est.) ; dashboard 2 tours (0 %, $0.30)
+const vitrine = ins.byType.find((t) => t.type === "vitrine");
+const dashboard = ins.byType.find((t) => t.type === "dashboard");
+check("byType couvre 2 types", ins.byType.length === 2);
+check("vitrine : 2t, 100 % 1er tour, ≈$0.60", !!vitrine && vitrine.turns === 2 && vitrine.firstPassPct === 100 && near(vitrine.savedUsd, 0.6, 1e-9));
+check("dashboard : 2t, 0 % 1er tour, ≈$0.30", !!dashboard && dashboard.turns === 2 && dashboard.firstPassPct === 0 && near(dashboard.savedUsd, 0.3, 1e-9));
+
 // Cartographie du clapet : echo des stats
 check("axiomMap relayé (total 3)", ins.axiomMap.total === 3 && ins.axiomMap.byCat.DATA === 2);
+
+// inferProjectType : classification par mots-clés
+check("infer dashboard", inferProjectType("Crée un dashboard avec des graphiques") === "dashboard");
+check("infer jeu", inferProjectType("un petit jeu en canvas avec des sprites") === "jeu");
+check("infer slides", inferProjectType("une présentation de slides 16:9") === "slides");
+check("infer vitrine", inferProjectType("un site vitrine pour mon restaurant") === "vitrine");
+check("infer webapp", inferProjectType("une todo app avec auth supabase") === "webapp");
+check("infer autre (rien)", inferProjectType("bonjour comment ça va") === "autre");
 
 // Cas vide : aucune métrique → tout à zéro, pas d'exception
 const empty = computeInsights([], { byCat: {}, byMaturity: { confirmé: 0, candidat: 0 }, total: 0 });
