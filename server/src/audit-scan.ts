@@ -22,6 +22,7 @@ import { runRelay, defaultRelayDeps } from "./eleve.js";
 import { AXIOMS_FILE_NAME, loadAxioms, removeLastAxiom } from "./axioms.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { AUDIT_TASKS, type AuditTask } from "./audit-tasks.js";
+import { verifyEffect } from "./audit-verify.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
@@ -36,13 +37,16 @@ interface TaskScore {
   id: string;
   complexity: string;
   buildOk: boolean;
+  effectOk: boolean; // le changement demandé a-t-il VRAIMENT atterri (audit-verify)
+  effectDetail: string;
   firstTry: boolean;
   attempts: number;
   durationMs: number;
 }
 interface Health {
   tasks: number;
-  builtPct: number;
+  builtPct: number; // compile seulement
+  effectPct: number; // build ET effet — le rendement RÉEL (ferme le caveat n°7)
   firstTryPct: number;
   avgAttempts: number;
   avgDurationMs: number;
@@ -78,11 +82,16 @@ async function scoreTask(task: AuditTask): Promise<TaskScore> {
       { maxEleveAttempts: MAX_ATTEMPTS, onLog: () => {} },
       { ...defaultRelayDeps, escalate: noEscalate },
     );
+    // Vérification d'EFFET AVANT le nettoyage (les fichiers sont encore sur disque).
+    // C'est ici qu'on démasque un build vert sans changement réel.
+    const effect = verifyEffect(dir, task.expect);
     return {
       id: task.id,
       complexity: task.complexity,
       buildOk: r.success,
-      firstTry: r.success && r.attempts === 1,
+      effectOk: effect.ok,
+      effectDetail: effect.detail,
+      firstTry: r.success && effect.ok && r.attempts === 1,
       attempts: r.attempts,
       durationMs: Date.now() - t0,
     };
@@ -96,6 +105,7 @@ function aggregate(results: TaskScore[]): Health {
   return {
     tasks: results.length,
     builtPct: Math.round((results.filter((r) => r.buildOk).length / n) * 100),
+    effectPct: Math.round((results.filter((r) => r.buildOk && r.effectOk).length / n) * 100),
     firstTryPct: Math.round((results.filter((r) => r.firstTry).length / n) * 100),
     avgAttempts: Number((results.reduce((s, r) => s + r.attempts, 0) / n).toFixed(2)),
     avgDurationMs: Math.round(results.reduce((s, r) => s + r.durationMs, 0) / n),
@@ -109,9 +119,16 @@ async function runSuite(label: string): Promise<TaskScore[]> {
     process.stdout.write(`   · ${task.id} (${task.complexity})… `);
     const s = await scoreTask(task);
     results.push(s);
+    // Le cas qui démasque le caveat n°7 : build vert MAIS effet absent.
+    const effectMark = s.buildOk
+      ? s.effectOk
+        ? "✓ effet"
+        : "✗ EFFET ABSENT"
+      : "—";
     console.log(
-      `${s.buildOk ? "✅" : "❌"} build${s.firstTry ? " · 1er tour" : ""} · ${s.attempts} tent. · ${(s.durationMs / 1000).toFixed(1)}s`,
+      `${s.buildOk ? "✅" : "❌"} build · ${effectMark}${s.firstTry ? " · 1er tour" : ""} · ${s.attempts} tent. · ${(s.durationMs / 1000).toFixed(1)}s`,
     );
+    if (s.buildOk && !s.effectOk) console.log(`        ↳ ${s.effectDetail}`);
   }
   return results;
 }
@@ -146,9 +163,11 @@ async function fingerprint() {
 }
 
 function printHealth(h: Health): void {
+  const gap = h.builtPct - h.effectPct;
   console.log(
-    `   build ${h.builtPct}% · 1er tour ${h.firstTryPct}% · ${h.avgAttempts} tent./tâche · ${(h.avgDurationMs / 1000).toFixed(1)}s/tâche`,
+    `   build ${h.builtPct}% · RENDEMENT RÉEL (build+effet) ${h.effectPct}%${gap > 0 ? ` ⚠ −${gap} pts d'effet manquant` : ""} · 1er tour réel ${h.firstTryPct}%`,
   );
+  console.log(`   ${h.avgAttempts} tent./tâche · ${(h.avgDurationMs / 1000).toFixed(1)}s/tâche`);
 }
 
 function readScans(): Array<{ ts: string; health: Health; axiomsHash: string; suiteHash?: string; perTask: TaskScore[] }> {
@@ -181,23 +200,32 @@ async function normalScan(): Promise<void> {
   );
 
   if (previous) {
-    const d = (a: number, b: number) => (a - b >= 0 ? `+${a - b}` : `${a - b}`);
+    const d = (a: number, b?: number) => (b == null ? "n/a" : a - b >= 0 ? `+${a - b}` : `${a - b}`);
     console.log(`\n   vs scan précédent (${previous.ts.slice(0, 16).replace("T", " ")}) :`);
     console.log(
-      `     build ${d(health.builtPct, previous.health.builtPct)} pts · 1er tour ${d(health.firstTryPct, previous.health.firstTryPct)} pts`,
+      `     build ${d(health.builtPct, previous.health.builtPct)} pts · rendement réel ${d(health.effectPct, previous.health.effectPct)} pts · 1er tour réel ${d(health.firstTryPct, previous.health.firstTryPct)} pts`,
     );
-    const regressions = results.filter((r) => {
+    // Régression de COMPILATION (un fichier ne build plus)…
+    const buildReg = results.filter((r) => {
       const before = previous.perTask.find((p) => p.id === r.id);
       return before?.buildOk && !r.buildOk;
     });
-    if (regressions.length) {
-      console.log(`   ⚠ MAUVAIS PLI : ${regressions.map((r) => r.id).join(", ")} compilai(en)t avant, plus maintenant.`);
-      if (previous.axiomsHash !== fp.axiomsHash) {
-        console.log(`     (le registre d'axiomes a changé entre les deux scans — suspect n°1 ; lance --ablate)`);
-      }
-    } else if (health.builtPct >= previous.health.builtPct) {
-      console.log(`   ✓ aucune régression de build.`);
+    // …et régression d'EFFET (le changement n'atterrit plus, build vert ou non) :
+    // le mauvais pli SUBTIL que le build seul ne voyait pas.
+    const effectReg = results.filter((r) => {
+      const before = previous.perTask.find((p) => p.id === r.id);
+      return before?.effectOk && !r.effectOk;
+    });
+    if (buildReg.length) {
+      console.log(`   ⚠ MAUVAIS PLI (build) : ${buildReg.map((r) => r.id).join(", ")} compilai(en)t avant, plus maintenant.`);
     }
+    if (effectReg.length) {
+      console.log(`   ⚠ MAUVAIS PLI (effet) : ${effectReg.map((r) => r.id).join(", ")} appliquai(en)t le changement avant, plus maintenant.`);
+    }
+    if ((buildReg.length || effectReg.length) && previous.axiomsHash !== fp.axiomsHash) {
+      console.log(`     (le registre d'axiomes a changé entre les deux scans — suspect n°1 ; lance --ablate)`);
+    }
+    if (!buildReg.length && !effectReg.length) console.log(`   ✓ aucune régression (build ni effet).`);
   } else {
     console.log(`\n   (première mesure de CETTE suite (${fp.suiteHash}) — pas de comparaison ; les suivants détecteront les dérives)`);
   }
@@ -246,16 +274,19 @@ async function ablationScan(): Promise<void> {
   console.log("SANS l'axiome :");
   printHealth(withoutHealth);
 
+  // Signal de référence = le RENDEMENT RÉEL (build+effet), pas la seule compilation :
+  // un axiome qui fait « compiler sans appliquer » serait un faux progrès.
+  const dEffect = withHealth.effectPct - withoutHealth.effectPct;
   const dBuild = withHealth.builtPct - withoutHealth.builtPct;
   const dFirst = withHealth.firstTryPct - withoutHealth.firstTryPct;
   console.log("");
-  if (dBuild < 0 || (dBuild === 0 && dFirst < 0)) {
-    console.log(`⚠ MAUVAIS PLI : le dernier axiome DÉGRADE l'Élève (build ${dBuild} pts, 1er tour ${dFirst} pts).`);
+  if (dEffect < 0 || (dEffect === 0 && dBuild < 0) || (dEffect === 0 && dBuild === 0 && dFirst < 0)) {
+    console.log(`⚠ MAUVAIS PLI : le dernier axiome DÉGRADE l'Élève (rendement réel ${dEffect} pts · build ${dBuild} · 1er tour ${dFirst}).`);
     console.log(`  → à amender ou retirer du registre (le clapet est anti-oubli, PAS anti-correction).`);
-  } else if (dBuild > 0 || dFirst > 0) {
-    console.log(`✓ PROGRÈS : le dernier axiome AMÉLIORE l'Élève (build +${dBuild} pts, 1er tour +${dFirst} pts).`);
+  } else if (dEffect > 0 || dBuild > 0 || dFirst > 0) {
+    console.log(`✓ PROGRÈS : le dernier axiome AMÉLIORE l'Élève (rendement réel +${dEffect} pts · build +${dBuild} · 1er tour +${dFirst}).`);
   } else {
-    console.log(`≈ NEUTRE : aucun effet mesurable sur cette suite (build et 1er tour inchangés).`);
+    console.log(`≈ NEUTRE : aucun effet mesurable sur cette suite (rendement réel, build et 1er tour inchangés).`);
   }
 }
 
