@@ -1,10 +1,13 @@
 # Memory — MangoAI
 
-## État actuel (2026-06-13 — fin de session mode vision, jalon 2)
+## État actuel (2026-06-13 — curriculum IA + roadmap 26 idées)
 - **MVP + roadmap concurrence (5/5) + refonte UI + boucle d'apprentissage Hermes (5/5) + compression de contexte + raisonnement analytique + robustesse des magasins + mode vision en boucle fermée** : tout est FAIT, testé de bout en bout — détail dans `statut.md` et `changelog.md`
 - Lancement : `npm run start` dans `server/` (port 3000) + `npm run dev` dans `ui/` (port 5173) → ouvrir http://localhost:5173
 - Projet de test : `workspace/test-pipeline/` (landing Bella Napoli — sert de banc d'essai à toutes les features)
 - **Travail à venir** : voir `statut.md` § « 🔜 Aussi à faire » — c'est la seule source de vérité du backlog ; et TOUJOURS montrer à l'utilisateur le tableau « 💡 Idées en attente » (tout en haut de `statut.md`) au démarrage d'une session, avant de coder quoi que ce soit
+- **Plan de formation & développement** : `PLAN-FORMATION.md` — 26 idées, 6 phases, timing, checkboxes, guides pour les projets formation. À relire au démarrage de session et à tenir à jour (cocher les cases au fur et à mesure). **Prochaine étape : Idée 12 (Sélecteur MVP/Élite)**
+- **Deux types de travail** : 🔧 Type A = on améliore MangoAI ensemble ici dans Claude Code ; 🧪 Type B = l'utilisateur construit un projet dans MangoAI (http://localhost:5173) pour se former à l'IA
+- **Veille mensuelle** : `VEILLE-MENSUELLE.md` — checklist à ouvrir le 13 de chaque mois
 
 ## Boucle d'apprentissage (architecture Hermes transposée)
 - **3 magasins**, tous dans `workspace/` (git-ignoré, hors zip, survivent au rollback) :
