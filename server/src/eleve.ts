@@ -26,6 +26,8 @@ import { WORKSPACE_DIR } from "./projects.js";
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
 const MAX_ELEVE_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? 2);
+// Anti-saturation : nombre max d'axiomes injectés à l'Élève (modèle faible).
+const ELEVE_AXIOM_CAP = Number(process.env.ELEVE_AXIOM_CAP ?? 5);
 
 export type ResolvedBy = "eleve" | "maitre" | "none";
 
@@ -107,7 +109,10 @@ function listProjectFiles(projectDir: string, cap = 40): string[] {
  * (en cas de reprise) la raison objective de l'échec précédent à corriger. */
 function buildEleveUser(task: string, projectDir: string, lastError: string): string {
   const files = listProjectFiles(projectDir);
-  const axioms = selectAxioms(WORKSPACE_DIR); // défauts écrasables (filtrage par type = v2)
+  // v2 : on ne sert à l'Élève (modèle faible) que les axiomes PERTINENTS pour
+  // cette tâche, plafonnés — sinon un petit modèle sature. Claude, lui, reçoit
+  // le registre complet (selectAxioms sans contexte, via scenario.ts).
+  const axioms = selectAxioms(WORKSPACE_DIR, { task, max: ELEVE_AXIOM_CAP });
   const parts = [
     `TÂCHE : ${task}`,
     "",
