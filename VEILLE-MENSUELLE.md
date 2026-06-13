@@ -29,6 +29,12 @@ cat server/template/package.json
 - Un nouveau serveur branché = capacités gratuites pour l'agent
 - Si oui : ajouter dans `server/src/agent.ts` (mcpServers option)
 
+### 4b. Élève local / Ollama (Jalon D) — *ajouté 2026-06-13*
+- `ollama --version` et `ollama list` — modèle Élève à jour ?
+- **Un modèle de code local plus fort tient-il dans 11 Go ?** (ex. `qwen3-coder` MoE quantifié, nouveau coder 7-14B) → candidat Élève, à comparer via l'Audit Scan
+- Santé de l'Élève : `cd server && npx tsx src/audit-scan.ts` (score de build/1er tour) ; après un nouvel axiome : `… --ablate` (vérifier qu'il ne dégrade pas)
+- Vérifier `OLLAMA_MODELS` toujours sur `D:\ollama\models` (espace disque C:)
+
 ### 5. Test e2e rapide
 1. Démarrer MangoAI (`npm run start` + `npm run dev`)
 2. Créer un projet test « pizzeria-veille-MMMYYYY »
@@ -50,6 +56,8 @@ cat workspace/.metrics.jsonl | tail -20
 ---
 ## Historique des passes
 - **2026-06-13** : 1ʳᵉ passe. SDK 0.3.173→0.3.177, lucide 1.18, tailwind 4.3.1 appliqués. Majeures vite 8 / plugin-react 6 reportées (à tester). Modèles inchangés (alias OK). Métriques : 6 tours, $1.61. Détail dans `changelog.md`.
+- **2026-06-13 (re-check post-Jalon D)** : serveur à jour (`npm outdated` vide). UI : `vite 7.3.5→8.0.16` et `@vitejs/plugin-react 5.2→6.0.2` toujours reportées (saut majeur touchant UI + build des apps générées → session dédiée). Modèles inchangés. Stack Élève/Ollama (0.30.8, qwen2.5-coder:7b) ajoutée à la checklist (§4b). Rien appliqué — état sain.
+- **À planifier (session dédiée)** : montée Vite 8 + plugin-react 6, avec test e2e complet (UI + génération + build d'une app).
 
 *Dernier passage : 2026-06-13*
 *Prochain passage : 2026-07-13*
