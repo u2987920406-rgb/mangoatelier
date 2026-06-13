@@ -219,7 +219,7 @@ async function escalateToClaude(ctx: EscalationContext): Promise<{ axiom: boolea
   return { axiom, costUsd };
 }
 
-const defaultDeps: RelayDeps = {
+export const defaultRelayDeps: RelayDeps = {
   askEleve: askEleveOllama,
   inspect: inspectProject,
   ensureDeps: ensureDepsNpm,
@@ -231,7 +231,7 @@ export async function runRelay(
   task: string,
   projectDir: string,
   opts: RelayOptions = {},
-  deps: RelayDeps = defaultDeps,
+  deps: RelayDeps = defaultRelayDeps,
 ): Promise<RelayResult> {
   const maxAttempts = opts.maxEleveAttempts ?? MAX_ELEVE_ATTEMPTS;
   const maitreModel = opts.maitreModel ?? "sonnet";

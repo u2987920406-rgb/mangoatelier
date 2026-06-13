@@ -170,6 +170,18 @@ export function axiomStats(workspaceDir: string): AxiomStats {
   return { byCat, byMaturity, total: blocks.length };
 }
 
+/** Returns the registry text without its LAST axiom block, plus the removed
+ * block (so the caller can restore it). Used by the audit-scan A/B ablation
+ * (jalon D Phase 3) to attribute a regression causally to the newest axiom. */
+export function removeLastAxiom(raw: string): { without: string; removed: string | null } {
+  const blocks = parseAxioms(raw);
+  if (blocks.length === 0) return { without: raw, removed: null };
+  return {
+    without: blocks.slice(0, -1).map((b) => b.text).join("\n\n"),
+    removed: blocks[blocks.length - 1].text,
+  };
+}
+
 /** Cheap change detector (size + mtime). */
 export function axiomsSnapshot(workspaceDir: string): string {
   try {
