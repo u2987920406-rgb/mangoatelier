@@ -15,6 +15,7 @@ import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
 import { ensureErrorRelay } from "./relay.js";
 import { deployProject } from "./deploy.js";
+import { githubConfigured, pushToGitHub } from "./github.js";
 import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
@@ -39,7 +40,12 @@ app.use(express.json());
 let agentBusy = false;
 
 app.get("/api/projects", (_req, res) => {
-  res.json({ projects: listProjects(), templates: listTemplates(), preview: previewStatus() });
+  res.json({
+    projects: listProjects(),
+    templates: listTemplates(),
+    preview: previewStatus(),
+    githubEnabled: githubConfigured(),
+  });
 });
 
 // Body: { prompt: string, projectName: string, sessionId?: string }
@@ -299,6 +305,26 @@ app.post("/api/deploy/:name", async (req, res) => {
   }
   try {
     const { url } = await deployProject(projectDir(name), name);
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// One-click push to GitHub (creates the repo if needed, force-pushes history)
+app.post("/api/github/:name", async (req, res) => {
+  const name = req.params.name;
+  const isPrivate = (req.body as { private?: boolean })?.private !== false;
+  if (!projectExists(name)) {
+    res.status(404).json({ error: `Project "${name}" not found` });
+    return;
+  }
+  if (agentBusy) {
+    res.status(409).json({ error: "L'agent travaille — attends la fin avant de publier sur GitHub" });
+    return;
+  }
+  try {
+    const { url } = await pushToGitHub(projectDir(name), name, isPrivate);
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

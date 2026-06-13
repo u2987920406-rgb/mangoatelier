@@ -1,4 +1,4 @@
-import { Brain, BrainCircuit, Download, Gauge, Gem, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
+import { Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 
@@ -27,6 +27,10 @@ export default function Header({
   deploying,
   onDeploy,
   deployedUrl,
+  canGithub,
+  pushingGithub,
+  onGithub,
+  githubUrl,
   cost,
   context,
 }) {
@@ -167,6 +171,31 @@ export default function Header({
         >
           <Download size={15} />
         </a>
+
+        {canGithub && (
+          <button
+            onClick={onGithub}
+            disabled={pushingGithub}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-edge bg-panel px-3 text-[13px] font-medium text-dim hover:border-faint hover:text-ink disabled:opacity-60 transition-colors"
+            title={githubUrl ? `Re-pousser sur ${githubUrl}` : "Pousser le projet sur GitHub (dépôt privé)"}
+          >
+            {pushingGithub ? <Loader2 size={14} className="animate-spin" /> : <GitFork size={14} />}
+            {pushingGithub ? "Envoi…" : githubUrl ? "Push" : "GitHub"}
+          </button>
+        )}
+
+        {githubUrl && (
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-9 max-w-44 items-center gap-1.5 rounded-lg border border-edge bg-panel px-3 font-mono text-xs text-dim hover:border-faint hover:text-ink transition-colors"
+            title="Ouvrir le dépôt sur GitHub"
+          >
+            <GitFork size={13} className="shrink-0" />
+            <span className="truncate">{githubUrl.replace("https://github.com/", "")}</span>
+          </a>
+        )}
 
         {canDeploy && (
           <button

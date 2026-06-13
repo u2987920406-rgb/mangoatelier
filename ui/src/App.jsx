@@ -28,6 +28,9 @@ export default function App() {
   const [pendingPrompt, setPendingPrompt] = useState(null); // Home idea or fix request
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState(null);
+  const [githubEnabled, setGithubEnabled] = useState(false);
+  const [githubUrl, setGithubUrl] = useState(null);
+  const [pushingGithub, setPushingGithub] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
   const toastId = useRef(1);
@@ -54,6 +57,7 @@ export default function App() {
       .then((d) => {
         setProjects(d.projects ?? []);
         setTemplates(d.templates ?? []);
+        setGithubEnabled(Boolean(d.githubEnabled));
       })
       .catch(() => {});
   }, []);
@@ -112,6 +116,7 @@ export default function App() {
     setPreviewUrl(null);
     setPreviewErrors([]);
     setDeployedUrl(null);
+    setGithubUrl(null);
     setContext(null);
     setScreen("workspace");
   }
@@ -139,6 +144,29 @@ export default function App() {
       pushToast("error", String(err));
     } finally {
       setDeploying(false);
+    }
+  }
+
+  async function pushGithub() {
+    if (pushingGithub) return;
+    setPushingGithub(true);
+    try {
+      const res = await fetch(`/api/github/${encodeURIComponent(projectName)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ private: true }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pushToast("error", d.error ?? `Erreur HTTP ${res.status}`);
+        return;
+      }
+      setGithubUrl(d.url);
+      pushToast("success", "Projet poussé sur GitHub 🐙", d.url);
+    } catch (err) {
+      pushToast("error", String(err));
+    } finally {
+      setPushingGithub(false);
     }
   }
 
@@ -199,6 +227,10 @@ export default function App() {
             deploying={deploying}
             onDeploy={deploy}
             deployedUrl={deployedUrl}
+            canGithub={githubEnabled && projects.includes(projectName)}
+            pushingGithub={pushingGithub}
+            onGithub={pushGithub}
+            githubUrl={githubUrl}
             cost={cost}
             context={context}
           />
