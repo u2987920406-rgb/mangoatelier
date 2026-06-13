@@ -1,5 +1,11 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Validation GitHub (idée 16) : push réel réussi
+- Token GitHub (scope `repo`) mis en place par l'utilisateur dans `server/.env` (git-ignoré)
+- **Push réel testé avec succès** : `POST /api/github/test-pipeline` → repo privé `https://github.com/u2987920406-rgb/test-pipeline` créé, branche `main`, commit poussé
+- **Sécurité vérifiée** : remote `origin` propre (URL sans token), aucun `.env` versionné (8 fichiers sources poussés) — le force-push via URL inline authentifiée fonctionne comme prévu
+- Idée 16 passe de « code fait, push à valider » à **✅ FAIT & VALIDÉ**
+
 ## 2026-06-13 — Session 12 : Mango Plan + moodboard (idées 9+11) — Phase 2 BOUCLÉE
 - **Mango Plan + moodboard — LIVRÉS (Élite), testés** : `server/src/plan.ts`, protocoles prompt-driven activés UNIQUEMENT en mode Élite (l'idée 12 sert enfin son but : Élite = arsenal, MVP = build rapide sans plan ni web)
   - **`PLAN_RULES` (idée 9, mode architecte)** : pour un nouveau projet ou un gros chantier, concevoir avant de coder — (1) ≤3 questions chirurgicales si l'intention est vague, (2) identifier le type/blueprint, (3) écrire `plan.md` (intention + arborescence cible + stack + choix de design), (4) résumé + validation utilisateur, (5) coder seulement après accord. `plan.md` = contrat versionné (pas un fichier mémoire). Petits changements → pas de plan, direct
