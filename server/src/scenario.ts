@@ -84,12 +84,20 @@ Backend, database and auth (Supabase) — when the app needs data persistence, u
 - You cannot run migrations — when a table is needed, give the user the exact SQL to paste in the Supabase SQL editor, and ALWAYS enable Row Level Security with sensible policies (a public app must not leave tables world-writable).
 - Degrade gracefully: if the keys are missing, the app must still render (show a clear "connecte Supabase" notice rather than crash).`;
 
+// Idea 25 — Figma design-to-code, native (REST + the eyes the agent already
+// has). Tight: the tool description carries the details; this just states when.
+const FIGMA_RULES = `
+Figma design-to-code — when the user pastes a figma.com link:
+- FIRST call the mcp__figma__import tool on that URL. It returns a rendered IMAGE of the frame (which you SEE) plus its extracted tokens (palette, typography, components, layout). Then reproduce the design faithfully with Tailwind v4 utility classes, and verify with the snapshot tool.
+- If it reports Figma is not configured, tell the user (briefly, in French) to add a FIGMA_TOKEN to server/.env, then continue with whatever they described.`;
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   mode: (ctx) => MODE_RULES[ctx.mode],
   base: () => SYSTEM_APPEND,
   blueprints: () => BLUEPRINTS_RULES,
   supabase: () => SUPABASE_RULES,
+  figma: () => FIGMA_RULES,
   // Analytic ritual rides on native extended thinking — not on haiku.
   analytic: (ctx) => (ctx.model !== "haiku" ? ANALYTIC_RULES : ""),
   plan: () => PLAN_RULES + MOODBOARD_RULES,
@@ -106,8 +114,8 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "visionElite", "axioms", "memory", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "figma", "analytic", "plan", "visionElite", "axioms", "memory", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "figma", "visionMvp", "axioms", "memory", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

@@ -3,6 +3,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
+import { figmaServer } from "./figma.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -94,9 +95,9 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", ...webTools],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__figma__import", ...webTools],
         agents: AGENTS,
-        mcpServers: { vision: visionServer },
+        mcpServers: { vision: visionServer, figma: figmaServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
         // Memory is appended per turn as a frozen snapshot (Hermes pattern):
         // mid-turn writes to .memory.md land on disk and are picked up at the
@@ -132,7 +133,12 @@ export async function* runAgent(
             yield { type: "thinking", text: block.thinking };
           } else if (block.type === "tool_use") {
             // MCP names are noisy ("mcp__vision__snapshot") — show a clean label.
-            const name = block.name === "mcp__vision__snapshot" ? "Snapshot" : block.name;
+            const name =
+              block.name === "mcp__vision__snapshot"
+                ? "Snapshot"
+                : block.name === "mcp__figma__import"
+                  ? "Figma"
+                  : block.name;
             yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
@@ -180,6 +186,8 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Agent":
     case "Task":
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
+    case "Figma":
+      return String(i?.url ?? "").slice(0, 100);
     case "Snapshot": {
       const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";
       if (i?.selector) return `${String(i.selector).slice(0, 80)}${scale}`;
