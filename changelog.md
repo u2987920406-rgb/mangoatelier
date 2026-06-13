@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Validation Supabase (idée 17) en live : app à base de données fonctionnelle
+- **Test e2e réel réussi** : app `todo-supabase` générée par MangoAI (MVP+sonnet, $0.36) — client `src/lib/supabase.js`, composant `TodoApp.jsx`, `@supabase/supabase-js` installé, dégradation propre si clés absentes
+- L'agent a fourni le SQL exact (table `todos` + RLS + policy `anon`), lancé par l'utilisateur dans l'éditeur SQL Supabase
+- Clés `anon` (format `eyJ…`) branchées dans `workspace/todo-supabase/.env` (git-ignoré, hors zip) depuis le coffre `.credentials/`
+- **Résultat : tâches réellement persistées dans le cloud Supabase, confirmé au rechargement de la page** ✅ — premier projet MangoAI avec une vraie base de données
+- Incident résolu en passant : un processus d'aperçu orphelin (port 5174, resté d'un serveur précédent) servait un ancien dashboard ; tué + aperçu `todo-supabase` relancé proprement. Leçon : un redémarrage serveur ne tue pas l'aperçu enfant → candidat axiome ARCH
+- **Phase 1 désormais 100 % validée en live** : 12 (MVP/Élite), 16 (GitHub, push réel ✅), 17 (Supabase, persistance réelle ✅)
+
 ## 2026-06-13 — Validation GitHub (idée 16) : push réel réussi
 - Token GitHub (scope `repo`) mis en place par l'utilisateur dans `server/.env` (git-ignoré)
 - **Push réel testé avec succès** : `POST /api/github/test-pipeline` → repo privé `https://github.com/u2987920406-rgb/test-pipeline` créé, branche `main`, commit poussé
