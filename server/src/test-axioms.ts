@@ -9,6 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AXIOMS_FILE_NAME, selectAxioms } from "./axioms.js";
+import { detectProjectType } from "./blueprints.js";
 
 const line = (c = "─") => console.log(c.repeat(64));
 let failures = 0;
@@ -87,7 +88,46 @@ const REGISTRY = [
     check("VISION-01 retenu (pertinent ici)", has(game, "AXIOME-VISION-01"));
     check("DATA-01 (tableaux) écarté", !has(game, "AXIOME-DATA-01"));
 
-    // 4) Registre vide → chaîne vide
+    // 4) v2.1 — tâche NEUTRE + type de projet venu de la mémoire (dashboard).
+    // "ajoute un bouton" ne contient aucun mot-clé de type → sans le type, la
+    // pertinence par catégorie serait aveugle. Avec projectType="dashboard"
+    // (détecté depuis .memory.md), DATA prime, VISION (jeu) est écarté.
+    const neutralDash = selectAxioms(dir, {
+      task: "Ajoute un bouton de rafraîchissement en haut à droite",
+      projectType: "dashboard",
+      max: 3,
+    });
+    console.log("\n  [4] Tâche neutre + type 'dashboard' depuis la mémoire (max 3) :");
+    check("DATA-01 retenu via le type projet", has(neutralDash, "AXIOME-DATA-01"));
+    check("VISION-01 (jeu) écarté", !has(neutralDash, "AXIOME-VISION-01"));
+
+    // 5) v2.1 — type "webapp" (jadis silencieusement non-matché par les regex
+    // de mots-clés) est désormais autoritaire → ses catégories sont prises.
+    const webapp = selectAxioms(dir, {
+      task: "Ajoute la persistance",
+      projectType: "webapp",
+      max: 4,
+    });
+    console.log("\n  [5] Type 'webapp' autoritaire (max 4) :");
+    check("ARCH-01 retenu (catégorie webapp)", has(webapp, "AXIOME-ARCH-01"));
+    check("DATA-01 retenu (catégorie webapp)", has(webapp, "AXIOME-DATA-01"));
+    check("VISION-01 (jeu) écarté", !has(webapp, "AXIOME-VISION-01"));
+
+    // 6) detectProjectType : tâche neutre → fallback mémoire ; tâche typée prime
+    check(
+      "detectProjectType: tâche neutre → type depuis la mémoire",
+      detectProjectType("ajoute un bouton", "Ce projet est un dashboard admin avec recharts") === "dashboard",
+    );
+    check(
+      "detectProjectType: tâche typée prime sur la mémoire",
+      detectProjectType("crée un jeu en canvas", "Ce projet est un dashboard") === "jeu",
+    );
+    check(
+      "detectProjectType: aucun signal → 'autre'",
+      detectProjectType("ajoute un bouton", "") === "autre",
+    );
+
+    // 7) Registre vide → chaîne vide
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), "axioms-empty-"));
     check("registre absent → ''", selectAxioms(empty, { task: "x", max: 5 }) === "");
     fs.rmSync(empty, { recursive: true, force: true });

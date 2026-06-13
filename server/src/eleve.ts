@@ -21,6 +21,8 @@ import { parseContract } from "./contract.js";
 import { executeContract } from "./executor.js";
 import { inspectProject, type Inspection } from "./inspection.js";
 import { loadAxioms, selectAxioms } from "./axioms.js";
+import { loadMemory } from "./memory.js";
+import { detectProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
@@ -148,10 +150,15 @@ function readListedFiles(
  * (en cas de reprise) la raison objective de l'échec précédent à corriger. */
 function buildEleveUser(task: string, projectDir: string, lastError: string): string {
   const files = listProjectFiles(projectDir);
+  // v2.1 : type de projet détecté de façon robuste — la tâche d'abord, puis la
+  // MÉMOIRE du projet si la tâche est neutre (ex. "ajoute un bouton" sur un
+  // dashboard existant). Récupération d'axiomes par type bien plus fiable que
+  // le seul prompt du tour.
+  const projectType = detectProjectType(task, loadMemory(projectDir));
   // v2 : on ne sert à l'Élève (modèle faible) que les axiomes PERTINENTS pour
   // cette tâche, plafonnés — sinon un petit modèle sature. Claude, lui, reçoit
   // le registre complet (selectAxioms sans contexte, via scenario.ts).
-  const axioms = selectAxioms(WORKSPACE_DIR, { task, max: ELEVE_AXIOM_CAP });
+  const axioms = selectAxioms(WORKSPACE_DIR, { task, projectType, max: ELEVE_AXIOM_CAP });
   const parts = [
     `TÂCHE : ${task}`,
     "",

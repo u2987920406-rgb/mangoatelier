@@ -34,3 +34,14 @@ export function inferProjectType(text: string): ProjectType {
   if (/\bapp(lication)?\b|formulaire|\bauth\b|login|signup|\bcrud\b|supabase|panier|e-?commerce|todo/.test(t)) return "webapp";
   return "autre";
 }
+
+/** selectAxioms v2.1 (jalon D) — type de projet ROBUSTE pour la récupération
+ * d'axiomes. La tâche courante prime (intention la plus spécifique : "crée un
+ * dashboard…"), mais si elle est neutre ("ajoute un bouton", "corrige l'espacement"),
+ * on retombe sur la MÉMOIRE PERSISTANTE du projet, qui sait de quel type il s'agit.
+ * Bien plus fiable que le seul prompt du tour. Renvoie "autre" si aucun signal. */
+export function detectProjectType(task: string, projectMemory?: string): ProjectType {
+  const fromTask = inferProjectType(task);
+  if (fromTask !== "autre") return fromTask;
+  return inferProjectType(projectMemory ?? "");
+}

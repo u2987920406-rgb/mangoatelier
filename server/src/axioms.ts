@@ -84,6 +84,20 @@ function parseAxioms(raw: string): AxiomBlock[] {
   return blocks;
 }
 
+// Canonical project types (blueprints.ts ProjectType) → the axiom categories
+// that matter for that kind of project. AUTHORITATIVE in v2.1: when the caller
+// passes a known type (detected from the task OR the project memory), we trust
+// it directly — no longer reliant on the type word happening to appear in the
+// task text (which left "webapp" silently unmatched). BUILD is universal.
+const PROJECT_TYPE_CATS: Record<string, string[]> = {
+  dashboard: ["DATA", "UIUX", "PERF", "A11Y"],
+  jeu: ["VISION", "PERF", "ARCH"],
+  slides: ["VISION", "UIUX"],
+  agent: ["ARCH", "DATA"],
+  vitrine: ["UIUX", "VISION", "A11Y", "PERF"],
+  webapp: ["UIUX", "ARCH", "DATA", "A11Y"],
+};
+
 // Project-type keywords (found in the task) → the axiom categories that matter
 // for that kind of project. BUILD is universal and scored separately.
 const TYPE_CATS: Array<{ kw: RegExp; cats: string[] }> = [
@@ -105,8 +119,14 @@ function tokens(s: string): string[] {
 }
 
 function relevantCats(sel: AxiomSelection): Set<string> {
-  const hay = `${sel.task ?? ""} ${sel.projectType ?? ""}`;
   const cats = new Set<string>();
+  // v2.1 : un type de projet canonique est AUTORITAIRE — il vient de la mémoire
+  // projet quand la tâche est neutre, donc on lui fait confiance même si aucun
+  // mot-clé de type n'apparaît dans le texte de la tâche.
+  const pt = sel.projectType?.toLowerCase();
+  if (pt && PROJECT_TYPE_CATS[pt]) PROJECT_TYPE_CATS[pt].forEach((c) => cats.add(c));
+  // Plus tout signal supplémentaire issu des mots-clés de la tâche.
+  const hay = `${sel.task ?? ""} ${sel.projectType ?? ""}`;
   for (const { kw, cats: cs } of TYPE_CATS) if (kw.test(hay)) cs.forEach((c) => cats.add(c));
   return cats;
 }
