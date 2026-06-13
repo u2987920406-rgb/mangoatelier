@@ -5,6 +5,7 @@ import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
 import { axiomsPromptSection } from "./axioms.js";
 import { BLUEPRINTS_RULES } from "./blueprints.js";
+import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { visionServer } from "./vision.js";
 
@@ -145,6 +146,10 @@ export async function* runAgent(
   // lean: no ritual, no thinking — faster and cheaper, protects the quota.
   const analytic = effectiveMode === "elite" && effectiveModel !== "haiku";
   const visionRules = effectiveMode === "elite" ? VISION_RULES_ELITE : VISION_RULES_MVP;
+  // Mango Plan + moodboard (ideas 9/11) are Élite-only — and the moodboard
+  // needs the web. MVP stays lean (no plan, no web research) for speed/quota.
+  const isElite = effectiveMode === "elite";
+  const webTools = isElite ? ["WebSearch", "WebFetch"] : [];
   try {
     const q = query({
       prompt,
@@ -153,7 +158,7 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot"],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", ...webTools],
         agents: AGENTS,
         mcpServers: { vision: visionServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
@@ -169,6 +174,7 @@ export async function* runAgent(
             BLUEPRINTS_RULES +
             SUPABASE_RULES +
             (analytic ? ANALYTIC_RULES : "") +
+            (isElite ? PLAN_RULES + MOODBOARD_RULES : "") +
             visionRules +
             axiomsPromptSection(WORKSPACE_DIR) +
             memoryPromptSection(projectDir, WORKSPACE_DIR) +

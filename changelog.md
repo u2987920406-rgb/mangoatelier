@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 12 : Mango Plan + moodboard (idées 9+11) — Phase 2 BOUCLÉE
+- **Mango Plan + moodboard — LIVRÉS (Élite), testés** : `server/src/plan.ts`, protocoles prompt-driven activés UNIQUEMENT en mode Élite (l'idée 12 sert enfin son but : Élite = arsenal, MVP = build rapide sans plan ni web)
+  - **`PLAN_RULES` (idée 9, mode architecte)** : pour un nouveau projet ou un gros chantier, concevoir avant de coder — (1) ≤3 questions chirurgicales si l'intention est vague, (2) identifier le type/blueprint, (3) écrire `plan.md` (intention + arborescence cible + stack + choix de design), (4) résumé + validation utilisateur, (5) coder seulement après accord. `plan.md` = contrat versionné (pas un fichier mémoire). Petits changements → pas de plan, direct
+  - **`MOODBOARD_RULES` (idée 11 v1)** : outils `WebSearch`/`WebFetch` ajoutés aux `allowedTools` en Élite ; l'agent recherche 2-3 leaders du domaine et distille des règles de design concrètes dans une section « Références » de `plan.md` (grounding réel, zéro hallucination UI). La capture visuelle autonome des leaders (Playwright sur sites externes + `.assets/.moodboard/`) est reportée à une v2 — la partie fragile/lourde ; le grounding texte+structure couvre l'essentiel
+  - `agent.ts` : `isElite` gate les règles (`PLAN_RULES + MOODBOARD_RULES`) et les outils web ; MVP reste léger (pas de plan, pas de web — vitesse + quota)
+  - **Test** ($0.08, haiku, Élite) : « ajoute un gros module de réservation, ne code rien, fais un plan » → l'agent a posé exactement 3 questions chirurgicales (flux, données/backend, intégration visuelle) sans écrire une ligne de code ✅. tsc propre
+- **Phase 2 (cerveau) COMPLÈTE** : idées 10 (Flywheel) ✅, 8+6 (blueprints/stacks) ✅, 9+11 (Mango Plan + moodboard) ✅
+
 ## 2026-06-13 — Session 11 : blueprints + stacks par type (idées 6+8) — Phase 2
 - **Catalogue de blueprints — LIVRÉ & testé** : `server/src/blueprints.ts` (`BLUEPRINTS_RULES`) injecté dans le system prompt de l'agent (tous modes, après `SYSTEM_APPEND`). Idées 6 (stacks) et 8 (arborescences) fusionnées en un seul catalogue compact
   - **6 types** (choisis avec l'utilisateur) : site vitrine/landing, web app interactive, dashboard/admin (recharts), jeu 2D (canvas + game loop), présentation/slides, **agent spécialisé IA** (5ᵉ type ajouté par l'utilisateur : app assistant via `@anthropic-ai/sdk`). Chacun = stack optimale + arborescence type (dossiers adaptés)
