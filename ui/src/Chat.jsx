@@ -9,6 +9,7 @@ const uid = () => nextId++;
 export default function Chat({
   projectName,
   model,
+  mode,
   template,
   onPreviewUrl,
   onCost,
@@ -176,6 +177,7 @@ export default function Chat({
           prompt,
           projectName,
           model,
+          mode,
           template: template || undefined,
           sessionId: sessionRef.current ?? undefined,
         }),

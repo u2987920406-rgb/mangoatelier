@@ -17,6 +17,8 @@ export default function App() {
   const [templates, setTemplates] = useState([]);
   const [template, setTemplate] = useState(""); // applied only when the project gets created
   const [model, setModel] = useState(() => localStorage.getItem("mangoai.model") ?? "sonnet");
+  // Effort mode (idea 12), orthogonal to the model — survives reload like it.
+  const [mode, setMode] = useState(() => localStorage.getItem("mangoai.mode") ?? "elite");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
@@ -42,6 +44,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("mangoai.model", model);
   }, [model]);
+  useEffect(() => {
+    localStorage.setItem("mangoai.mode", mode);
+  }, [mode]);
 
   const refreshProjects = useCallback(() => {
     fetch("/api/projects")
@@ -186,6 +191,8 @@ export default function App() {
             onHome={goHome}
             model={model}
             onModel={setModel}
+            mode={mode}
+            onMode={setMode}
             versions={versions}
             onRollback={askRollback}
             canDeploy={projects.includes(projectName)}
@@ -199,6 +206,7 @@ export default function App() {
             <Chat
               projectName={projectName}
               model={model}
+              mode={mode}
               template={template}
               onPreviewUrl={setPreviewUrl}
               onCost={(c) => setCost((prev) => prev + c)}

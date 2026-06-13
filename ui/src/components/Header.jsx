@@ -1,4 +1,4 @@
-import { Brain, BrainCircuit, Download, Gauge, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
+import { Brain, BrainCircuit, Download, Gauge, Gem, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 
@@ -8,11 +8,19 @@ const MODELS = [
   { id: "opus", label: "Opus", hint: "Puissant, plus cher", icon: Brain },
 ];
 
+// Effort mode (idea 12) — orthogonal to the model: which rigour, not which brain.
+const MODES = [
+  { id: "mvp", label: "MVP", hint: "Rapide & économe — droit au but", icon: Zap },
+  { id: "elite", label: "Élite", hint: "Qualité max — analyse + vérif visuelle", icon: Gem },
+];
+
 export default function Header({
   projectName,
   onHome,
   model,
   onModel,
+  mode,
+  onMode,
   versions,
   onRollback,
   canDeploy,
@@ -23,6 +31,7 @@ export default function Header({
   context,
 }) {
   const current = MODELS.find((m) => m.id === model) ?? MODELS[1];
+  const currentMode = MODES.find((m) => m.id === mode) ?? MODES[1];
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel px-4">
@@ -66,6 +75,34 @@ export default function Header({
           }
         >
           <Knowledge projectName={projectName} />
+        </Dropdown>
+
+        <Dropdown
+          button={
+            <>
+              <currentMode.icon
+                size={14}
+                className={mode === "elite" ? "text-accent-soft" : "text-dim"}
+              />
+              {currentMode.label}
+            </>
+          }
+        >
+          {(close) =>
+            MODES.map((m) => (
+              <DropdownItem
+                key={m.id}
+                icon={m.icon}
+                label={m.label}
+                hint={m.hint}
+                active={m.id === mode}
+                onClick={() => {
+                  onMode(m.id);
+                  close();
+                }}
+              />
+            ))
+          }
         </Dropdown>
 
         <Dropdown

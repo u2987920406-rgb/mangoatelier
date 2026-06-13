@@ -10,6 +10,14 @@ const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
 export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 
+// Second axis, orthogonal to the model (which brain): the effort mode (which
+// rigour). MVP = fast and cheap (no analytic ritual, no extended thinking,
+// minimal visual loop); Élite = the full arsenal. This is the switch every
+// future advanced feature (Mango Plan, moodboard, temporal QA…) plugs into.
+export const ALLOWED_MODES = ["mvp", "elite"] as const;
+export type Mode = (typeof ALLOWED_MODES)[number];
+const DEFAULT_MODE: Mode = "elite";
+
 export type AgentEvent =
   | { type: "text"; text: string }
   | { type: "thinking"; text: string }
@@ -51,13 +59,32 @@ Deep analysis (you run with native extended thinking — use it):
 - Before delivering, self-review aggressively: bugs, edge cases, security (untrusted input, unsafe links), coherence with the project's conventions and with the learned skills available to you.
 - Skip this ritual for trivial tweaks and pure Q&A — answer directly.`;
 
+// Mode posture, prepended so it frames everything else. Two orthogonal axes:
+// the model is the brain, the mode is the rigour dial.
+const MODE_RULES = {
+  mvp: `
+Mode ⚡ MVP — speed and simplicity first:
+- Go straight to the point. Make the most direct choice that satisfies the request; no over-engineering, no speculative abstractions, no gold-plating.
+- Keep visual self-checking minimal (see below). Deliver fast.`,
+  elite: `
+Mode 💎 Élite — maximum quality:
+- Take the time to analyse, verify visually, and polish details. Use the full arsenal below.`,
+} as const;
+
 // Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
 // The loop is prompt-driven — the model iterates, the snapshot tool captures.
-const VISION_RULES = `
-Visual inputs and self-verification (you have eyes — use them):
-- Attached files: when the user message lists attached files (.assets/...), Read each one FIRST. For a UI screenshot or mockup: reproduce its structure, palette and typography faithfully, using Tailwind v4 utility classes (preinstalled in new projects). For a PDF: Read it (use the pages parameter, 20 pages max per call) and extract what the user asks. For a targeted zone capture (capture-zone.png — the user snipped a precise spot, often a visual bug, a piece of code or text): do a double analysis — transcribe the text/code exactly (OCR) AND describe what is visually wrong or relevant in context, then act on it.
+// Two variants: Élite runs the full loop, MVP keeps a single optional control
+// snapshot (budget is also lower — see vision.ts).
+const VISION_INPUTS = `
+Visual inputs (you have eyes — use them):
+- Attached files: when the user message lists attached files (.assets/...), Read each one FIRST. For a UI screenshot or mockup: reproduce its structure, palette and typography faithfully, using Tailwind v4 utility classes (preinstalled in new projects). For a PDF: Read it (use the pages parameter, 20 pages max per call) and extract what the user asks. For a targeted zone capture (capture-zone.png — the user snipped a precise spot, often a visual bug, a piece of code or text): do a double analysis — transcribe the text/code exactly (OCR) AND describe what is visually wrong or relevant in context, then act on it.`;
+
+const VISION_RULES_ELITE = `${VISION_INPUTS}
 - Closed visual loop: after a significant visual change, verify your own work with the snapshot tool: (1) global snapshot, (2) compare against what is expected, (3) if a zone looks wrong or unreadable (dense table, chart, small text, misalignment), take a zoomed snapshot of that zone (selector or box, scale 2-3) and inspect it closely, (4) fix the real defects you SAW, (5) re-snapshot to confirm. Stop as soon as the render matches — or when the snapshot budget runs out. Then always state in one or two sentences what you visually checked and fixed (that text summary survives context compaction; images do not).
 - Skip the loop entirely for non-visual changes (logic, data, config) and trivial tweaks.`;
+
+const VISION_RULES_MVP = `${VISION_INPUTS}
+- Visual self-check is minimal in this mode: take at most ONE global snapshot to confirm a major visual change rendered, and only if useful. No zoom iterations, no patch→re-snapshot loop — the snapshot budget is tight on purpose. Skip snapshots entirely for non-visual or trivial changes.`;
 
 // Hermes-style parallel workstreams: an isolated builder subagent that owns
 // one well-scoped slice of the app. Tools restricted to file work — no Bash,
@@ -97,11 +124,15 @@ export async function* runAgent(
   projectDir: string,
   sessionId?: string,
   model?: ModelChoice,
+  mode?: Mode,
 ): AsyncGenerator<AgentEvent> {
   const effectiveModel = model ?? DEFAULT_MODEL;
-  // Native extended thinking for the capable models (adaptive = the model
-  // decides when and how much to think; summarized = readable thinking blocks).
-  const analytic = effectiveModel !== "haiku";
+  const effectiveMode = mode ?? DEFAULT_MODE;
+  // Élite + a thinking-capable model = the analytic ritual and native extended
+  // thinking (adaptive = the model decides when/how much to think). MVP stays
+  // lean: no ritual, no thinking — faster and cheaper, protects the quota.
+  const analytic = effectiveMode === "elite" && effectiveModel !== "haiku";
+  const visionRules = effectiveMode === "elite" ? VISION_RULES_ELITE : VISION_RULES_MVP;
   try {
     const q = query({
       prompt,
@@ -121,9 +152,10 @@ export async function* runAgent(
           type: "preset",
           preset: "claude_code",
           append:
+            MODE_RULES[effectiveMode] +
             SYSTEM_APPEND +
             (analytic ? ANALYTIC_RULES : "") +
-            VISION_RULES +
+            visionRules +
             memoryPromptSection(projectDir, WORKSPACE_DIR) +
             skillsPromptSection(),
         },

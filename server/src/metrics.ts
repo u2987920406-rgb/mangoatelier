@@ -12,6 +12,7 @@ export type TurnMetrics = {
   ts: string;
   project: string;
   model: string;
+  mode: string;
   costUsd: number;
   numTurns: number;
   contextTokens?: number;

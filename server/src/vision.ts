@@ -15,7 +15,11 @@ import { chromium, type Browser } from "playwright";
 export const SNAPSHOTS_DIR_NAME = ".snapshots";
 
 // Hermes' IterationBudget concept: hard cap per turn, soft stop when spent.
-const BUDGET = Number(process.env.VISION_BUDGET ?? 10);
+// Two ceilings, picked per turn by the effort mode (idea 12): Élite gets the
+// full budget for its patch→snapshot→crop loop; MVP gets a tight one (a single
+// control snapshot is enough) to stay fast and cheap.
+const BUDGET_ELITE = Number(process.env.VISION_BUDGET ?? 10);
+const BUDGET_MVP = Number(process.env.VISION_BUDGET_MVP ?? 3);
 // 1280×800 ≈ 1.0 MP ≈ ~1 400 vision tokens per global snapshot — cheap enough
 // to loop, small enough never to hit Anthropic's 5 MB / 8 000 px limits.
 const VIEWPORT = { width: 1280, height: 800 };
@@ -27,16 +31,19 @@ const IDLE_CLOSE_MS = 60_000;
 let projectDir: string | null = null;
 let previewUrl: string | null = null;
 let used = 0;
+let budget = BUDGET_ELITE;
 let counter = 0;
 let browser: Browser | null = null;
 let idleTimer: NodeJS.Timeout | null = null;
 
 /** Called at the start of each /api/chat turn: binds the tool to the active
- * project, resets the snapshot budget and purges the previous turn's files. */
-export function setVisionContext(dir: string, url: string): void {
+ * project, sets the snapshot budget for the chosen effort mode, resets the
+ * counter and purges the previous turn's files. */
+export function setVisionContext(dir: string, url: string, mode: "mvp" | "elite" = "elite"): void {
   projectDir = dir;
   previewUrl = url;
   used = 0;
+  budget = mode === "mvp" ? BUDGET_MVP : BUDGET_ELITE;
   try {
     fs.rmSync(path.join(dir, SNAPSHOTS_DIR_NAME), { recursive: true, force: true });
   } catch (err) {
@@ -45,7 +52,7 @@ export function setVisionContext(dir: string, url: string): void {
 }
 
 export function visionStatus(): { used: number; budget: number } {
-  return { used, budget: BUDGET };
+  return { used, budget };
 }
 
 // The browser is a subprocess (jalon 1 isolation stance): a Playwright crash
@@ -95,9 +102,9 @@ const snapshotTool = tool(
     if (!projectDir || !previewUrl) {
       return text("Aucun aperçu actif — impossible de capturer.", true);
     }
-    if (used >= BUDGET) {
+    if (used >= budget) {
       return text(
-        `Budget vision épuisé pour ce tour (${BUDGET} snapshots). N'en demande plus : livre l'état actuel et résume textuellement les écarts restants.`,
+        `Budget vision épuisé pour ce tour (${budget} snapshots). N'en demande plus : livre l'état actuel et résume textuellement les écarts restants.`,
       );
     }
     used += 1;
@@ -152,7 +159,7 @@ const snapshotTool = tool(
             {
               type: "text" as const,
               text:
-                `Snapshot de ${zone} (scale ${effScale}) — budget restant : ${BUDGET - used}/${BUDGET}. ` +
+                `Snapshot de ${zone} (scale ${effScale}) — budget restant : ${budget - used}/${budget}. ` +
                 `Analyse l'image puis résume textuellement ce que tu constates.`,
             },
           ],

@@ -5,7 +5,7 @@ import cors from "cors";
 import { ZipArchive } from "archiver";
 import path from "node:path";
 import fs from "node:fs";
-import { ALLOWED_MODELS, interruptAgent, runAgent, type AgentEvent, type ModelChoice } from "./agent.js";
+import { ALLOWED_MODELS, ALLOWED_MODES, interruptAgent, runAgent, type AgentEvent, type Mode, type ModelChoice } from "./agent.js";
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 import { loadMemory, loadUserProfile } from "./memory.js";
@@ -45,16 +45,18 @@ app.get("/api/projects", (_req, res) => {
 // Body: { prompt: string, projectName: string, sessionId?: string }
 // Streams AgentEvent objects as SSE. Creates the project on first message.
 app.post("/api/chat", async (req, res) => {
-  const { prompt, projectName, sessionId, model, template } = req.body as {
+  const { prompt, projectName, sessionId, model, mode, template } = req.body as {
     prompt?: string;
     projectName?: string;
     sessionId?: string;
     model?: string;
+    mode?: string;
     template?: string;
   };
   const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
     ? (model as ModelChoice)
     : undefined;
+  const chosenMode: Mode = ALLOWED_MODES.includes(mode as Mode) ? (mode as Mode) : "elite";
   if (!prompt?.trim() || !projectName?.trim()) {
     res.status(400).json({ error: "prompt and projectName are required" });
     return;
@@ -110,9 +112,9 @@ app.post("/api/chat", async (req, res) => {
     send({ type: "status", text: "Démarrage de l'aperçu…" });
     const { url } = await startPreview(dir);
     send({ type: "preview", url });
-    // Vision mode: bind the snapshot tool to this project's preview, reset
-    // the per-turn budget and purge the previous turn's snapshots.
-    setVisionContext(dir, url);
+    // Vision mode: bind the snapshot tool to this project's preview, set the
+    // per-turn budget for the chosen effort mode, purge last turn's snapshots.
+    setVisionContext(dir, url, chosenMode);
 
     // Runs one agent turn. Returns "session-not-found" when resuming a session
     // the SDK no longer knows (e.g. the project folder was moved/renamed) so
@@ -120,7 +122,7 @@ app.post("/api/chat", async (req, res) => {
     // event is held back until we know it isn't that case.
     const streamAgentTurn = async (session?: string): Promise<"ok" | "session-not-found"> => {
       let pendingFailure: unknown = null;
-      for await (const event of runAgent(prompt, dir, session, chosenModel)) {
+      for await (const event of runAgent(prompt, dir, session, chosenModel, chosenMode)) {
         if (session && event.type === "error" && /No conversation found/i.test(event.message)) {
           return "session-not-found";
         }
@@ -193,6 +195,7 @@ app.post("/api/chat", async (req, res) => {
       ts: new Date().toISOString(),
       project: projectName,
       model: chosenModel ?? "sonnet",
+      mode: chosenMode,
       costUsd: lastResult.current?.costUsd ?? 0,
       numTurns: lastResult.current?.numTurns ?? 0,
       contextTokens: lastContext.current?.tokens,
