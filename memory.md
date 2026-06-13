@@ -10,6 +10,12 @@
 - **Deux types de travail** : 🔧 Type A = on améliore MangoAI ensemble ici dans Claude Code ; 🧪 Type B = l'utilisateur construit un projet dans MangoAI (http://localhost:5173) pour se former à l'IA
 - **Veille mensuelle** : `VEILLE-MENSUELLE.md` — checklist à ouvrir le 13 de chaque mois
 
+## Cap produit — usage en 2 phases (acté 2026-06-13)
+MangoAI est et reste un **outil perso local-first**. La trajectoire prévue par l'utilisateur :
+- **Phase A — interne (en cours)** : finir TOUTES les idées de la feuille de route, PUIS s'en servir personnellement pour produire de vrais projets déjà en tête. Mono-poste, mono-utilisateur, pas de déploiement. → Les correctifs « avant prod » (CORS ouvert, auth des endpoints, rate-limiting, tests HTTP d'intégration) sont **HORS SUJET tant qu'on est en Phase A** ; ne pas les proposer comme urgents.
+- **Phase B — bêta proche (plus tard)** : exporter l'app sur un AUTRE PC pour que des bêta-testeurs proches l'évaluent, **sans accès au code source de l'agent**. C'est un problème de **packaging/distribution** (compiler `server/` en JS/binaire — `bun build --compile`, `pkg`… ; livrer le front buildé + serveur packagé sans les `.ts` ; obfuscation légère), PAS de sécurité applicative. À la frontière A→B, réactiver les correctifs « prod » ci-dessus (un tiers tape alors sur l'app). Voir idée 29 dans `statut.md`.
+- **Audit de code (2026-06-13)** : verdict « cœur sain, bien défendu » (contrat → exécuteur, path traversal bloqué 3 couches, secrets jamais loggés). Seule action urgente indépendante des phases : le **token GitHub** (`server/.env:5`) a été exposé en clair pendant l'audit → à révoquer/regénérer (fine-grained, repos cibles only). Dette « prod » = à traiter en Phase B uniquement.
+
 ## Boucle d'apprentissage (architecture Hermes transposée)
 - **3 magasins**, tous dans `workspace/` (git-ignoré, hors zip, survivent au rollback) :
   - `workspace/<projet>/.memory.md` — faits du projet (design, conventions) ; snapshot gelé injecté au system prompt à chaque tour (`server/src/memory.ts`)
