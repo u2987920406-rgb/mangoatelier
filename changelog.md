@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 11 : blueprints + stacks par type (idées 6+8) — Phase 2
+- **Catalogue de blueprints — LIVRÉ & testé** : `server/src/blueprints.ts` (`BLUEPRINTS_RULES`) injecté dans le system prompt de l'agent (tous modes, après `SYSTEM_APPEND`). Idées 6 (stacks) et 8 (arborescences) fusionnées en un seul catalogue compact
+  - **6 types** (choisis avec l'utilisateur) : site vitrine/landing, web app interactive, dashboard/admin (recharts), jeu 2D (canvas + game loop), présentation/slides, **agent spécialisé IA** (5ᵉ type ajouté par l'utilisateur : app assistant via `@anthropic-ai/sdk`). Chacun = stack optimale + arborescence type (dossiers adaptés)
+  - **Profondeur « structurée mais souple »** (choix utilisateur) : dossiers clairs par type (`src/layout/`+`widgets/` pour un dashboard, `src/game/` pour un jeu, `src/lib/claude.js`+`src/prompts/` pour un agent IA…) mais l'agent garde la liberté de s'en écarter. Stacks limitées à ce que le preview Vite-SPA peut exécuter
+  - Cohérences transverses : rappel `scroll-padding-top` sous nav fixe (= AXIOME-UIUX-01), `devicePixelRatio` avant 1er frame pour les jeux, `.env` git-ignoré pour la clé Anthropic de l'agent IA (sécurité, idée 17) avec avertissement « proxy backend nécessaire en prod »
+  - **Test** ($0.05, haiku) : Q&A « quelle stack+arbo pour un dashboard et pour une app assistant IA ? » → l'agent restitue exactement le catalogue (recharts + layout/widgets/data ; @anthropic-ai/sdk + lib/claude.js + prompts/ + Chat.jsx) ✅ ; tsc propre
+  - Volontairement concis pour limiter le gonflement du system prompt (~33k, surveillé par l'idée 13)
+
 ## 2026-06-13 — Veille & jouvence (idée 15, 1ʳᵉ passe mensuelle)
 - **SDK Agent** : `@anthropic-ai/claude-agent-sdk` 0.3.173 → **0.3.177** (patch) — tsc propre, serveur démarre, endpoints OK
 - **UI (mises à jour sûres)** : `lucide-react` 1.17 → 1.18, `tailwindcss` + `@tailwindcss/vite` 4.3.0 → 4.3.1 — build UI OK

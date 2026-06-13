@@ -4,6 +4,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
 import { axiomsPromptSection } from "./axioms.js";
+import { BLUEPRINTS_RULES } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { visionServer } from "./vision.js";
 
@@ -165,6 +166,7 @@ export async function* runAgent(
           append:
             MODE_RULES[effectiveMode] +
             SYSTEM_APPEND +
+            BLUEPRINTS_RULES +
             SUPABASE_RULES +
             (analytic ? ANALYTIC_RULES : "") +
             visionRules +
