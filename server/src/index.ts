@@ -10,7 +10,8 @@ import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./hi
 import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 import { loadMemory, loadUserProfile } from "./memory.js";
 import { listSkills } from "./skills.js";
-import { loadAxioms } from "./axioms.js";
+import { axiomStats, loadAxioms } from "./axioms.js";
+import { computeInsights } from "./metrics-insights.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
@@ -372,7 +373,8 @@ app.post("/api/github/:name", async (req, res) => {
 
 // Learning-curve dashboard (idea 21): per-turn metrics for the UI to chart
 app.get("/api/metrics", (_req, res) => {
-  res.json({ rows: readMetrics() });
+  const rows = readMetrics();
+  res.json({ rows, insights: computeInsights(rows, axiomStats(WORKSPACE_DIR)) });
 });
 
 // What the agent has learned: project memory, user profile, skill library

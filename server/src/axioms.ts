@@ -149,6 +149,27 @@ export function selectAxioms(workspaceDir: string, sel?: AxiomSelection): string
   return frameAxioms(ranked.join("\n\n"));
 }
 
+export interface AxiomStats {
+  byCat: Record<string, number>; // count per category (VISION, DATA…)
+  byMaturity: { confirmé: number; candidat: number };
+  total: number;
+}
+
+/** "Cartographie du clapet" (jalon D dashboard): density of the axiom registry
+ * by category and maturity — how much the Élève's memory has accumulated. */
+export function axiomStats(workspaceDir: string): AxiomStats {
+  const raw = loadAxioms(workspaceDir);
+  const blocks = raw ? parseAxioms(raw) : [];
+  const byCat: Record<string, number> = {};
+  const byMaturity = { confirmé: 0, candidat: 0 };
+  for (const b of blocks) {
+    byCat[b.cat] = (byCat[b.cat] ?? 0) + 1;
+    if (b.maturity === "confirmé") byMaturity.confirmé++;
+    else if (b.maturity === "candidat") byMaturity.candidat++;
+  }
+  return { byCat, byMaturity, total: blocks.length };
+}
+
 /** Cheap change detector (size + mtime). */
 export function axiomsSnapshot(workspaceDir: string): string {
   try {
