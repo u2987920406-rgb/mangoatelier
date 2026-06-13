@@ -4,3 +4,4 @@ dist/
 workspace/
 *.log
 server/sessions.json
+.credentials/

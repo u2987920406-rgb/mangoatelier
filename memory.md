@@ -20,6 +20,9 @@
 - **Compression de contexte** (`server/src/compaction.ts`) : le SDK détient l'historique → on déclenche son `/compact` en arrière-plan (haiku) quand `contextTokens` (dernier appel API, mesuré dans `agent.ts`) dépasse 70 % de la fenêtre ; succès = présence d'un `compact_boundary` (un result « success » seul peut signifier « Not enough messages ») ; `interruptCompaction()` au début de `/api/chat` évite toute collision de session ; base incompressible ~33k tokens (system prompt + outils + mémoire)
 - Clone d'étude Hermes : `C:\Users\PC-DELL\hermes-agent-study` — à NE PAS committer
 
+## Coffre local d'identifiants
+- **`.credentials/`** (racine, git-ignoré) : pense-bête local des identifiants/clés des services (Supabase, etc.). Y aller lire quand l'utilisateur dit « les clés sont dans .credentials ». `supabase.md` (URL + clé publiable `VITE_SUPABASE_*`), `github.md` (pointeur — le vrai token vit dans `server/.env`). NE JAMAIS recopier ces secrets dans un fichier tracké ni dans une app frontend (clé secrète Supabase = backend only)
+
 ## Règles spécifiques au projet
 - **Langue** : réponses en français, code/commentaires en anglais
 - **Agent SDK** : contrairement à la doc, le SDK v0.3.x **réutilise le login Claude Code local** — aucune `ANTHROPIC_API_KEY` nécessaire (vérifié le 2026-06-11). `.env` optionnel pour forcer une clé API
