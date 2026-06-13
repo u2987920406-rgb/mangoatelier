@@ -48,5 +48,8 @@ cat workspace/.metrics.jsonl | tail -20
 - Ce qui a changé dans l'écosystème + actions appliquées
 
 ---
-*Dernier passage : 2026-06-13 (création du fichier)*
+## Historique des passes
+- **2026-06-13** : 1ʳᵉ passe. SDK 0.3.173→0.3.177, lucide 1.18, tailwind 4.3.1 appliqués. Majeures vite 8 / plugin-react 6 reportées (à tester). Modèles inchangés (alias OK). Métriques : 6 tours, $1.61. Détail dans `changelog.md`.
+
+*Dernier passage : 2026-06-13*
 *Prochain passage : 2026-07-13*

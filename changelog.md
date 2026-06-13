@@ -1,5 +1,14 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Veille & jouvence (idée 15, 1ʳᵉ passe mensuelle)
+- **SDK Agent** : `@anthropic-ai/claude-agent-sdk` 0.3.173 → **0.3.177** (patch) — tsc propre, serveur démarre, endpoints OK
+- **UI (mises à jour sûres)** : `lucide-react` 1.17 → 1.18, `tailwindcss` + `@tailwindcss/vite` 4.3.0 → 4.3.1 — build UI OK
+- **Majeures NON appliquées (décision délibérée, à traiter à part)** : `vite` 7.3.5 → **8.0.16**, `@vitejs/plugin-react` 5.2 → **6.0.2** — sauts de version majeure, à tester soigneusement avant adoption (risque de casser le build des apps générées) ; le template reste en `vite ^7.0`
+- **Modèles** : aucun changement requis — les alias `sonnet/opus/haiku` (agent.ts) résolvent déjà vers le dernier de chaque palier via le SDK
+- **MCP** : GitHub et Supabase désormais natifs (idées 16/17, session 9) ; le serveur MCP Figma reste l'idée 25 planifiée
+- **Métriques** (`workspace/.metrics.jsonl`) : 6 tours cumulés, $1.61, 1 erreur ; le champ `mode` est collecté depuis la session 9 ; échantillon trop petit pour une tendance — l'audit chiffré reste prévu le 2026-06-22 (idée 13)
+- **Vérification** : tsc serveur ✅, build UI ✅, boot serveur ✅ — pas de tour agent payant lancé (économie de quota ; l'e2e complet sera fait à l'audit du 22)
+
 ## 2026-06-13 — Session 10 : Knowledge Flywheel (idée 10) — Phase 2 démarrée
 - **Knowledge Flywheel — LIVRÉ & testé e2e** : 4ᵉ magasin de connaissance, le registre d'**axiomes universels** `workspace/.axioms.md`
   - `server/src/axioms.ts` : `loadAxioms` (plafond 3000 car. → force la curation), `axiomsPromptSection` (injecté dans le system prompt de l'agent principal, cadré comme **défaut** écrasable par la demande utilisateur), `axiomsSnapshot` (détecteur de changement). Magasin distinct : mémoire projet = faits, profil = identité, skills = code/how-to, axiomes = règle abstraite universelle (le POURQUOI, jamais le COMMENT)
