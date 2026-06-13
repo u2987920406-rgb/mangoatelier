@@ -3,6 +3,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
+import { axiomsPromptSection } from "./axioms.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { visionServer } from "./vision.js";
 
@@ -167,6 +168,7 @@ export async function* runAgent(
             SUPABASE_RULES +
             (analytic ? ANALYTIC_RULES : "") +
             visionRules +
+            axiomsPromptSection(WORKSPACE_DIR) +
             memoryPromptSection(projectDir, WORKSPACE_DIR) +
             skillsPromptSection(),
         },

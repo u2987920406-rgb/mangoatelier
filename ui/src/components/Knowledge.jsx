@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { FolderOpen, Loader2, User, Wrench } from "lucide-react";
+import { FolderOpen, Loader2, RefreshCw, User, Wrench } from "lucide-react";
 
 // The reviewer sometimes writes a YAML frontmatter header — metadata, not
 // content; hide it from the rendered view.
@@ -35,7 +35,7 @@ export default function Knowledge({ projectName }) {
     );
   }
 
-  const empty = !data.memory && !data.profile && data.skills.length === 0;
+  const empty = !data.memory && !data.profile && data.skills.length === 0 && !data.axioms;
   if (empty) {
     return (
       <p className="px-3 py-3 text-xs leading-relaxed text-dim">
@@ -71,6 +71,13 @@ export default function Knowledge({ projectName }) {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+      {data.axioms && (
+        <Section icon={RefreshCw} title="Axiomes (flywheel)">
+          <div className="md text-xs leading-relaxed">
+            <ReactMarkdown>{stripFrontmatter(data.axioms)}</ReactMarkdown>
+          </div>
         </Section>
       )}
     </div>

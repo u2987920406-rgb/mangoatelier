@@ -10,6 +10,7 @@ import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./hi
 import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 import { loadMemory, loadUserProfile } from "./memory.js";
 import { listSkills } from "./skills.js";
+import { loadAxioms } from "./axioms.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, listVersions, rollbackTo } from "./versions.js";
@@ -338,6 +339,7 @@ app.get("/api/knowledge/:name", (req, res) => {
     memory: projectExists(name) ? loadMemory(projectDir(name)) : "",
     profile: loadUserProfile(WORKSPACE_DIR),
     skills: listSkills().map(({ name: skill, description }) => ({ name: skill, description })),
+    axioms: loadAxioms(WORKSPACE_DIR),
   });
 });
 

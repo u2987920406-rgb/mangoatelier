@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Session 10 : Knowledge Flywheel (idée 10) — Phase 2 démarrée
+- **Knowledge Flywheel — LIVRÉ & testé e2e** : 4ᵉ magasin de connaissance, le registre d'**axiomes universels** `workspace/.axioms.md`
+  - `server/src/axioms.ts` : `loadAxioms` (plafond 3000 car. → force la curation), `axiomsPromptSection` (injecté dans le system prompt de l'agent principal, cadré comme **défaut** écrasable par la demande utilisateur), `axiomsSnapshot` (détecteur de changement). Magasin distinct : mémoire projet = faits, profil = identité, skills = code/how-to, axiomes = règle abstraite universelle (le POURQUOI, jamais le COMMENT)
+  - `review.ts` : la revue en arrière-plan (haiku) cure désormais aussi le registre. Format imposé `AXIOME-[CAT]-[NN] (maturité · vu: date)` + Contexte/Piège/Règle d'or. **Garde-fous codés dans le prompt de revue** (exigence utilisateur, idée 10) : nouvel axiome TOUJOURS « candidat » (jamais « confirmé » à la 1ʳᵉ vue), falsifiable (contradiction observée → amendement/suppression), défaut et non dogme, plafond ~12 axiomes/3000 car. (fusion/élagage au lieu de croître)
+  - `agent.ts` : `axiomsPromptSection(WORKSPACE_DIR)` ajouté au system prompt (tous modes) ; `index.ts` + `Knowledge.jsx` : axiomes exposés dans `/api/knowledge` et affichés dans le panneau 🧠 Mémoire (section « Axiomes (flywheel) »)
+  - **Test e2e réel** ($0.42 tour + $0.12 revue) : un tour « barre fixe + contenu masqué » → la revue a extrait `AXIOME-UIUX-01` (règle universelle `scroll-padding-top` pour ancres sous header fixe), bien formé, daté ✅. Seul écart observé (haiku a écrit « confirmé » à la 1ʳᵉ vue) → consigne renforcée dans le prompt + axiome corrigé en « candidat »
+  - `.axioms.md` vit dans `workspace/` (git-ignoré, comme le profil et les skills) — inter-projets, survit aux sessions
+
 ## 2026-06-13 — Session 9 : sélecteur ⚡ MVP / 💎 Élite (idée 12) + idées 15-26 + plan de formation
 - **Veille & jouvence (idée 15)** : `VEILLE-MENSUELLE.md` (checklist SDK/modèles/template/MCP/e2e/métriques) + rappel cron mensuel (le 13) dans Claude Code ; garde-fous de l'idée 10 (Knowledge Flywheel) actés dans `statut.md`
 - **11 nouvelles idées (16-26)** dans `statut.md` : GitHub natif, Supabase (le vrai manque vs Lovable), déploiement Vercel/Netlify, lab de prompts, visualiseur de tokens, panneau métriques, agent RAG, dashboard de veille IA, tests auto, MCP Figma, multi-projets ; + roadmap « Montée en puissance » en 6 phases (21 étapes ordonnées) distinguant 🔧 Type A (on code MangoAI ensemble) et 🧪 Type B (l'utilisateur construit dans MangoAI pour se former à l'IA)

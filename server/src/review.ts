@@ -15,6 +15,7 @@ import {
 } from "./memory.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { listSkills, skillsSnapshot } from "./skills.js";
+import { AXIOMS_FILE_NAME, axiomsSnapshot, loadAxioms } from "./axioms.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
 // One review at a time; a turn that ends while a review runs skips its review
@@ -51,11 +52,36 @@ job is to curate three knowledge stores (paths are given in the user message):
    detail to it > CREATE a new one. The name MUST be class-level
    ("panier-ecommerce", "bouton-scroll-top"), NEVER a one-session artifact
    ("fix-bug-du-jour"). Skip only pure Q&A turns or trivial one-line tweaks.
+4. The AXIOM registry (${AXIOMS_FILE_NAME} at the workspace root) — the
+   "knowledge flywheel". UNIVERSAL, abstract engineering/UX rules, independent
+   of language, framework or project. An axiom is the WHY/RULE, NEVER the HOW
+   (procedural code belongs in a skill) and NEVER a project fact. Add one ONLY
+   when the turn exposed a non-obvious trap whose lesson generalises to ANY
+   future project (a layout pitfall, a state-management gotcha, a perf rule).
+   Format — one block per axiom, in French, separated by a blank line:
+     AXIOME-[CAT]-[NN] (maturité: candidat | confirmé · vu: AAAA-MM-JJ)
+     - Contexte : the general engineering/UX intent
+     - Piège : the invisible trap the code or human falls into
+     - Règle d'or : the universal locking rule
+   CAT examples: VISION, UIUX, ARCH, DATA, PERF, A11Y. Number per category.
+   GUARD-RAILS (mandatory — this clapet is anti-FORGETTING, not anti-correction):
+   - A NEWLY created axiom is ALWAYS "candidat" — never write "confirmé" on an
+     axiom's first appearance, however certain it seems. Promote to "confirmé"
+     ONLY when a LATER, separate turn independently reconfirms an existing one.
+   - Falsifiable: if THIS turn contradicts an existing axiom, you MUST amend or
+     delete it (refresh its date) — never keep a rule observed to be false.
+   - An axiom is a DEFAULT, not dogma; a user's explicit choice that overrides
+     one is NOT a reason to weaken the axiom (it stays a default for next time).
+   - Hard cap: keep the registry under ~12 axioms and 3000 characters. When
+     full, MERGE overlapping axioms or drop the weakest "candidat" — never grow
+     past the cap. Quality over quantity: most turns add NO axiom.
 User preferences and corrections ("stop doing X", "I don't like Y") are
 FIRST-CLASS signals — save them in the right memory store.
 Do NOT save anywhere: transient errors that were fixed by retrying, one-off task
 narratives, anything obvious from reading the code, environment-dependent
-failures, negative claims like "X does not work" (capture the FIX instead).
+failures, negative claims like "X does not work" (capture the FIX instead). Do
+NOT duplicate a skill's how-to as an axiom, and never put project specifics in
+the axiom registry.
 Rules for memory files: short factual bullets, in French; under 50 lines for the
 project memory, under 25 for the profile. MERGE and rewrite existing entries
 instead of appending duplicates; delete entries that became wrong. When a
@@ -82,6 +108,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const memoryBefore = loadMemory(projectDir);
       const profileBefore = loadUserProfile(WORKSPACE_DIR);
       const skillsBefore = skillsSnapshot();
+      const axiomsBefore = axiomsSnapshot(WORKSPACE_DIR);
       const memoryPath = path
         .join(path.relative(WORKSPACE_DIR, projectDir), MEMORY_FILE_NAME)
         .replaceAll("\\", "/");
@@ -100,6 +127,9 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         "",
         "Existing skills in .skills/ :",
         skillList || "(none yet)",
+        "",
+        `AXIOM registry file: ${AXIOMS_FILE_NAME} — current content:`,
+        loadAxioms(WORKSPACE_DIR) || "(the file does not exist yet)",
         "",
         "Update the store(s) if warranted, then stop.",
       ].join("\n");
@@ -125,11 +155,13 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const memoryChanged = loadMemory(projectDir) !== memoryBefore;
       const profileChanged = loadUserProfile(WORKSPACE_DIR) !== profileBefore;
       const skillsChanged = skillsSnapshot() !== skillsBefore;
-      if (memoryChanged || profileChanged || skillsChanged) {
+      const axiomsChanged = axiomsSnapshot(WORKSPACE_DIR) !== axiomsBefore;
+      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged) {
         const what = [
           ...(memoryChanged ? ["mémoire du projet"] : []),
           ...(profileChanged ? ["profil utilisateur"] : []),
           ...(skillsChanged ? ["bibliothèque de skills"] : []),
+          ...(axiomsChanged ? ["registre d'axiomes"] : []),
         ].join(" + ");
         console.log(`[review] ${what} updated ($${cost.toFixed(4)})`);
         // Visible on the next history reload, like the "version saved" line.
