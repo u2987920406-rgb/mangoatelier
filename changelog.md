@@ -1,5 +1,12 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Phase Ultime, Jalon C : contrat d'E/S (Coque Rigide) v1
+- **Pré-test** : (1) ne PAS remplacer la boucle agentique actuelle (Claude en direct via le SDK marche et est validé) — le contrat vit À CÔTÉ, pour l'élève ; (2) format **balises**, pas JSON (les actions portent du code brut → JSON forcerait un échappement que les petits modèles cassent) ; (3) le cœur (parse/répare/valide) est de la **logique pure**, donc prouvable sans modèle
+- **Spec** : `docs/contrat-es.md` — enveloppe `<mangoai>` avec actions `<write path>`, `<edit path>`(`<find>`/`<replace>`), `<run>`, `<summary>`, `<axiom>` ; règles de validation (chemins project-relatifs obligatoires) et de réparation (fence markdown, prose autour, enveloppe oubliée)
+- **Implémentation** : `server/src/contract.ts` — `parseContract(raw) → ActionPlan | {ok:false,error}`. Ordre des actions préservé, sécurité chemins (refus `..`, absolu, lettre de lecteur), réparation avant rejet. Un rejet = futur signal d'escalade vers Claude (Jalon D)
+- **Tests déterministes** : 16/16 verts (cas propre + ordre, fence+prose, enveloppe oubliée, traversal/drive rejetés, edit incomplet/run vide/vide/prose rejetés, axiom capté). `tsc` propre
+- **Périmètre v1 honnête** : spec + parser/réparateur/validateur seulement. L'**exécuteur** (appliquer write/edit/run au disque) + le branchement à un modèle vivant en mode contrat → **Jalon D** (avec l'élève, quand on connaîtra ses vraies contraintes). **La boucle agentique de Claude n'est pas touchée — zéro régression.**
+
 ## 2026-06-13 — Phase Ultime, Jalon B : panneau de métriques (idée 21)
 - **Pré-test d'abord** : une grande partie du Jalon B (tests auto idée 24 + machinerie d'escalade) est **prématurée tant que l'élève local n'existe pas** (piège « bâtir à l'aveugle ») → **reportée au Jalon D**. La part viable et utile aujourd'hui = le panneau de métriques. Livré :
 - **Backend** : `readMetrics()` dans `metrics.ts` (lecture tolérante de `workspace/.metrics.jsonl` — lignes legacy sans `mode` ou JSON cassé ignorées, jamais d'exception) + `GET /api/metrics`
