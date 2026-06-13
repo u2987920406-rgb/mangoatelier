@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-13 (session mode vision avancé — jalon 2)*
+*Dernière mise à jour : 2026-06-13 (session curriculum IA — 26 idées + roadmap prioritisée)*
 
 ## 💡 Idées en attente — à relire avant de commencer à coder
 
@@ -22,8 +22,82 @@
 | 14 | **Tableau de bord d'évolution** (métriques avant/après) | Suivre MangoAI comme un humain en plein apprentissage : courbe d'apprentissage (coût moyen et tours par type de tâche dans le temps — vérifie la promesse du Knowledge Flywheel), fiabilité (taux d'erreurs, auto-réparations, rollbacks), marque datée de chaque jalon sur la courbe (avant/après chiffré). **Volet 1 — collecte : ✅ FAIT (2026-06-13)** : chaque tour ajoute une ligne JSON à `workspace/.metrics.jsonl` (date, projet, modèle, coût, tours, tokens, snapshots, durée, erreur) via `server/src/metrics.ts`. Volet 2 — visualisation (panneau 📊, courbes par semaine et type de tâche) : plus tard, nourrit l'audit du 22 juin | moyenne | 🔨 collecte active |
 
 | 15 | **Veille & jouvence** — *rappel mensuel obligatoire* | Passe périodique (mensuelle ou à la demande) : vérifier les versions du SDK Agent (@anthropic-ai/claude-agent-sdk), des modèles disponibles, du template React/Vite/Tailwind et de l'écosystème MCP ; appliquer les mises à jour, relancer les tests e2e, noter dans le changelog ce qui a changé. Garantit le « toujours à la page » sans dépendre d'une mise à jour automatique. **Rappel mensuel actif** : déclenché le 13 de chaque mois dans Claude Code | **haute** | 📅 rappel mensuel actif |
+| 16 | **Intégration GitHub native** | Depuis MangoAI, pousser n'importe quel projet généré vers un repo GitHub de l'utilisateur (public ou privé) en 1 clic : création du repo via l'API GitHub, push initial, commits auto par itération, bouton « Ouvrir sur GitHub ». Prérequis : token GitHub dans `.env`. Effet : chaque projet MangoAI devient un vrai repo pro, partageable, forkable, visible dans le portfolio | **haute** | 💤 en attente |
+| 17 | **Intégration Supabase** — *combler le vrai manque vs Lovable* | Autoriser l'agent à générer des apps avec base de données et authentification via Supabase : le system prompt connaît l'API Supabase JS, l'agent génère le schéma SQL, les migrations et le code auth (login/signup/session). L'utilisateur fournit son `SUPABASE_URL` + `SUPABASE_ANON_KEY` dans `.env`. Ouvre la génération de vraies apps (todo-list persistée, dashboard avec comptes, e-commerce avec panier). **C'est LE manque fonctionnel majeur face à Lovable** | **haute** | 💤 en attente |
+| 18 | **Déploiement étendu** — Vercel + Netlify | Ajouter Vercel et Netlify comme cibles de déploiement 1-clic en complément de Cloudflare Pages. Sélecteur dans l'UI : 3 boutons « 🚀 Publier ». Vercel = meilleur pour les apps Next.js/SSR futures ; Netlify = meilleur pour les sites statiques avec forms ; Cloudflare = edge + gratuit généreux. Chaque cible = une commande CLI différente dans `server/src/deploy.ts` | moyenne | 💤 en attente |
+| 19 | **Lab de prompts interactif** *(projet formation A)* | Outil intégré dans MangoAI ou app séparée : écrire un prompt, choisir 1 à 3 modèles (Haiku/Sonnet/Opus), lancer, voir les réponses côte à côte avec coût et durée. Sauvegarder les expériences avec des notes. **Projet formation** : comprendre concrètement la différence entre modèles, ce que le prompting change, le coût comparé — plus efficace que n'importe quel article | moyenne | 💤 en attente |
+| 20 | **Visualiseur de tokenisation** *(projet formation B)* | App interactive : taper du texte → chaque token coloré en temps réel (comme tokenizer.openai.com mais pour Claude) + nombre de tokens + coût estimé sur chaque modèle + % de la fenêtre consommé. **Projet formation** : comprendre pourquoi certains mots coûtent plus cher, pourquoi Claude « voit » le texte différemment d'un humain, comment piloter les coûts à la source | moyenne | 💤 en attente |
+| 21 | **Panneau de métriques avancé** *(volet 2 de l'idée 14)* | Lire `workspace/.metrics.jsonl` et afficher : courbe de coût par semaine, histogramme des snapshots par projet, tendance du nombre de tours par tâche, comparaison avant/après chaque jalon. Stack : recharts (React) + lecture directe du JSONL. **Nourrit l'audit du 2026-06-22** (idée 13) | moyenne | 💤 en attente |
+| 22 | **Agent de notes & RAG personnel** *(projet formation C)* | Déposer des fichiers `.md` dans un dossier (tes notes, tes idées, tes veilles) → l'app crée un index et répond à tes questions en chat : « qu'est-ce que j'ai noté sur Supabase ? ». Appel Claude API direct, lecture des fichiers par l'agent. **Projet formation** : introduction au RAG (Retrieval-Augmented Generation) dans sa forme la plus simple, comprendre comment un agent choisit quoi lire | moyenne | 💤 en attente |
+| 23 | **Dashboard de veille IA automatisé** *(projet formation D)* | App qui lit le blog Anthropic + changelog API (RSS/scraping léger), résume les annonces du mois avec Claude, affiche un fil de veille avec badge « nouveau ». Optionnel : notification push navigateur. **Projet formation** : scraping, résumé automatisé, rester à jour sans passer 2h à lire — outil immédiatement utile pour toi | basse | 💤 en attente |
+| 24 | **Générateur de tests automatiques** | Après chaque itération de l'agent, déclencher optionnellement la génération de tests unitaires (Vitest) + e2e (Playwright) pour les fonctions clés du projet généré. L'agent analyse le code livré et rédige les cas de test. Mode Élite uniquement (idée 12). Réduction drastique des régressions sur les projets complexes | basse | 💤 en attente |
+| 25 | **MCP Figma intégré** | Brancher le serveur MCP Figma officiel à MangoAI : l'utilisateur colle une URL Figma → l'agent lit le design (couleurs, typos, layout, composants) et génère le code React correspondant. Intégration directe dans le flux chat. **Transforme MangoAI en outil design-to-code professionnel** — Figma → code en une conversation | haute | 💤 en attente |
+| 26 | **Mode multi-projets & composition de composants** | MangoAI gère plusieurs projets liés : l'agent peut lire un composant d'un projet A et le réutiliser dans un projet B (copy-paste intelligent avec adaptation de contexte). Bibliothèque de composants perso générés au fil du temps. Complémentaire des skills (idée 10) mais au niveau code, pas au niveau savoir | basse | 💤 en attente |
 
 *Source : `D:\IA\idée d'amelioration MangoAi.md.md` — vision long terme : passer d'un agent réactif à un système autonome prédictif et collaboratif.*
+
+---
+
+## 🚀 Montée en puissance — ordre de priorité recommandé
+
+*Chaque phase s'appuie sur la précédente. Les idées entre parenthèses = numéros du tableau ci-dessus.*
+
+### Phase 1 — Fondations qui débloquent tout le reste
+> Ce sont les 3 changements qui ont le plus grand effet de levier. Sans eux, les phases suivantes sont moins efficaces.
+
+| Ordre | Idée | Pourquoi maintenant |
+|-------|------|---------------------|
+| 1 | **Sélecteur MVP/Élite** (12) | L'interrupteur central : toutes les fonctions futures naissent branchées dessus. Protège le quota Claude |
+| 2 | **Intégration GitHub native** (16) | Chaque projet généré devient un vrai repo. Portfolio, partage, visibilité — et base pour la CI/CD |
+| 3 | **Intégration Supabase** (17) | Comble le seul vrai manque vs Lovable : apps avec base de données et auth. Ouvre un nouveau marché |
+
+### Phase 2 — Cerveau plus puissant
+> Rendre MangoAI plus intelligent avant d'ajouter des fonctions de surface.
+
+| Ordre | Idée | Pourquoi |
+|-------|------|----------|
+| 4 | **Knowledge Flywheel** (10) | Chaque projet enrichit le suivant. Axiomes > skills > mémoire : la spirale ascendante |
+| 5 | **Blueprints + stacks par type** (8 + 6) | L'agent part d'une structure connue → moins de tours, moins de tokens, meilleur résultat dès le 1er message |
+| 6 | **Mango Plan + Moodboard** (9 + 11) | Concevoir avant de coder. Le plan guidé + les références visuelles réelles = zéro dette technique dès le départ |
+
+### Phase 3 — Ta formation (projets qui te forment à l'IA)
+> Ces projets sont construits *avec* MangoAI et t'enseignent l'écosystème IA en le pratiquant.
+
+| Ordre | Idée | Ce que tu comprends |
+|-------|------|---------------------|
+| 7 | **Visualiseur de tokenisation** (20) | Les tokens, le coût, la fenêtre de contexte — les bases absolues |
+| 8 | **Lab de prompts** (19) | La différence entre modèles, l'impact du prompting, le prix comparé |
+| 9 | **Agent de notes & RAG** (22) | Comment un agent choisit quoi lire — introduction au RAG |
+| 10 | **Dashboard de veille IA** (23) | Rester à jour automatiquement, résumé par Claude — outil utile immédiatement |
+
+### Phase 4 — Vision avancée & qualité
+> L'arsenal visuel complet. Dépend du sélecteur MVP/Élite (phase 1).
+
+| Ordre | Idée | Ce qu'elle apporte |
+|-------|------|---------------------|
+| 11 | **Inspiration web contextuelle** (7) | L'agent analyse les leaders du domaine avant de coder — niveau « senior » |
+| 12 | **Agent QA temporel** (1) | Bugs d'animation et de transition détectés en mouvement, pas en statique |
+| 13 | **Design pair-programming** (2) | L'agent montre avant de faire — collaboration visuelle |
+
+### Phase 5 — Expansion écosystème
+> Nouvelles intégrations qui ouvrent de nouveaux usages.
+
+| Ordre | Idée | Valeur |
+|-------|------|--------|
+| 14 | **MCP Figma** (25) | Design-to-code professionnel : Figma → React en une conversation |
+| 15 | **Déploiement étendu** (18) | Vercel + Netlify + Cloudflare = 3 cibles au choix |
+| 16 | **Tests automatiques** (24) | Projets robustes, régressions éliminées — mode Élite uniquement |
+| 17 | **Panneau métriques** (21) | Visualiser la courbe d'apprentissage — nourrit l'audit annuel |
+
+### Phase 6 — Maturité & finitions
+> Les idées les plus ambitieuses, pour quand MangoAI est déjà solide.
+
+| Ordre | Idée | Horizon |
+|-------|------|---------|
+| 18 | **Généalogie visuelle** (3) | Time-line de renders — type Figma, très impactant visuellement |
+| 19 | **Documentation multimodale** (4) | Guides illustrés auto-générés — valeur pour les projets clients |
+| 20 | **Multi-projets & composition** (26) | Bibliothèque de composants perso — maturité d'un vrai framework |
+| 21 | **Guide utilisateur MangoAI** (5) | Quand tout le reste est stable — documenter l'outil complet |
 
 ## ✅ Fait et fonctionnel
 - MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
