@@ -38,6 +38,20 @@
 
 ---
 
+## 🏛️ Phase Ultime — Architecture de compagnonnage (deux coques)
+*Vision : `D:\IA\Phase ultime du plan.md`. But : MangoAI devient model-agnostic ; un modèle Open Source local (l'« Élève ») prend le quotidien à coût zéro, Claude (le « Maître ») reste l'étage d'escalade et le scribe des axiomes. Cadrage retenu : **tiering** (deux étages), pas « succession à 0 % ».*
+
+| Jalon | Contenu | Statut |
+|-------|---------|--------|
+| **A — Coque Souple** | Prompt dynamique : `scenario.ts` assemble des blocs nommés selon le scénario (= mode), blocs auto-désactivables (dépendance modèle gérée), couture `selectAxioms(ctx)` pour la future récupération par type. Sert aussi aujourd'hui (dégraissage du prompt, idée 13). **Refactor à comportement constant — pré-testé ✅, faible risque** | ▶️ prête à lancer |
+| **B — Inspection auto + métriques d'escalade** | Tests auto (idée 24) + panneau métriques (idée 21) : l'inspection objective (compile / runtime via error-relay / tests / compteur de boucles) qui décide d'escalader, et la courbe du taux d'intervention | 💤 après A |
+| **C — Contrat d'E/S (Coque Rigide)** | Langage strict standardisé : le modèle **propose** des actions dans un gabarit parsable, MangoAI **valide → répare → exécute** (le modèle ne touche pas au disque). Rend MangoAI branchable sur n'importe quel modèle sans risque | 💤 après B |
+| **D — Branchement de l'Élève + boucle de relais** | Modèle OSS local en mode contrat ; relais auto vers Claude sur signal objectif ; **validation de chaque axiome contre l'Élève** (re-test que son comportement a changé) ; mesure du taux d'intervention → 0 % sur la routine | 💤 quand un modèle local candidat existe |
+
+*Garde-fous actés (corrections du pré-test) : escalade sur signaux objectifs (jamais « le visuel est correct »), récupération d'axiomes par pertinence (un petit modèle sature), réparation avant rejet, axiomes validés contre l'Élève. Le contrat complet (C/D) attend un vrai modèle local — pas de construction à l'aveugle.*
+
+---
+
 ## 🚀 Montée en puissance — ordre de priorité recommandé
 
 *Chaque phase s'appuie sur la précédente. Les idées entre parenthèses = numéros du tableau ci-dessus.*
