@@ -44,6 +44,15 @@ export function axiomsPromptSection(workspaceDir: string): string {
   );
 }
 
+/** Retrieval seam (Phase Ultime jalon A): the single entry point the prompt
+ * assembler uses to obtain the axioms for a turn. Today it returns the whole
+ * capped registry, identical to axiomsPromptSection — so behavior is unchanged.
+ * v2 will filter here by project type and maturity (only the relevant,
+ * confirmed axioms) so a smaller "student" model isn't saturated. */
+export function selectAxioms(workspaceDir: string): string {
+  return axiomsPromptSection(workspaceDir);
+}
+
 /** Cheap change detector (size + mtime). */
 export function axiomsSnapshot(workspaceDir: string): string {
   try {

@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Phase Ultime, Jalon A : Coque Souple (prompt dynamique)
+- **Le system prompt n'est plus une concaténation figée dans `agent.ts`** — il est assemblé à partir de **blocs nommés** suivant un **scénario** (= mode), dans `server/src/scenario.ts` (`assembleSystemPrompt(ctx)`). Premier pas du plan de compagnonnage (conteneur model-agnostic) + fondation du dégraissage (idée 13)
+- Constantes de prompt déplacées verbatim d'`agent.ts` vers `scenario.ts` (SYSTEM_APPEND, MODE_RULES, ANALYTIC_RULES, VISION_*, SUPABASE_RULES) ; `agent.ts` allégé (imports réduits à `assembleSystemPrompt` + `visionServer`)
+- **Blocs** auto-déterminés par le contexte ; **scénarios** : `elite` = [mode, base, blueprints, supabase, analytic, plan, visionElite, axioms, memory, skills] ; `mvp` = [mode, base, blueprints, supabase, visionMvp, axioms, memory, skills]
+- **Couture `selectAxioms()`** (axioms.ts) : point d'entrée unique des axiomes dans le prompt — renvoie aujourd'hui le registre complet (comportement inchangé), filtrera par type/maturité en v2 (pour ne pas saturer un futur modèle élève)
+- **Refactor à comportement CONSTANT, prouvé sur 3 angles** : (1) texte des blocs byte-identique vs git HEAD (aucune altération au déplacement), (2) script de contrôle ordre+présence des blocs ✅ sur les 4 combos (elite/mvp × sonnet/haiku) — longueurs cohérentes (11312/10680/8843), (3) `tsc` propre + chargement du graphe de modules OK. Aucun gain ni perte d'efficacité en v1 (même prompt) ; la structure débloque le dégraissage v2
+- Prochaine étape Phase Ultime : Jalon B (inspection auto + métriques d'escalade)
+
 ## 2026-06-13 — Validation Supabase (idée 17) en live : app à base de données fonctionnelle
 - **Test e2e réel réussi** : app `todo-supabase` générée par MangoAI (MVP+sonnet, $0.36) — client `src/lib/supabase.js`, composant `TodoApp.jsx`, `@supabase/supabase-js` installé, dégradation propre si clés absentes
 - L'agent a fourni le SQL exact (table `todos` + RLS + policy `anon`), lancé par l'utilisateur dans l'éditeur SQL Supabase

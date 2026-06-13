@@ -43,7 +43,7 @@
 
 | Jalon | Contenu | Statut |
 |-------|---------|--------|
-| **A — Coque Souple** | Prompt dynamique : `scenario.ts` assemble des blocs nommés selon le scénario (= mode), blocs auto-désactivables (dépendance modèle gérée), couture `selectAxioms(ctx)` pour la future récupération par type. Sert aussi aujourd'hui (dégraissage du prompt, idée 13). **Refactor à comportement constant — pré-testé ✅, faible risque** | ▶️ prête à lancer |
+| **A — Coque Souple** | Prompt dynamique : `server/src/scenario.ts` assemble des blocs nommés selon le scénario (= mode) via `assembleSystemPrompt(ctx)` ; constantes de prompt déplacées d'`agent.ts` ; couture `selectAxioms()` (axioms.ts) pour la future récupération par type. **✅ LIVRÉ (2026-06-13)** — refactor à comportement constant, prouvé : texte des blocs byte-identique (git), ordre/présence conformes sur les 4 combos mode×modèle, `tsc` propre | ✅ FAIT |
 | **B — Inspection auto + métriques d'escalade** | Tests auto (idée 24) + panneau métriques (idée 21) : l'inspection objective (compile / runtime via error-relay / tests / compteur de boucles) qui décide d'escalader, et la courbe du taux d'intervention | 💤 après A |
 | **C — Contrat d'E/S (Coque Rigide)** | Langage strict standardisé : le modèle **propose** des actions dans un gabarit parsable, MangoAI **valide → répare → exécute** (le modèle ne touche pas au disque). Rend MangoAI branchable sur n'importe quel modèle sans risque | 💤 après B |
 | **D — Branchement de l'Élève + boucle de relais** | Modèle OSS local en mode contrat ; relais auto vers Claude sur signal objectif ; **validation de chaque axiome contre l'Élève** (re-test que son comportement a changé) ; mesure du taux d'intervention → 0 % sur la routine | 💤 quand un modèle local candidat existe |
