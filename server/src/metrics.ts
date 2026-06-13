@@ -30,3 +30,27 @@ export function recordTurnMetrics(m: TurnMetrics): void {
     console.warn("[metrics]", err instanceof Error ? err.message : err);
   }
 }
+
+/** Reads the metrics log for the dashboard (idea 21). Tolerant: malformed or
+ * legacy lines (e.g. before the `mode` field existed) are skipped/kept as-is,
+ * never throwing. Returns the most recent `limit` turns. */
+export function readMetrics(limit = 2000): TurnMetrics[] {
+  let text: string;
+  try {
+    text = fs.readFileSync(METRICS_FILE, "utf8");
+  } catch {
+    return []; // no log yet
+  }
+  const rows: TurnMetrics[] = [];
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    try {
+      const o = JSON.parse(t);
+      if (o && typeof o.ts === "string") rows.push(o as TurnMetrics);
+    } catch {
+      // partial/corrupt line (best-effort append) — skip it
+    }
+  }
+  return rows.slice(-limit);
+}

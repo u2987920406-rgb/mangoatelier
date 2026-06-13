@@ -1,6 +1,7 @@
-import { Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Download, Gauge, Gem, GitFork, Globe, History, Loader2, Rocket, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
+import Metrics from "./Metrics.jsx";
 
 const MODELS = [
   { id: "haiku", label: "Haiku", hint: "Rapide, projets simples", icon: Zap },
@@ -79,6 +80,18 @@ export default function Header({
           }
         >
           <Knowledge projectName={projectName} />
+        </Dropdown>
+
+        <Dropdown
+          width="w-96"
+          button={
+            <>
+              <BarChart3 size={14} className="text-accent-soft" />
+              Métriques
+            </>
+          }
+        >
+          <Metrics />
         </Dropdown>
 
         <Dropdown

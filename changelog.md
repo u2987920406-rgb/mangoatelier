@@ -1,5 +1,13 @@
 # Changelog — MangoAI
 
+## 2026-06-13 — Phase Ultime, Jalon B : panneau de métriques (idée 21)
+- **Pré-test d'abord** : une grande partie du Jalon B (tests auto idée 24 + machinerie d'escalade) est **prématurée tant que l'élève local n'existe pas** (piège « bâtir à l'aveugle ») → **reportée au Jalon D**. La part viable et utile aujourd'hui = le panneau de métriques. Livré :
+- **Backend** : `readMetrics()` dans `metrics.ts` (lecture tolérante de `workspace/.metrics.jsonl` — lignes legacy sans `mode` ou JSON cassé ignorées, jamais d'exception) + `GET /api/metrics`
+- **UI** : dropdown « 📊 Métriques » dans le header (`ui/src/components/Metrics.jsx`) — cartes (tâches, coût cumulé, coût moyen/tâche, taux d'erreur), barres **coût par jour**, répartitions **par modèle** et **par mode**, note moyenne tours/tâche. Charts en CSS/divs (aucune nouvelle dépendance, pas de recharts)
+- C'est le **foyer de la future « courbe du taux d'intervention »** (Jalon D, quand l'élève sera branché)
+- **Tests** : `tsc` propre, build UI OK ; `GET /api/metrics` validé en live → 9 tours renvoyés (dont 3 legacy gérés), $2.17 cohérent
+- Serveur redémarré → la Coque Souple (Jalon A) + l'endpoint métriques sont désormais actifs
+
 ## 2026-06-13 — Phase Ultime, Jalon A : Coque Souple (prompt dynamique)
 - **Le system prompt n'est plus une concaténation figée dans `agent.ts`** — il est assemblé à partir de **blocs nommés** suivant un **scénario** (= mode), dans `server/src/scenario.ts` (`assembleSystemPrompt(ctx)`). Premier pas du plan de compagnonnage (conteneur model-agnostic) + fondation du dégraissage (idée 13)
 - Constantes de prompt déplacées verbatim d'`agent.ts` vers `scenario.ts` (SYSTEM_APPEND, MODE_RULES, ANALYTIC_RULES, VISION_*, SUPABASE_RULES) ; `agent.ts` allégé (imports réduits à `assembleSystemPrompt` + `visionServer`)

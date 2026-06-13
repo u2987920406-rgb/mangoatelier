@@ -21,7 +21,7 @@ import { spawnBackgroundReview } from "./review.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
 import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./vision.js";
-import { recordTurnMetrics } from "./metrics.js";
+import { readMetrics, recordTurnMetrics } from "./metrics.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -330,6 +330,11 @@ app.post("/api/github/:name", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// Learning-curve dashboard (idea 21): per-turn metrics for the UI to chart
+app.get("/api/metrics", (_req, res) => {
+  res.json({ rows: readMetrics() });
 });
 
 // What the agent has learned: project memory, user profile, skill library
