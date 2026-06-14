@@ -217,11 +217,93 @@ function text(message: string, isError = false) {
   return { content: [{ type: "text" as const, text: message }], ...(isError ? { isError: true } : {}) };
 }
 
+// ── Clone-from-URL (native alternative to Figma): screenshot a LIVE site so the
+// agent can SEE its design and rebuild it. Reuses the same Playwright browser.
+const CLONE_VIEWPORT = { width: 1280, height: 900 };
+const CLONE_MAX_HEIGHT = 5000; // stay well under Anthropic's image limits
+
+// Accepts only public http(s) URLs — blocks localhost/private ranges so the tool
+// can't be turned against the user's own preview/backend (light SSRF hygiene).
+// Pure → unit-testable.
+export function isCloneableUrl(s: string): boolean {
+  let u: URL;
+  try {
+    u = new URL((s ?? "").trim());
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".local") || h === "::1") return false;
+  if (/^(127\.|10\.|0\.0\.0\.0|169\.254\.|192\.168\.)/.test(h)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
+  return true;
+}
+
+/** Full-page screenshot of an external website (JPEG). Reuses getBrowser(). */
+export async function captureExternal(url: string): Promise<{ buf: Buffer; height: number }> {
+  const b = await getBrowser();
+  const context = await b.newContext({ viewport: CLONE_VIEWPORT, deviceScaleFactor: 1 });
+  try {
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: "load", timeout: 20_000 });
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+    await page.waitForTimeout(600); // let fonts/hero images settle
+    const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+    const height = Math.min(pageHeight || CLONE_VIEWPORT.height, CLONE_MAX_HEIGHT);
+    const buf = await page.screenshot({
+      type: "jpeg",
+      quality: 80,
+      clip: { x: 0, y: 0, width: CLONE_VIEWPORT.width, height },
+    });
+    return { buf, height };
+  } finally {
+    await context.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
+const cloneTool = tool(
+  "clone_url",
+  "Captures a full-page screenshot of a LIVE website from its URL so you can SEE its design and rebuild it. " +
+    "Call this FIRST when the user gives a website URL and asks to clone/reproduce it or build something 'like this site'. " +
+    "Then recreate its structure, palette and typography in React + Tailwind v4 — never copy its text/content.",
+  { url: z.string().describe("Public http(s) URL of the website to capture") },
+  async (args) => {
+    if (!isCloneableUrl(args.url)) {
+      return text("URL invalide pour le clonage — fournis une adresse http(s) publique (pas localhost).", true);
+    }
+    try {
+      const { buf, height } = await captureExternal(args.url);
+      if (buf.length > MAX_IMAGE_BYTES) {
+        return text(
+          `Capture trop lourde (${Math.round(buf.length / 1024)} Ko) — réessaie ; si ça persiste, décris le design.`,
+          true,
+        );
+      }
+      return {
+        content: [
+          { type: "image" as const, data: buf.toString("base64"), mimeType: "image/jpeg" },
+          {
+            type: "text" as const,
+            text:
+              `Capture de ${args.url} (${height}px de haut). Reproduis fidèlement sa structure, sa palette et sa ` +
+              "typographie en React + Tailwind v4 — recrée le DESIGN, ne copie pas le contenu textuel.",
+          },
+        ],
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      return text(`Échec de la capture du site : ${msg}`, true);
+    }
+  },
+);
+
 export const visionServer = createSdkMcpServer({
   name: "vision",
   version: "1.0.0",
   // Core mechanism: always in the prompt, never deferred behind ToolSearch
   // (saves one discovery round-trip per visual turn).
   alwaysLoad: true,
-  tools: [snapshotTool],
+  tools: [snapshotTool, cloneTool],
 });

@@ -95,7 +95,7 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__figma__import", ...webTools],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__figma__import", ...webTools],
         agents: AGENTS,
         mcpServers: { vision: visionServer, figma: figmaServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
@@ -136,9 +136,11 @@ export async function* runAgent(
             const name =
               block.name === "mcp__vision__snapshot"
                 ? "Snapshot"
-                : block.name === "mcp__figma__import"
-                  ? "Figma"
-                  : block.name;
+                : block.name === "mcp__vision__clone_url"
+                  ? "Clone web"
+                  : block.name === "mcp__figma__import"
+                    ? "Figma"
+                    : block.name;
             yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
@@ -187,6 +189,7 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Task":
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
     case "Figma":
+    case "Clone web":
       return String(i?.url ?? "").slice(0, 100);
     case "Snapshot": {
       const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";
