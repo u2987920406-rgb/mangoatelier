@@ -14,7 +14,7 @@ import {
   loadUserProfile,
 } from "./memory.js";
 import { WORKSPACE_DIR } from "./projects.js";
-import { listSkills, skillsSnapshot } from "./skills.js";
+import { listSkills, skillsSnapshot, SKILLS_DIR } from "./skills.js";
 import { AXIOMS_FILE_NAME, axiomsSnapshot, loadAxioms } from "./axioms.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
@@ -38,11 +38,13 @@ job is to curate three knowledge stores (paths are given in the user message):
    tastes, how they like to work. Only put a preference here when it is clearly
    general ("je n'aime pas...", "toujours", "de manière générale", or the same
    taste keeps coming back); when in doubt, keep it project-scoped.
-3. The SKILL library (.skills/<name>/SKILL.md at the workspace root): HOW to do
-   a class of task — a non-trivial technique, fix, workaround or pattern that a
-   future session on ANY project would benefit from (e.g. a working cart
-   pattern, a tricky CSS/Vite fix, a layout recipe the user validated).
-   Format: .skills/<class-level-name>/SKILL.md starting with YAML frontmatter
+3. The SKILL library (its ABSOLUTE directory is given in the user message as
+   SKILLS_DIR): HOW to do a class of task — a non-trivial technique, fix,
+   workaround or pattern that a future session on ANY project would benefit from
+   (e.g. a working cart pattern, a tricky CSS/Vite fix, a layout recipe the user
+   validated).
+   Format: <SKILLS_DIR>/<class-level-name>/SKILL.md (build the path from the
+   ABSOLUTE SKILLS_DIR given below — never a bare ".skills/..."), starting with YAML frontmatter
    (--- name: <name> / description: <one line, when to use> ---), then concise
    steps with the actual code that worked. Be ACTIVE about skills: when the
    turn produced a working UI pattern, interaction, or fix (even a small one —
@@ -87,6 +89,9 @@ project memory, under 25 for the profile. MERGE and rewrite existing entries
 instead of appending duplicates; delete entries that became wrong. When a
 preference graduates to the profile, remove its duplicate from project memories
 you are editing.
+ABSOLUTE PATHS ONLY: every store's full absolute path is given in the user
+message — write exactly there. Never resolve a relative ".skills/..." or bare
+filename yourself (it would land in the wrong directory).
 Do not modify ANY other file. Do not run commands.
 If nothing is worth saving anywhere, reply exactly "Nothing to save." and stop.`;
 
@@ -109,9 +114,15 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const profileBefore = loadUserProfile(WORKSPACE_DIR);
       const skillsBefore = skillsSnapshot();
       const axiomsBefore = axiomsSnapshot(WORKSPACE_DIR);
-      const memoryPath = path
-        .join(path.relative(WORKSPACE_DIR, projectDir), MEMORY_FILE_NAME)
-        .replaceAll("\\", "/");
+      // Absolute paths only — a relative ".skills/..." or bare filename can be
+      // resolved by the reviewer against the wrong base and land outside the
+      // workspace (observed: a skill written to the repo root). Forward slashes
+      // for cross-platform clarity to the model.
+      const abs = (p: string) => p.replaceAll("\\", "/");
+      const memoryPath = abs(path.join(projectDir, MEMORY_FILE_NAME));
+      const profilePath = abs(path.join(WORKSPACE_DIR, USER_PROFILE_FILE_NAME));
+      const skillsDirPath = abs(SKILLS_DIR);
+      const axiomsPath = abs(path.join(WORKSPACE_DIR, AXIOMS_FILE_NAME));
       const skillList = listSkills()
         .map((s) => `- ${s.name}: ${s.description}`)
         .join("\n");
@@ -119,16 +130,16 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         "Conversation turn to review:",
         formatTranscript(turn),
         "",
-        `PROJECT memory file: ${memoryPath} — current content:`,
+        `PROJECT memory file (absolute path — write here): ${memoryPath} — current content:`,
         memoryBefore || "(the file does not exist yet)",
         "",
-        `USER profile file: ${USER_PROFILE_FILE_NAME} — current content:`,
+        `USER profile file (absolute path — write here): ${profilePath} — current content:`,
         profileBefore || "(the file does not exist yet)",
         "",
-        "Existing skills in .skills/ :",
+        `SKILLS_DIR (absolute — create skills as ${skillsDirPath}/<name>/SKILL.md):`,
         skillList || "(none yet)",
         "",
-        `AXIOM registry file: ${AXIOMS_FILE_NAME} — current content:`,
+        `AXIOM registry file (absolute path — write here): ${axiomsPath} — current content:`,
         loadAxioms(WORKSPACE_DIR) || "(the file does not exist yet)",
         "",
         "Update the store(s) if warranted, then stop.",
