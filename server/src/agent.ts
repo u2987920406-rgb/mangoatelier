@@ -12,7 +12,7 @@ export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 // rigour). MVP = fast and cheap (no analytic ritual, no extended thinking,
 // minimal visual loop); Élite = the full arsenal. This is the switch every
 // future advanced feature (Mango Plan, moodboard, temporal QA…) plugs into.
-export const ALLOWED_MODES = ["mvp", "elite"] as const;
+export const ALLOWED_MODES = ["mvp", "elite", "finition"] as const;
 export type Mode = (typeof ALLOWED_MODES)[number];
 const DEFAULT_MODE: Mode = "elite";
 
@@ -44,6 +44,22 @@ Rules:
 - Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
 - When done, return a short summary: files created/edited and what the parent must wire up (imports, routes, CSS hooks).`;
 
+// QA/Contrôleur subagent (finition phase): an adversarial Lead QA that audits
+// the ALREADY-BUILT app and hardens it in place — it never adds features. The
+// finition scenario tells the engine to delegate to it; same tool restriction
+// as the builder (no Bash/server) so it can't fight over the dev server.
+const QA_PROMPT = `You are a Lead QA / Controller subagent inside a local "Lovable-like" app builder. The app is ALREADY BUILT; your job is to make it solid and shippable — NOT to add features.
+Audit the project adversarially and FIX what you find, staying strictly within existing scope:
+- Edge cases: empty/whitespace/invalid/out-of-range input, very long text, 0/1/many items, duplicate actions, missing data.
+- Missing states: every async or data-driven view must handle loading, empty and error — not just the happy path. A list must render cleanly with 0 items; a form must show validation errors.
+- Hardening: validate/sanitise user input, make external links safe (rel="noopener"), basic a11y (labels, alt text, focus, contrast), confirm layout holds at mobile width.
+- Bugs & dead code: fix real defects; remove obvious dead code/duplication you touch — never rewrite working code wholesale.
+Rules:
+- NEVER add a new feature, page or scope. If something looks like a missing feature rather than a defect, report it instead of building it.
+- Keep the app compiling at every step. Follow the project's existing styling approach and conventions.
+- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- When done, return a short report: defects found, fixes applied (file by file), and anything that still needs the user's decision.`;
+
 const AGENTS = {
   builder: {
     description:
@@ -51,7 +67,16 @@ const AGENTS = {
     prompt: BUILDER_PROMPT,
     tools: ["Read", "Write", "Edit", "Glob", "Grep"],
   },
+  qa: {
+    description:
+      "Adversarial Lead QA / Controller for the finition phase: audits the already-built app and FIXES hardening defects in place (edge cases, missing loading/empty/error states, input validation, a11y, responsive, bugs, dead code) WITHOUT adding any feature. Give it the project scope and the conventions to respect; it returns a report of what it fixed.",
+    prompt: QA_PROMPT,
+    tools: ["Read", "Write", "Edit", "Glob", "Grep"],
+  },
 };
+
+// Read-only view of the subagent registry, for deterministic tests.
+export const AGENTS_FOR_TEST: Record<string, { tools: string[] }> = AGENTS;
 
 // Handle to the in-flight query so the HTTP layer can interrupt it.
 let currentQuery: ReturnType<typeof query> | null = null;
@@ -82,7 +107,7 @@ export async function* runAgent(
   // Thinking option rides on the analytic ritual: Élite + a thinking-capable
   // model. (The matching ANALYTIC_RULES block is in the Élite scenario and
   // self-gates on the model — the two stay in sync.)
-  const analytic = effectiveMode === "elite" && effectiveModel !== "haiku";
+  const analytic = (effectiveMode === "elite" || effectiveMode === "finition") && effectiveModel !== "haiku";
   // Mango Plan + moodboard (ideas 9/11) are Élite-only — and the moodboard
   // needs the web. MVP stays lean (no plan, no web research) for speed/quota.
   const webTools = effectiveMode === "elite" ? ["WebSearch", "WebFetch"] : [];

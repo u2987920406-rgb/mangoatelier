@@ -17,7 +17,7 @@ import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 
 export type PromptContext = {
-  mode: "mvp" | "elite";
+  mode: "mvp" | "elite" | "finition";
   model: string;
   projectDir: string;
 };
@@ -57,6 +57,9 @@ Mode ⚡ MVP — speed and simplicity first:
   elite: `
 Mode 💎 Élite — maximum quality:
 - Take the time to analyse, verify visually, and polish details. Use the full arsenal below.`,
+  finition: `
+Mode 🛡️ Finition — hardening & QA phase (the project is built; now make it solid and shippable):
+- This is a CONSOLIDATION phase, NOT a construction phase. The full finition protocol below governs this turn.`,
 } as const;
 
 // Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
@@ -96,6 +99,20 @@ Automated tests (optional — for non-trivial logic you add):
 - Stay proportionate: SKIP tests for trivial tweaks and purely visual/styling work — a couple of solid tests on the core logic beat broad shallow coverage. Component tests needing the DOM require jsdom + @testing-library setup; only go there if a component holds real logic worth locking down.
 - Playwright end-to-end tests only for a genuinely critical user flow when the project warrants it (heavier) — not by default.`;
 
+// Finition phase (the QA/hardening pole): the project is functionally built and
+// looks right — this turn makes it solid and shippable instead of adding scope.
+// The "after 80%" protocol from the architecture doc, transposed into a block.
+const FINITION_RULES = `
+Finition protocol (apply rigorously this turn — you are now a Lead QA, not a builder):
+- FEATURE FREEZE — add NO new feature, page or scope. If the user's request implies a brand-new feature, say so briefly and ask them to switch back to MVP/Élite; otherwise consolidate only. Polishing, fixing and hardening EXISTING behaviour is the whole job.
+- DELEGATE AN ADVERSARIAL QA PASS — launch the "qa" subagent (Agent tool) to audit the built app and fix what it finds: bugs, unhandled edge cases, missing states, accessibility and responsive defects. Give it the project scope and the conventions to respect. Then integrate/verify its work and the build yourself.
+- EDGE CASES — hunt the inputs that break things: empty/whitespace input, invalid or out-of-range values, very long text, zero/one/many items, duplicate actions, network/data absent. Handle them gracefully.
+- MISSING STATES — every async or data-driven view must cover loading, empty, and error states (not just the happy path). A list must render cleanly with 0 items; a form must show validation errors.
+- HARDENING — validate and sanitise all user input; make external links safe (rel="noopener"); ensure keyboard focus and basic a11y (labels, alt text, contrast); confirm the layout holds on mobile width.
+- REFACTOR LIGHTLY — remove dead code and obvious duplication you touch; do NOT rewrite working code wholesale.
+- TESTS — broaden unit tests on the critical pure logic (happy path + the edge cases above), per the tests rules below.
+- Deliver a short French summary of what was hardened and what (if anything) still needs the user's attention.`;
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   mode: (ctx) => MODE_RULES[ctx.mode],
@@ -103,6 +120,7 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   blueprints: () => BLUEPRINTS_RULES,
   supabase: () => SUPABASE_RULES,
   tests: () => TESTS_RULES,
+  finition: () => FINITION_RULES,
   // Analytic ritual rides on native extended thinking — not on haiku.
   analytic: (ctx) => (ctx.model !== "haiku" ? ANALYTIC_RULES : ""),
   plan: () => PLAN_RULES + MOODBOARD_RULES,
@@ -118,9 +136,12 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // Élite runs the full arsenal; MVP omits the analytic ritual and Mango Plan
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
-const SCENARIOS: Record<"mvp" | "elite", string[]> = {
+const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
   elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "memory", "skills"],
   mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "memory", "skills"],
+  // Finition reuses the Élite arsenal but drops planning/moodboard (no new
+  // feature design) and leads with the finition protocol to frame the phase.
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "memory", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

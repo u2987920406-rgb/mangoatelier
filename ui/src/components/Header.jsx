@@ -1,4 +1,4 @@
-import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Triangle, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Shield, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -25,6 +25,8 @@ const MODELS = [
 const MODES = [
   { id: "mvp", label: "MVP", hint: "Rapide & économe — droit au but", icon: Zap },
   { id: "elite", label: "Élite", hint: "Qualité max — analyse + vérif visuelle", icon: Gem },
+  // Finition (after ~80%): hardening & QA pass — no new features, delegates to qa.
+  { id: "finition", label: "Finition", hint: "Durcissement & QA — pas de nouvelle feature", icon: Shield },
 ];
 
 export default function Header({

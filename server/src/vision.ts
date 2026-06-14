@@ -39,10 +39,15 @@ let idleTimer: NodeJS.Timeout | null = null;
 /** Called at the start of each /api/chat turn: binds the tool to the active
  * project, sets the snapshot budget for the chosen effort mode, resets the
  * counter and purges the previous turn's files. */
-export function setVisionContext(dir: string, url: string, mode: "mvp" | "elite" = "elite"): void {
+export function setVisionContext(
+  dir: string,
+  url: string,
+  mode: "mvp" | "elite" | "finition" = "elite",
+): void {
   projectDir = dir;
   previewUrl = url;
   used = 0;
+  // Finition runs the full visual loop like Élite (it hardens states/responsive).
   budget = mode === "mvp" ? BUDGET_MVP : BUDGET_ELITE;
   try {
     fs.rmSync(path.join(dir, SNAPSHOTS_DIR_NAME), { recursive: true, force: true });
