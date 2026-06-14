@@ -1,8 +1,10 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-14 (session « suite » : scrape_url + phase Finition/agent qa + fix aperçu figé + durcissement agentBusy + fix chemins reviewer)*
+*Dernière mise à jour : 2026-06-14 (session « haute couture » : analyse concurrentielle + roadmap 11 fonctions + rappel externalisation)*
 
-> **🟢 Où on en est — 2026-06-14 (session « suite »).** Tout compile (`tsc` 0), tout poussé (dernier commit `f9e41a4`). **Fait cette session** : (1) **`scrape_url`** (#33) — outil MCP natif qui aspire l'INFO d'une URL publique (texte+liens, pas que des pixels comme clone_url), `test-scrape.ts` 11/11, validé e2e (HN + /api/chat) ; (2) **Phase Finition + agent `qa`** (#34) — 3ᵉ mode 🛡️ « après 80% » : Feature Freeze, délégation OBLIGATOIRE au sous-agent qa contrôleur-correcteur, durcissement (edge cases, états, a11y, responsive), **auto-backlog** dans `<projet>/.memory.md`, `test-finition.ts` 12/12, validé e2e via /api/chat ; (3) **Fix aperçu figé** — `preview.ts` : port dynamique + URL lue dans le stdout de vite (un orphelin sur 5174 bloquait tout basculement) ; (4) **Durcissement `agentBusy`** — `finally` garanti + `/api/stop` libère le verrou ; (5) **Fix chemins reviewer** — `review.ts` passe des chemins ABSOLUS (un skill atterrissait à la racine du repo). Pour relancer : voir « 🚀 Pour relancer » en bas.
+> **🟢 Où on en est — 2026-06-14 (session « haute couture »).** Aucun code modifié — session stratégique. **Fait cette session** : (1) **Analyse concurrentielle complète** — Lovable, Bolt, v0, Replit, Base44 passés en revue ; tableau comparatif 19 critères ; MangoAI est le seul à avoir coût zéro, code local, Knowledge Flywheel, Élève local, click-to-inspect, mode architecte, pôle QA — 5 lignes que personne ne peut copier facilement ; (2) **Roadmap haute couture — 11 chantiers** (voir tableau ci-dessous) : 3 axes stratégiques (A design system persistant, B routing modèle auto, C agents autonomes) + 8 fonctions UI/UX nouvelles dont le **#8 URL Analyser « Sharingan »** (6 couches : pixels + CSS calculé + CSS variables + structure + assets + génération React — le différenciateur majeur) ; (3) **Rappel externalisation** gravé en mémoire — avant Phase B créer une interface neutre qui masque toute la mécanique interne (modèles, réflexion, labels, axiomes, coûts) ; (4) **Dev mode écarté** — le workflow Claude Code actuel est déjà optimal, inutile de compliquer. Pour relancer : voir « 🚀 Pour relancer » en bas.
+>
+> **🟢 Point de reprise précédent — 2026-06-14 (session « suite »).** Tout compile (`tsc` 0), tout poussé (dernier commit `f9e41a4`). **Fait cette session** : (1) **`scrape_url`** (#33) — outil MCP natif qui aspire l'INFO d'une URL publique (texte+liens, pas que des pixels comme clone_url), `test-scrape.ts` 11/11, validé e2e (HN + /api/chat) ; (2) **Phase Finition + agent `qa`** (#34) — 3ᵉ mode 🛡️ « après 80% » : Feature Freeze, délégation OBLIGATOIRE au sous-agent qa contrôleur-correcteur, durcissement (edge cases, états, a11y, responsive), **auto-backlog** dans `<projet>/.memory.md`, `test-finition.ts` 12/12, validé e2e via /api/chat ; (3) **Fix aperçu figé** — `preview.ts` : port dynamique + URL lue dans le stdout de vite (un orphelin sur 5174 bloquait tout basculement) ; (4) **Durcissement `agentBusy`** — `finally` garanti + `/api/stop` libère le verrou ; (5) **Fix chemins reviewer** — `review.ts` passe des chemins ABSOLUS (un skill atterrissait à la racine du repo).
 >
 > **🟢 Point de reprise précédent — 2026-06-13.** Tout compile (`tsc` serveur 0, build UI OK), tout est poussé (dernier commit `42b6f5f`). **Fait cette session** : #1 (contenu fichier à l'Élève), #2 (discipline d'ablation), #3 (`selectAxioms` v2.1), veille mensuelle (re-check), #5 (relais clic→source — tampon Babel `data-mango-src`, pas `_debugSource`), **fermeture du trou de mesure** (`audit-verify.ts` → l'audit mesure le RENDEMENT RÉEL build+effet), #6 (édition visuelle chirurgicale, prouvée e2e à $0), idée 28 inscrite. **Positionnement acté (non gravé en mémoire, sur demande)** : MangoAI = **outil perso local-first** pour produire des livrables clients ; phase « installation/externalisation » = plus tard, seulement si un client paie le prix fort. **Prochaine vague recommandée** (pertinence × facilité) : #10 Déploiement étendu 🟢 → #7 MCP Figma 🟡 (le serveur MCP est déjà accessible) → #21 Métriques avancées 🟢 (avant l'audit du 22/06) → #9 Tests auto 🟡 → #8 Inspiration web 🟡. Pour relancer : voir « 🚀 Pour relancer après redémarrage » en bas.
 
@@ -71,6 +73,33 @@
 | 28 | **Clapet v4.0 — auto-élagage par ablation persistée** | Stocker un `ablationScore` par axiome (verdict d'ablation cumulé via `audit-scan --ablate`) → le registre s'auto-nettoie : un axiome au score régulièrement négatif est signalé pour retrait. C'est la **falsifiabilité (notre garde-fou) rendue quantitative et automatique** — extension de la discipline d'ablation (#2 du plan de bord). *Sous-option à évaluer : `impactScope` universal/type (partiellement redondant avec `selectAxioms v2.1`). **Écarté** : `domSelector` sur un axiome (un sélecteur est un fait projet → `.memory.md`, pas une loi universelle).* **Déclencheur : quand de vraies escalades Élève→Claude auront accumulé ≥5-10 axiomes de code** (prématuré tant que le registre « code » est quasi vide — même logique que « discipline armée sans munition »). Natif, zéro dépendance. (Source : `D:\IA\axiom v4.md`.) | basse (palier maturité, après #6) | 💤 en attente |
 
 *Source : `D:\IA\idée d'amelioration MangoAi.md.md` — vision long terme : passer d'un agent réactif à un système autonome prédictif et collaboratif.*
+
+---
+
+## 🎯 Roadmap haute couture — 11 chantiers (2026-06-14)
+
+*Positionnement acté : MangoAI = « haute couture » face au prêt-à-porter cloud (Lovable, Bolt, v0, Base44, Replit). Les concurrents ont les clés de la voiture ; MangoAI est l'atelier qui sait construire la voiture.*
+
+| # | Fonction | Description | Priorité |
+|---|---|---|---|
+| **A** | **Design system persistant** | Palette, typo, composants réutilisables entre projets (`workspace/.design-system.md`) | 🟡 |
+| **B** | **Routing modèle automatique** | Complexité de la tâche → modèle optimal choisi seul (simple=Haiku, logique=Sonnet, vision=Opus) | 🟡 |
+| **C** | **Agents autonomes** | Tâches planifiées / cron / connexion services externes | 🔵 |
+| **1** | **Panel latéral pop-up** | Sidebar éditeur visuel sur la preview — modifier/redimensionner/déplacer un élément directement | 🟠 |
+| **1a** | ↳ Modificateur de police | Sélectionner élément → changer font-family, taille, graisse | 🟠 |
+| **1b** | ↳ Modificateur de couleur | Palette par élément sélectionné (fond, texte, bordure, bouton) | 🟠 |
+| **1c** | ↳ Sélecteur d'éléments | Clic preview → highlight + propriétés éditables dans le panel | 🟠 |
+| **2** | **Créateur de skills dans le panel** | Bouton dans le panel latéral pour créer une skill spécialisée depuis l'interface | 🟡 |
+| **3** | **Mode discret** | Basculer visible/invisible les blocs 🧠 Réflexion | 🟢 |
+| **4** | **Bouton micro** | Entrée vocale à côté du bouton d'envoi → transcription dans le chat | 🟡 |
+| **5** | **Menu de mode dans le chat** | Sélecteur scroll 3 modes : **Construire** (Sonnet, effort max) · **Planifier** (analytique) · **Discuter** (Haiku, rapide) — change modèle + effort en background | 🟢 |
+| **6** | **Menu d'accueil repensé** | Page d'accueil ergonomique : scroll projets, accès rapide, design épuré | 🟡 |
+| **7** | **Sélecteur de contexte fichier** | Icône ⚙ dans le chat : cibler un fichier/dossier précis → l'IA cible ce contexte directement | 🟡 |
+| **8** | **URL Analyser — Sharingan** | 6 couches : pixels + CSS calculé + CSS variables + structure sémantique + assets + génération React. Voit une URL une fois, copie tout. Combines : k-means couleurs, interception réseau fonts, pseudo-éléments injectés, canvas fingerprint, accessibility tree. Différenciateur majeur. | 🔴 |
+
+*🔴 différenciateur majeur · 🟠 saut qualitatif · 🟢 impact UX immédiat · 🟡 valeur ajoutée · 🔵 long terme*
+
+**Décisions actées :** Dev mode méta = écarté (workflow Claude Code actuel est optimal). Rappel externalisation = gravé en mémoire (interface neutre obligatoire avant Phase B).
 
 ---
 
