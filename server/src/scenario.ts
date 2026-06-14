@@ -91,6 +91,17 @@ Figma design-to-code — when the user pastes a figma.com link:
 - FIRST call the mcp__figma__import tool on that URL. It returns a rendered IMAGE of the frame (which you SEE) plus its extracted tokens (palette, typography, components, layout). Then reproduce the design faithfully with Tailwind v4 utility classes, and verify with the snapshot tool.
 - If it reports Figma is not configured, tell the user (briefly, in French) to add a FIGMA_TOKEN to server/.env, then continue with whatever they described.`;
 
+// Idea 24 — automated tests for the generated project, Élite-only & optional.
+// On-demand: Vitest isn't preinstalled (test-less projects stay lean for the
+// Phase B export) — the agent sets it up the first time it writes tests. Steered
+// at PURE logic so tests run with zero config (no jsdom/testing-library needed).
+const TESTS_RULES = `
+Automated tests (optional — for non-trivial logic you add):
+- When you add or change non-trivial, NON-visual logic (pure functions, hooks, reducers, data transforms, validation, calculations), also write focused Vitest unit tests for the key cases (happy path + 1-2 edge cases) in a *.test.js/.test.jsx file next to the code. Prefer testing PURE functions — they run with zero extra config.
+- First time in a project: install Vitest once (npm i -D vitest) and add a "test": "vitest run" script to package.json. Then run "npx vitest run" (one-shot, NEVER the watch mode) to confirm the tests pass; fix the real failures you find.
+- Stay proportionate: SKIP tests for trivial tweaks and purely visual/styling work — a couple of solid tests on the core logic beat broad shallow coverage. Component tests needing the DOM require jsdom + @testing-library setup; only go there if a component holds real logic worth locking down.
+- Playwright end-to-end tests only for a genuinely critical user flow when the project warrants it (heavier) — not by default.`;
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   mode: (ctx) => MODE_RULES[ctx.mode],
@@ -98,6 +109,7 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   blueprints: () => BLUEPRINTS_RULES,
   supabase: () => SUPABASE_RULES,
   figma: () => FIGMA_RULES,
+  tests: () => TESTS_RULES,
   // Analytic ritual rides on native extended thinking — not on haiku.
   analytic: (ctx) => (ctx.model !== "haiku" ? ANALYTIC_RULES : ""),
   plan: () => PLAN_RULES + MOODBOARD_RULES,
@@ -114,7 +126,7 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "figma", "analytic", "plan", "visionElite", "axioms", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "figma", "analytic", "plan", "tests", "visionElite", "axioms", "memory", "skills"],
   mvp: ["mode", "base", "blueprints", "supabase", "figma", "visionMvp", "axioms", "memory", "skills"],
 };
 
