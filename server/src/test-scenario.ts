@@ -43,6 +43,10 @@ check("analytic absent en Élite+haiku (gating modèle)", !eliteHaiku.includes(A
 check("vision Élite = boucle complète", elite.includes(VISION_LOOP) && !elite.includes(VISION_MIN));
 check("vision MVP = allégée", mvp.includes(VISION_MIN) && !mvp.includes(VISION_LOOP));
 
+// Idée 7 — arborescence contextuelle (moodboard), Élite-only (bloc plan)
+check("arborescence contextuelle présente en Élite", elite.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
+check("arborescence contextuelle absente en MVP", !mvp.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
+
 // Communs (présents dans les deux)
 check("Figma présent dans les deux modes", elite.includes("figma.com") && mvp.includes("figma.com"));
 
