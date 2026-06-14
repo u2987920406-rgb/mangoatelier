@@ -82,10 +82,11 @@ app.post("/api/chat", async (req, res) => {
     res.status(409).json({ error: "Agent is already working, wait for it to finish" });
     return;
   }
+  // From here on agentBusy is true; EVERYTHING that can throw must sit inside
+  // the try below so the finally always clears it. A stuck agentBusy used to
+  // freeze the whole UI — including preview switching, which 409s while a turn
+  // "runs". Between here and the try there is only synchronous header setup.
   agentBusy = true;
-  // A background compaction may be rewriting this project's session — stop it
-  // and wait so the turn resumes a stable session id (old or new, both valid).
-  await interruptCompaction();
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -115,6 +116,11 @@ app.post("/api/chat", async (req, res) => {
   };
 
   try {
+    // A background compaction may be rewriting this project's session — stop it
+    // and wait so the turn resumes a stable session id (old or new, both valid).
+    // Inside the try: if it rejects, the finally still releases agentBusy.
+    await interruptCompaction();
+
     let dir: string;
     if (!projectExists(projectName)) {
       send({ type: "status", text: "Création du projet (template + npm install)…" });
@@ -553,6 +559,10 @@ app.post("/api/rollback", async (req, res) => {
 // Interrupt the agent currently working (if any)
 app.post("/api/stop", async (_req, res) => {
   const stopped = await interruptAgent();
+  // Guaranteed escape hatch: free the slot even if a wedged turn's finally never
+  // runs, so a hang can't keep the UI (and preview switching, which 409s while
+  // "busy") frozen. Idempotent with the chat handler's own finally.
+  agentBusy = false;
   res.json({ stopped });
 });
 
