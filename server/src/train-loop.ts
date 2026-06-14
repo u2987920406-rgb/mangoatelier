@@ -1,0 +1,264 @@
+// Boucle d'entraînement nocturne (idée 32) — CLI autonome, JAMAIS importé en
+// prod (comme audit-scan.ts). À lancer avant de dormir : MangoAI génère en
+// boucle des créations TOUTES différentes (fond × forme × UX) et accumule de
+// l'expérience pendant que tu dors.
+//
+// « Entraîner » ≠ ré-entraîner un modèle (les poids ne bougent pas). La boucle
+// accumule : la COURBE D'APPRENTISSAGE (.metrics.jsonl) et, à chaque escalade
+// Élève→Claude, un AXIOME de code (.axioms.md) — exactement le carburant que
+// l'idée #28 (clapet v4) attend.
+//
+// Cerveau : l'ÉLÈVE LOCAL (Qwen via Ollama) → coût ≈ 0. Claude n'intervient que
+// sur escalade, PLAFONNÉE (--max-escalations) pour borner le coût de la nuit.
+// Disque : chaque projet est SUPPRIMÉ après mesure (garde --keep réussites).
+//
+// Lancer :  npx tsx src/train-loop.ts --minutes 480 --max-escalations 6 --keep 5
+//   --minutes N      durée max (défaut 480 = 8 h)   | --count N nb max d'itérations
+//   --max-escalations N  escalades Claude autorisées (défaut 6 ; 0 = pur $0)
+//   --keep N         projets réussis conservés sur disque (défaut 5)
+//   --dry-run N      n'exécute rien : imprime N prompts générés (diversité)
+
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
+import { runRelay, defaultRelayDeps, type RelayDeps } from "./eleve.js";
+import { recordTurnMetrics } from "./metrics.js";
+import { inferProjectType } from "./blueprints.js";
+
+const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
+const TRAIN_LOG = path.join(WORKSPACE_DIR, ".train.jsonl");
+
+// ── Moteur de diversité : fond (domaine) × forme/UX (style) × type ───────────
+export const DOMAINS = [
+  "un restaurant italien", "un coach de fitness", "un cabinet d'avocats d'affaires",
+  "une startup SaaS d'analytics", "un studio de jeux vidéo indé", "une boulangerie artisanale",
+  "une agence immobilière", "un podcast tech", "une ONG environnementale", "une équipe e-sport",
+  "une clinique vétérinaire", "un photographe de mariage", "un paysagiste", "une marque de café de spécialité",
+  "une école de musique", "un food truck de tacos", "une salle d'escalade", "un cabinet d'architectes",
+  "une marque de cosmétiques bio", "un festival de musique", "une plateforme de cours en ligne",
+  "un fleuriste haut de gamme", "un constructeur de tiny houses", "une brasserie artisanale",
+  "un institut de yoga", "une agence de voyage d'aventure", "un disquaire vinyle", "une marque de vélos électriques",
+  "un traiteur événementiel", "une boutique de jeux de société",
+];
+
+export const STYLES = [
+  "minimaliste, beaucoup de blanc, une seule couleur d'accent",
+  "sombre néon, dégradés violet/cyan, glassmorphism",
+  "éditorial, typographie sérif, mise en page deux colonnes",
+  "brutaliste, bordures épaisses, contrastes francs, monospace",
+  "pastel ludique, formes arrondies, illustrations douces",
+  "corporate sobre, bleu nuit, dense en informations",
+  "rétro années 80, couleurs saturées, grille synthwave",
+  "swiss/international, grille stricte, Helvetica-like",
+  "luxe, noir et or, espaces généreux, sérif fin",
+  "nature, tons terre et vert, texture organique",
+  "terminal/hacker, fond noir, texte vert phosphore",
+  "magazine vibrant, gros titres, photos plein cadre",
+  "néo-rétro papier, beige, ombres douces, tampons",
+  "tech épuré façon Linear, gris fins, micro-animations",
+  "enfantin coloré, gros boutons, emojis, arrondis",
+  "monochrome contrasté, noir/blanc, accent rouge unique",
+  "aquarelle, dégradés doux, sérif manuscrite",
+  "industriel, métal, jaune sécurité, stencils",
+  "scandinave, bois clair, beige, minimal chaleureux",
+  "cyberpunk, glitch, rose magenta, scanlines",
+  "art déco, motifs géométriques dorés, symétrie",
+  "flat coloré façon dashboard, cartes nettes, ombres légères",
+  "néomorphisme, reliefs doux, monochrome pastel",
+  "presse quotidienne, colonnes serrées, sérif, filets",
+];
+
+export type TaskKind = "webapp" | "slides" | "cv" | "doc" | "devis";
+export const TASK_KINDS: TaskKind[] = ["webapp", "slides", "cv", "doc", "devis"];
+
+// Construit la requête envoyée à l'Élève — pure (testable). Le domaine porte le
+// FOND, le style porte la FORME et l'UX → chaque combinaison est unique.
+export function composeTask(kind: TaskKind, domain: string, style: string): string {
+  const ux = `Direction artistique/UX imposée : ${style}.`;
+  switch (kind) {
+    case "webapp":
+      return `Crée une petite web app React pour ${domain} (1 fonctionnalité claire et utile, données factices). ${ux}`;
+    case "slides":
+      return `Crée une présentation de slides (deck 16:9, navigation clavier) qui pitche ${domain} en 5 diapos. ${ux}`;
+    case "cv":
+      return `Crée un CV web d'une page pour une personne travaillant chez ${domain} (profil, expériences, compétences factices). ${ux}`;
+    case "doc":
+      return `Crée un document web imprimable (type PDF, format A4) — une plaquette de présentation de ${domain}. ${ux}`;
+    case "devis":
+      return `Crée un générateur de devis (tableau type Excel, lignes + total qui se calcule) pour ${domain}. ${ux}`;
+  }
+}
+
+const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+export interface GenPrompt {
+  kind: TaskKind;
+  domain: string;
+  style: string;
+  task: string;
+  projectType: string;
+}
+
+/** Tire des combinaisons UNIQUES (kind×domain×style). Cap = nb de combos. */
+export function generateUniquePrompts(n: number): GenPrompt[] {
+  const seen = new Set<string>();
+  const out: GenPrompt[] = [];
+  const maxCombos = TASK_KINDS.length * DOMAINS.length * STYLES.length;
+  const target = Math.min(n, maxCombos);
+  let guard = 0;
+  while (out.length < target && guard < maxCombos * 20) {
+    guard++;
+    const kind = pick(TASK_KINDS);
+    const domain = pick(DOMAINS);
+    const style = pick(STYLES);
+    const key = `${kind}|${domain}|${style}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const task = composeTask(kind, domain, style);
+    out.push({ kind, domain, style, task, projectType: inferProjectType(task) });
+  }
+  return out;
+}
+
+// ── Arguments CLI ────────────────────────────────────────────────────────────
+function arg(name: string): string | undefined {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+async function ollamaUp(): Promise<boolean> {
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`);
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+function rmProject(dir: string): void {
+  for (let i = 0; i < 3; i++) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch {
+      // node_modules can be momentarily locked on Windows — best effort.
+    }
+  }
+}
+
+async function main(): Promise<void> {
+  // Dry-run : juste prouver la diversité, sans rien lancer.
+  const dry = arg("dry-run");
+  if (dry !== undefined) {
+    const n = Number(dry) || 8;
+    console.log(`— Aperçu de ${n} prompts générés (diversité fond × forme × UX) —\n`);
+    for (const p of generateUniquePrompts(n)) console.log(`• [${p.kind}/${p.projectType}] ${p.task}\n`);
+    return;
+  }
+
+  const minutes = Number(arg("minutes") ?? 480);
+  const count = arg("count") ? Number(arg("count")) : Infinity;
+  const maxEscalations = Number(arg("max-escalations") ?? 6);
+  const keep = Number(arg("keep") ?? 5);
+  const escalateModel = process.env.TRAIN_ESCALATE_MODEL ?? "sonnet";
+
+  if (!(await ollamaUp())) {
+    console.error(`❌ Ollama injoignable sur ${OLLAMA}. Lance d'abord « ollama serve » dans un terminal séparé.`);
+    process.exit(1);
+  }
+
+  const deadline = Date.now() + minutes * 60_000;
+  // Escalade plafonnée : au-delà du cap, on neutralise l'escalade (coût borné).
+  let escalations = 0;
+  const deps: RelayDeps = {
+    ...defaultRelayDeps,
+    escalate: async (ctx) => {
+      if (escalations >= maxEscalations) {
+        console.log("[train] plafond d'escalades atteint → pas d'escalade (échec enregistré tel quel)");
+        return { axiom: false, costUsd: 0 };
+      }
+      escalations++;
+      console.log(`[train] escalade Claude ${escalations}/${maxEscalations}…`);
+      return defaultRelayDeps.escalate({ ...ctx, maitreModel: escalateModel });
+    },
+  };
+
+  console.log(
+    `🌙 Boucle d'entraînement — Élève local, durée ≤ ${minutes} min, escalades ≤ ${maxEscalations}, garde ${keep} réussites.\n`,
+  );
+
+  // Pré-génère assez de prompts uniques pour la nuit (cap au nb de combos).
+  const queue = generateUniquePrompts(count === Infinity ? 2000 : count);
+  const stats = { done: 0, eleve: 0, maitre: 0, failed: 0, axioms: 0, costUsd: 0, kept: 0 };
+  let i = 0;
+
+  for (const p of queue) {
+    if (Date.now() >= deadline || stats.done >= count) break;
+    i++;
+    const name = `train-${i}`;
+    const dir = projectDir(name);
+    const started = Date.now();
+    console.log(`\n[${i}] ${p.task}`);
+
+    try {
+      rmProject(dir); // au cas où un run précédent aurait laissé le dossier
+      await createProject(name);
+      const r = await runRelay(p.task, dir, { maitreModel: escalateModel }, deps);
+      const durationMs = Date.now() - started;
+
+      recordTurnMetrics({
+        ts: new Date().toISOString(),
+        project: name,
+        model: "eleve",
+        mode: "mvp",
+        costUsd: r.costUsd,
+        numTurns: r.attempts,
+        snapshots: 0,
+        durationMs,
+        error: !r.success,
+        resolvedBy: r.resolvedBy,
+        attempts: r.attempts,
+        projectType: p.projectType,
+      });
+      fs.appendFileSync(
+        TRAIN_LOG,
+        `${JSON.stringify({ ts: new Date().toISOString(), name, kind: p.kind, projectType: p.projectType, resolvedBy: r.resolvedBy, attempts: r.attempts, success: r.success, axiom: r.axiom, costUsd: r.costUsd, durationMs, task: p.task })}\n`,
+      );
+
+      stats.done++;
+      stats.costUsd += r.costUsd;
+      if (r.axiom) stats.axioms++;
+      if (r.resolvedBy === "eleve") stats.eleve++;
+      else if (r.resolvedBy === "maitre") stats.maitre++;
+      else stats.failed++;
+
+      // Disque : on garde les premières réussites (échantillons), on jette le reste.
+      const keepThis = r.success && stats.kept < keep;
+      if (keepThis) {
+        stats.kept++;
+        console.log(`[${i}] conservé comme échantillon (${stats.kept}/${keep})`);
+      } else {
+        rmProject(dir);
+      }
+    } catch (e) {
+      stats.failed++;
+      console.error(`[${i}] itération en erreur : ${(e as Error).message}`);
+      rmProject(dir);
+    }
+  }
+
+  console.log(
+    `\n🌅 Terminé. ${stats.done} créations · Élève seul ${stats.eleve} · escalades ${stats.maitre} · échecs ${stats.failed} · ` +
+      `axiomes appris ${stats.axioms} · coût total $${stats.costUsd.toFixed(4)} · échantillons gardés ${stats.kept}.`,
+  );
+  console.log(`Journal : ${TRAIN_LOG} — métriques fondues dans le dashboard 📊.`);
+}
+
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  main().catch((e) => {
+    console.error("❌", e instanceof Error ? e.message : e);
+    process.exit(1);
+  });
+}
