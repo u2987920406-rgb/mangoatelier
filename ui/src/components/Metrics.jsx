@@ -14,16 +14,22 @@ export default function Metrics() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/metrics")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Erreur HTTP ${r.status}`))))
-      .then((d) => {
-        if (!alive) return;
-        setRows(d.rows ?? []);
-        setInsights(d.insights ?? null);
-      })
-      .catch((e) => alive && setError(e.message ?? String(e)));
+    const load = () =>
+      fetch("/api/metrics")
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Erreur HTTP ${r.status}`))))
+        .then((d) => {
+          if (!alive) return;
+          setRows(d.rows ?? []);
+          setInsights(d.insights ?? null);
+          setError(null);
+        })
+        .catch((e) => alive && setError(e.message ?? String(e)));
+    load();
+    // Auto-refresh : la courbe se remplit en direct pendant la boucle nocturne.
+    const id = setInterval(load, 4000);
     return () => {
       alive = false;
+      clearInterval(id);
     };
   }, []);
 
