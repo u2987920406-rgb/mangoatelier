@@ -51,8 +51,8 @@ check("arborescence contextuelle absente en MVP", !mvp.includes("CONTEXTUAL INFO
 check("mode architecte (scoping progressif) présent en Élite", elite.includes("ADAPTIVE & PROGRESSIVE"));
 check("mode architecte absent en MVP", !mvp.includes("ADAPTIVE & PROGRESSIVE"));
 
-// Communs (présents dans les deux)
-check("Figma présent dans les deux modes", elite.includes("figma.com") && mvp.includes("figma.com"));
+// Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
+check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 
 line("═");
 if (failures === 0) {

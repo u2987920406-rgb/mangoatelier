@@ -3,7 +3,6 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
-import { figmaServer } from "./figma.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -95,9 +94,9 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__figma__import", ...webTools],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", ...webTools],
         agents: AGENTS,
-        mcpServers: { vision: visionServer, figma: figmaServer },
+        mcpServers: { vision: visionServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
         // Memory is appended per turn as a frozen snapshot (Hermes pattern):
         // mid-turn writes to .memory.md land on disk and are picked up at the
@@ -138,9 +137,7 @@ export async function* runAgent(
                 ? "Snapshot"
                 : block.name === "mcp__vision__clone_url"
                   ? "Clone web"
-                  : block.name === "mcp__figma__import"
-                    ? "Figma"
-                    : block.name;
+                  : block.name;
             yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
@@ -188,7 +185,6 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Agent":
     case "Task":
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
-    case "Figma":
     case "Clone web":
       return String(i?.url ?? "").slice(0, 100);
     case "Snapshot": {

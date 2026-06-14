@@ -29,7 +29,7 @@ const GROUPS = [
       ["Snap 📸", "Bouton de capture dans le chat : entoure une zone de l'aperçu (un bug, un détail) → MangoAI la voit et agit dessus."],
       ["Inspecter ⌖", "Active l'inspecteur puis clique un élément de l'aperçu : le composer se pré-remplit avec la source exacte pour une édition chirurgicale."],
       ["Cloner un site 🌐", "Colle l'URL d'un site live + demande de le reproduire : MangoAI le capture (screenshot) et recrée son design en code. Aucun compte externe."],
-      ["Figma", "Colle un lien figma.com d'une frame : MangoAI lit le design (image + palette/typo) et génère le React correspondant. (Token Figma requis, optionnel.)"],
+      ["Maquette jointe 📎", "Joins une image de design (screenshot, maquette, export d'un kit UI) + demande de la reproduire : MangoAI la voit et génère le React/Tailwind fidèle. Aucun compte externe."],
     ],
   },
   {
