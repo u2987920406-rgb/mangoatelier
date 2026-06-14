@@ -304,14 +304,34 @@ const cloneTool = tool(
 // seul chargement de page rend le texte (pour répondre) ET, en option, l'image
 // (pour le layout). Bien plus puissant qu'un screenshot pour « aspirer des infos
 // et les retranscrire en local » → Claude synthétise ensuite la réponse.
-const SCRAPE_MAX_TEXT = 16_000; // caractères — borne le coût en tokens
-const SCRAPE_MAX_LINKS = 60;
+export const SCRAPE_MAX_TEXT = 16_000; // caractères — borne le coût en tokens
+export const SCRAPE_MAX_LINKS = 60;
 
 export interface ScrapedPage {
   title: string;
   text: string;
   links: { href: string; label: string }[];
   truncated: boolean;
+}
+
+/** Post-traitement PUR du brut extrait du DOM (→ testable sans réseau) :
+ * tronque le texte à la borne, dédoublonne les liens par href, écarte les
+ * `javascript:`/href vides, et plafonne le nombre. */
+export function processScraped(
+  rawText: string,
+  rawLinks: { href: string; label: string }[],
+): { text: string; links: { href: string; label: string }[]; truncated: boolean } {
+  const truncated = rawText.length > SCRAPE_MAX_TEXT;
+  const text = truncated ? rawText.slice(0, SCRAPE_MAX_TEXT) : rawText;
+  const seen = new Set<string>();
+  const links: { href: string; label: string }[] = [];
+  for (const l of rawLinks) {
+    if (!l.href || l.href.startsWith("javascript:") || seen.has(l.href)) continue;
+    seen.add(l.href);
+    links.push(l);
+    if (links.length >= SCRAPE_MAX_LINKS) break;
+  }
+  return { text, links, truncated };
 }
 
 /** Charge une page publique et en extrait titre + texte visible + liens.
@@ -338,18 +358,7 @@ export async function scrapeExternal(
       return { title: document.title ?? "", rawText: t, rawLinks: links };
     });
 
-    const truncated = rawText.length > SCRAPE_MAX_TEXT;
-    const text = truncated ? rawText.slice(0, SCRAPE_MAX_TEXT) : rawText;
-
-    // Dédoublonne par href, garde ceux qui portent un libellé, borne le nombre.
-    const seen = new Set<string>();
-    const links: { href: string; label: string }[] = [];
-    for (const l of rawLinks) {
-      if (!l.href || l.href.startsWith("javascript:") || seen.has(l.href)) continue;
-      seen.add(l.href);
-      links.push(l);
-      if (links.length >= SCRAPE_MAX_LINKS) break;
-    }
+    const { text, links, truncated } = processScraped(rawText, rawLinks);
 
     let image: Buffer | undefined;
     if (withImage) {
