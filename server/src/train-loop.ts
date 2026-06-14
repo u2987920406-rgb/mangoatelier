@@ -22,7 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
-import { runRelay, defaultRelayDeps, type RelayDeps } from "./eleve.js";
+import { runRelay, defaultRelayDeps, ELEVE_PROVIDER, type RelayDeps } from "./eleve.js";
 import { recordTurnMetrics } from "./metrics.js";
 import { inferProjectType } from "./blueprints.js";
 
@@ -163,7 +163,9 @@ async function main(): Promise<void> {
   const keep = Number(arg("keep") ?? 5);
   const escalateModel = process.env.TRAIN_ESCALATE_MODEL ?? "sonnet";
 
-  if (!(await ollamaUp())) {
+  if (ELEVE_PROVIDER === "openai") {
+    console.log("⚠ Élève = provider « openai » (API distante) — cette boucle N'EST PLUS gratuite : chaque création coûte des appels API. Ctrl-C pour annuler.");
+  } else if (!(await ollamaUp())) {
     console.error(`❌ Ollama injoignable sur ${OLLAMA}. Lance d'abord « ollama serve » dans un terminal séparé.`);
     process.exit(1);
   }

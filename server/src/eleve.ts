@@ -36,6 +36,22 @@ const ELEVE_AXIOM_CAP = Number(process.env.ELEVE_AXIOM_CAP ?? 5);
 const ELEVE_FILE_BUDGET = Number(process.env.ELEVE_FILE_BUDGET ?? 9000);
 const ELEVE_FILE_MAX = Number(process.env.ELEVE_FILE_MAX ?? 2500);
 
+// Provider de l'Élève (« Élève turbo », optionnel). Par défaut « ollama » = le
+// modèle LOCAL ($0, souverain). En option « openai » = un endpoint compatible
+// OpenAI (DeepSeek, Together, etc.) — plus puissant mais PAYANT et non local.
+// Switch par .env, sans toucher au code : ELEVE_PROVIDER + ELEVE_API_URL/KEY.
+export function normalizeEleveProvider(raw?: string): "ollama" | "openai" {
+  return (raw ?? "").trim().toLowerCase() === "openai" ? "openai" : "ollama";
+}
+// Tolère une base (".../v1") OU l'endpoint complet (".../chat/completions").
+export function completionsUrl(base: string): string {
+  const b = (base ?? "").trim().replace(/\/+$/, "");
+  return b.endsWith("/chat/completions") ? b : `${b}/chat/completions`;
+}
+export const ELEVE_PROVIDER = normalizeEleveProvider(process.env.ELEVE_PROVIDER);
+const ELEVE_API_URL = process.env.ELEVE_API_URL ?? "https://api.deepseek.com/v1";
+const ELEVE_API_KEY = process.env.ELEVE_API_KEY?.trim() ?? "";
+
 export type ResolvedBy = "eleve" | "maitre" | "none";
 
 export interface RelayResult {
@@ -210,6 +226,37 @@ async function askEleveOllama(system: string, user: string): Promise<string> {
   return data.message?.content ?? "";
 }
 
+// ── Cerveau Élève « turbo » : endpoint compatible OpenAI (DeepSeek, etc.) ──────
+// Même contrat d'E/S (system + user → texte) que la version Ollama → la boucle
+// de relais est INCHANGÉE. ⚠ Payant : la note n'est PAS captée dans les
+// métriques (le tour Élève reste compté coût 0 ; seule l'escalade Claude l'est).
+async function askEleveOpenAI(system: string, user: string): Promise<string> {
+  if (!ELEVE_API_KEY) {
+    throw new Error("ELEVE_API_KEY manquante (provider « openai ») — ajoute-la dans server/.env.");
+  }
+  const res = await fetch(completionsUrl(ELEVE_API_URL), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ELEVE_API_KEY}` },
+    body: JSON.stringify({
+      model: ELEVE_MODEL,
+      stream: false,
+      temperature: 0,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`API Élève HTTP ${res.status}`);
+  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+// Aiguillage du cerveau Élève selon le provider (.env). Défaut : Ollama local.
+async function askEleveDispatch(system: string, user: string): Promise<string> {
+  return ELEVE_PROVIDER === "openai" ? askEleveOpenAI(system, user) : askEleveOllama(system, user);
+}
+
 async function ensureDepsNpm(projectDir: string, log: (s: string) => void): Promise<void> {
   if (fs.existsSync(path.join(projectDir, "node_modules"))) return;
   if (!fs.existsSync(path.join(projectDir, "package.json"))) return;
@@ -279,7 +326,7 @@ async function escalateToClaude(ctx: EscalationContext): Promise<{ axiom: boolea
 }
 
 export const defaultRelayDeps: RelayDeps = {
-  askEleve: askEleveOllama,
+  askEleve: askEleveDispatch,
   inspect: inspectProject,
   ensureDeps: ensureDepsNpm,
   escalate: escalateToClaude,
