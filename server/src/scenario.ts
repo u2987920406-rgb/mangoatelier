@@ -9,7 +9,7 @@
 // v1 is a BEHAVIOR-CONSTANT refactor: assembleSystemPrompt(ctx) reproduces the
 // exact same string the old hard-coded concatenation produced (verified by a
 // byte-for-byte comparison before shipping).
-import { MEMORY_RULES, memoryPromptSection } from "./memory.js";
+import { MEMORY_RULES, MEMORY_FILE_NAME, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
 import { selectAxioms } from "./axioms.js";
 import { BLUEPRINTS_RULES } from "./blueprints.js";
@@ -111,7 +111,8 @@ Finition protocol (apply rigorously this turn — you are now a Lead QA, not a b
 - HARDENING — validate and sanitise all user input; make external links safe (rel="noopener"); ensure keyboard focus and basic a11y (labels, alt text, contrast); confirm the layout holds on mobile width.
 - REFACTOR LIGHTLY — remove dead code and obvious duplication you touch; do NOT rewrite working code wholesale.
 - TESTS — broaden unit tests on the critical pure logic (happy path + the edge cases above), per the tests rules below.
-- Deliver a short French summary of what was hardened and what (if anything) still needs the user's attention.`;
+- RECORD THE BACKLOG — every out-of-scope item you deliberately did NOT do (a missing feature, a real-content/URL decision, a heavier refactor you flagged) MUST be written into the project memory file ${MEMORY_FILE_NAME} as a checklist under a "## TODO — décisions en attente" heading (in French, "- [ ] ..." items; merge with any existing TODO, never duplicate). This is the ONE case where you edit ${MEMORY_FILE_NAME} yourself — so these decisions survive across sessions instead of living only in the chat.
+- Deliver a short French summary of what was hardened, then point the user to the TODO you recorded for what still needs their decision.`;
 
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {

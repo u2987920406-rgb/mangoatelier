@@ -34,6 +34,7 @@ check("contient le mode Finition", /Finition — hardening/.test(prompt));
 check("contient FEATURE FREEZE", /FEATURE FREEZE/.test(prompt));
 check("délègue au sous-agent qa", /"qa" subagent/.test(prompt));
 check("inclut le rituel analytique", /native extended thinking/.test(prompt));
+check("consigne le backlog en TODO dans .memory.md", /TODO — décisions en attente/.test(prompt) && /\.memory\.md/.test(prompt));
 
 // 4. Feature Freeze : pas de planification de NOUVELLES features (plan/moodboard absents).
 check("EXCLUT Mango Plan (pas de nouveau scope)", !/Mango Plan/i.test(prompt) && !/moodboard/i.test(prompt));
