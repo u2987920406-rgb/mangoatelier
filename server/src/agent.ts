@@ -94,7 +94,7 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", ...webTools],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__vision__scrape_url", ...webTools],
         agents: AGENTS,
         mcpServers: { vision: visionServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
@@ -137,7 +137,9 @@ export async function* runAgent(
                 ? "Snapshot"
                 : block.name === "mcp__vision__clone_url"
                   ? "Clone web"
-                  : block.name;
+                  : block.name === "mcp__vision__scrape_url"
+                    ? "Aspire web"
+                    : block.name;
             yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
@@ -186,6 +188,7 @@ function summarizeToolInput(name: string, input: unknown): string {
     case "Task":
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
     case "Clone web":
+    case "Aspire web":
       return String(i?.url ?? "").slice(0, 100);
     case "Snapshot": {
       const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";

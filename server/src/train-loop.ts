@@ -170,6 +170,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Identifiant unique du run : stampe chaque ligne du journal pour que chaque
+  // run soit isolable (bilan par run, jamais le cumul de tout le fichier).
+  const runId = new Date().toISOString();
   const deadline = Date.now() + minutes * 60_000;
   // Escalade plafonnée : au-delà du cap, on neutralise l'escalade (coût borné).
   let escalations = 0;
@@ -225,7 +228,7 @@ async function main(): Promise<void> {
       });
       fs.appendFileSync(
         TRAIN_LOG,
-        `${JSON.stringify({ ts: new Date().toISOString(), name, kind: p.kind, projectType: p.projectType, resolvedBy: r.resolvedBy, attempts: r.attempts, success: r.success, axiom: r.axiom, costUsd: r.costUsd, durationMs, task: p.task })}\n`,
+        `${JSON.stringify({ ts: new Date().toISOString(), runId, name, kind: p.kind, projectType: p.projectType, resolvedBy: r.resolvedBy, attempts: r.attempts, success: r.success, axiom: r.axiom, costUsd: r.costUsd, durationMs, task: p.task })}\n`,
       );
 
       stats.done++;
@@ -250,11 +253,22 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(
-    `\n🌅 Terminé. ${stats.done} créations · Élève seul ${stats.eleve} · escalades ${stats.maitre} · échecs ${stats.failed} · ` +
-      `axiomes appris ${stats.axioms} · coût total $${stats.costUsd.toFixed(4)} · échantillons gardés ${stats.kept}.`,
-  );
-  console.log(`Journal : ${TRAIN_LOG} — métriques fondues dans le dashboard 📊.`);
+  // Bilan PAR RUN (compteurs remis à zéro à chaque lancement) sous forme de tableau.
+  const pct = (n: number) => (stats.done ? `${Math.round((n / stats.done) * 100)}%` : "—");
+  const rows: [string, string][] = [
+    ["Run", runId],
+    ["Créations", String(stats.done)],
+    ["Élève seul ($0)", `${stats.eleve} (${pct(stats.eleve)})`],
+    ["Escalades Claude", `${stats.maitre} (${pct(stats.maitre)})`],
+    ["Échecs", `${stats.failed} (${pct(stats.failed)})`],
+    ["Axiomes appris", String(stats.axioms)],
+    ["Coût total", `$${stats.costUsd.toFixed(4)}`],
+    ["Échantillons gardés", String(stats.kept)],
+  ];
+  const w = Math.max(...rows.map(([k]) => k.length));
+  console.log("\n🌅 Bilan du run :");
+  for (const [k, v] of rows) console.log(`  ${k.padEnd(w)} │ ${v}`);
+  console.log(`\nJournal : ${TRAIN_LOG} (filtrer sur runId « ${runId} ») — métriques au dashboard 📊.`);
 }
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

@@ -299,11 +299,126 @@ const cloneTool = tool(
   },
 );
 
+// ── Scrape-from-URL : aspire l'INFORMATION d'une page publique (texte + liens),
+// pas seulement ses pixels. Réutilise le même Chromium que captureExternal : un
+// seul chargement de page rend le texte (pour répondre) ET, en option, l'image
+// (pour le layout). Bien plus puissant qu'un screenshot pour « aspirer des infos
+// et les retranscrire en local » → Claude synthétise ensuite la réponse.
+const SCRAPE_MAX_TEXT = 16_000; // caractères — borne le coût en tokens
+const SCRAPE_MAX_LINKS = 60;
+
+export interface ScrapedPage {
+  title: string;
+  text: string;
+  links: { href: string; label: string }[];
+  truncated: boolean;
+}
+
+/** Charge une page publique et en extrait titre + texte visible + liens.
+ * `withImage` ajoute une capture pleine page (layout). Réutilise getBrowser(). */
+export async function scrapeExternal(
+  url: string,
+  withImage = false,
+): Promise<ScrapedPage & { image?: Buffer }> {
+  const b = await getBrowser();
+  const context = await b.newContext({ viewport: CLONE_VIEWPORT, deviceScaleFactor: 1 });
+  try {
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: "load", timeout: 20_000 });
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+    await page.waitForTimeout(400);
+
+    const { title, rawText, rawLinks } = await page.evaluate(() => {
+      // innerText respecte le rendu (ignore <script>/<style>, garde les sauts).
+      const t = (document.body?.innerText ?? "").replace(/\n{3,}/g, "\n\n").trim();
+      const links = [...document.querySelectorAll("a[href]")].map((a) => ({
+        href: (a as HTMLAnchorElement).href,
+        label: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+      }));
+      return { title: document.title ?? "", rawText: t, rawLinks: links };
+    });
+
+    const truncated = rawText.length > SCRAPE_MAX_TEXT;
+    const text = truncated ? rawText.slice(0, SCRAPE_MAX_TEXT) : rawText;
+
+    // Dédoublonne par href, garde ceux qui portent un libellé, borne le nombre.
+    const seen = new Set<string>();
+    const links: { href: string; label: string }[] = [];
+    for (const l of rawLinks) {
+      if (!l.href || l.href.startsWith("javascript:") || seen.has(l.href)) continue;
+      seen.add(l.href);
+      links.push(l);
+      if (links.length >= SCRAPE_MAX_LINKS) break;
+    }
+
+    let image: Buffer | undefined;
+    if (withImage) {
+      const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+      const height = Math.min(pageHeight || CLONE_VIEWPORT.height, CLONE_MAX_HEIGHT);
+      image = await page.screenshot({
+        type: "jpeg",
+        quality: 80,
+        clip: { x: 0, y: 0, width: CLONE_VIEWPORT.width, height },
+      });
+    }
+    return { title, text, links, truncated, image };
+  } finally {
+    await context.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
+const scrapeTool = tool(
+  "scrape_url",
+  "Aspire l'INFORMATION d'une page web publique (titre + texte visible + liens) pour répondre à une demande de l'utilisateur. " +
+    "Préfère-le à clone_url dès que tu veux le CONTENU/des données d'une page (pas son design). " +
+    "Mets `withImage` à true seulement si la mise en page visuelle compte. Synthétise ensuite la réponse en local ; cite la source.",
+  {
+    url: z.string().describe("URL http(s) publique de la page à aspirer"),
+    query: z
+      .string()
+      .optional()
+      .describe("Ce que l'utilisateur cherche dans la page (focalise ta synthèse)"),
+    withImage: z
+      .boolean()
+      .optional()
+      .describe("Joindre aussi une capture pleine page (layout) — false par défaut"),
+  },
+  async (args) => {
+    if (!isCloneableUrl(args.url)) {
+      return text("URL invalide — fournis une adresse http(s) publique (pas localhost).", true);
+    }
+    try {
+      const r = await scrapeExternal(args.url, args.withImage === true);
+      const header =
+        `Source : ${args.url}\nTitre : ${r.title || "(sans titre)"}` +
+        (args.query ? `\nDemande : ${args.query}` : "") +
+        (r.truncated ? `\n(texte tronqué à ${SCRAPE_MAX_TEXT} caractères)` : "");
+      const linksBlock = r.links.length
+        ? "\n\nLiens :\n" + r.links.map((l) => `- ${l.label || "(sans libellé)"} → ${l.href}`).join("\n")
+        : "";
+      const body =
+        `${header}\n\n--- TEXTE DE LA PAGE ---\n${r.text}${linksBlock}\n\n` +
+        "Réponds à la demande à partir de ces informations, en local. Cite la source ; n'invente rien d'absent du texte.";
+
+      const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [];
+      if (r.image && r.image.length <= MAX_IMAGE_BYTES) {
+        content.push({ type: "image", data: r.image.toString("base64"), mimeType: "image/jpeg" });
+      }
+      content.push({ type: "text", text: body });
+      return { content };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      return text(`Échec de l'aspiration de la page : ${msg}`, true);
+    }
+  },
+);
+
 export const visionServer = createSdkMcpServer({
   name: "vision",
   version: "1.0.0",
   // Core mechanism: always in the prompt, never deferred behind ToolSearch
   // (saves one discovery round-trip per visual turn).
   alwaysLoad: true,
-  tools: [snapshotTool, cloneTool],
+  tools: [snapshotTool, cloneTool, scrapeTool],
 });
