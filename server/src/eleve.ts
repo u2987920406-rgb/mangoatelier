@@ -20,21 +20,28 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parseContract } from "./contract.js";
 import { executeContract } from "./executor.js";
 import { inspectProject, type Inspection } from "./inspection.js";
-import { loadAxioms, selectAxioms } from "./axioms.js";
+import { axiomsFingerprint, selectAxioms } from "./axioms.js";
 import { loadMemory } from "./memory.js";
 import { detectProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { resolveProfile } from "./models/profile.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
-const MAX_ELEVE_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? 2);
+
+// Partition de la famille du modèle Élève : prompt système, fichiers d'axiomes,
+// caps et routage d'escalade viennent du PROFIL (server/src/models/). Le cœur
+// reste agnostique ; un modèle non reconnu retombe sur GENERIC = comportement
+// actuel exact. Les ENV restent prioritaires (override global ponctuel).
+const PROFILE = resolveProfile(ELEVE_MODEL);
+const MAX_ELEVE_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? PROFILE.caps.maxAttempts);
 // Anti-saturation : nombre max d'axiomes injectés à l'Élève (modèle faible).
-const ELEVE_AXIOM_CAP = Number(process.env.ELEVE_AXIOM_CAP ?? 5);
+const ELEVE_AXIOM_CAP = Number(process.env.ELEVE_AXIOM_CAP ?? PROFILE.caps.axiomCap);
 // Contenu des fichiers fourni à l'Élève (piste future n°1) : sans lui, un <edit>
 // sur un fichier existant devine un <find> qui ne matche pas. Plafonné pour ne
 // pas saturer un petit modèle : budget total + cap par fichier (caractères).
-const ELEVE_FILE_BUDGET = Number(process.env.ELEVE_FILE_BUDGET ?? 9000);
-const ELEVE_FILE_MAX = Number(process.env.ELEVE_FILE_MAX ?? 2500);
+const ELEVE_FILE_BUDGET = Number(process.env.ELEVE_FILE_BUDGET ?? PROFILE.caps.fileBudget);
+const ELEVE_FILE_MAX = Number(process.env.ELEVE_FILE_MAX ?? PROFILE.caps.fileMax);
 
 // Provider de l'Élève (« Élève turbo », optionnel). Par défaut « ollama » = le
 // modèle LOCAL ($0, souverain). En option « openai » = un endpoint compatible
@@ -87,23 +94,11 @@ export interface EscalationContext {
   maitreModel: string;
 }
 
-// ── Face ENTRÉE du contrat : la forme immuable imposée à l'Élève ──────────────
-const ELEVE_SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
-Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoAI les exécutera.
-Tu DOIS répondre UNIQUEMENT dans ce format à balises, sans aucune prose autour :
-
-<mangoai>
-  <write path="chemin/relatif">contenu brut du fichier</write>
-  <edit path="chemin/relatif"><find>extrait exact existant</find><replace>nouvel extrait</replace></edit>
-  <run>commande shell éventuelle</run>
-  <summary>résumé court de ce que tu fais</summary>
-</mangoai>
-
-Règles strictes :
-- path TOUJOURS relatif au projet (jamais C:\\, jamais /, jamais ..).
-- Projet Vite + React (ESM) : utilise "export"/"import", JAMAIS "module.exports"/"require".
-- <write> = fichier créé/écrasé entièrement ; <edit> = retouche ciblée (le <find> doit exister tel quel).
-- Termine TOUJOURS par un <summary>. AUCUN texte hors de <mangoai>.`;
+// ── Face ENTRÉE du contrat : la forme imposée à l'Élève ───────────────────────
+// Fournie par la PARTITION de la famille du modèle (models/) : GENERIC = le
+// format historique (write + edit) ; qwen = variante Write-only. Le core ne
+// connaît aucune famille, il lit simplement PROFILE.system.
+const ELEVE_SYSTEM = PROFILE.system;
 
 function listProjectFiles(projectDir: string, cap = 40): string[] {
   const out: string[] = [];
@@ -174,7 +169,12 @@ function buildEleveUser(task: string, projectDir: string, lastError: string): st
   // v2 : on ne sert à l'Élève (modèle faible) que les axiomes PERTINENTS pour
   // cette tâche, plafonnés — sinon un petit modèle sature. Claude, lui, reçoit
   // le registre complet (selectAxioms sans contexte, via scenario.ts).
-  const axioms = selectAxioms(WORKSPACE_DIR, { task, projectType, max: ELEVE_AXIOM_CAP });
+  const axioms = selectAxioms(WORKSPACE_DIR, {
+    task,
+    projectType,
+    max: ELEVE_AXIOM_CAP,
+    files: PROFILE.axiomFiles, // universel + mécaniques de la famille
+  });
   const parts = [
     `TÂCHE : ${task}`,
     "",
@@ -286,7 +286,11 @@ passe pas). Deux missions, dans l'ordre :
 Ne touche à aucun fichier hors du projet et du registre d'axiomes.`;
 
 async function escalateToClaude(ctx: EscalationContext): Promise<{ axiom: boolean; costUsd: number }> {
-  const axBefore = loadAxioms(WORKSPACE_DIR);
+  // Détection de l'axiome appris sur l'UNION des fichiers de la partition (un
+  // axiome rangé dans .axioms.<famille>.md compte aussi), via une empreinte NON
+  // plafonnée : un nouvel axiome est appendé en fin de registre, donc au-delà du
+  // cap d'injection dès que l'union est volumineuse — le diff plafonné le raterait.
+  const axBefore = axiomsFingerprint(WORKSPACE_DIR, PROFILE.axiomFiles);
   // cwd = workspace si le projet y vit (Claude atteint code + .axioms.md en
   // relatif, comme la revue) ; sinon repli sur le projet seul.
   const rel = path.relative(WORKSPACE_DIR, ctx.projectDir).replaceAll("\\", "/");
@@ -305,6 +309,7 @@ async function escalateToClaude(ctx: EscalationContext): Promise<{ axiom: boolea
     axBefore || "(vide)",
     "",
     "Corrige le build, puis ajoute l'unique axiome, puis arrête-toi.",
+    PROFILE.escalateAppendix, // "" pour GENERIC → prompt inchangé
   ].join("\n");
 
   const q = query({
@@ -321,7 +326,7 @@ async function escalateToClaude(ctx: EscalationContext): Promise<{ axiom: boolea
   let costUsd = 0;
   for await (const m of q) if (m.type === "result") costUsd = m.total_cost_usd ?? 0;
 
-  const axiom = loadAxioms(WORKSPACE_DIR) !== axBefore;
+  const axiom = axiomsFingerprint(WORKSPACE_DIR, PROFILE.axiomFiles) !== axBefore;
   return { axiom, costUsd };
 }
 
