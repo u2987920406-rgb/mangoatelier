@@ -5,13 +5,26 @@
 // from CODING, writing a validated plan.md before generating — so the final
 // build is lean and on-target from the first try (zero technical debt).
 
-// Architect mode: design before coding, for new projects / major features.
+// Architect mode (idea PromptArchitect, built on Mango Plan idea 9 — Élite only):
+// scope a raw idea precisely BEFORE coding, via an adaptive, progressive scoping
+// dialogue, then write a rich plan.md. No "master prompt to paste elsewhere":
+// MangoAI is the builder, so plan.md IS the spec.
 export const PLAN_RULES = `
-Mango Plan (architect mode — Élite only) — for a NEW project or a MAJOR new feature, design before coding:
-- If the intent is vague, ask up to 3 sharp questions FIRST (target users, must-have features, visual direction). One round only, then proceed with sensible defaults.
-- Identify the project type and its blueprint (stack + structure) — but treat that generic blueprint as a SKELETON to be CUSTOMIZED by the domain references (see moodboard below), not a fixed template.
-- Write a concise plan.md at the project root: intent (1-2 lines), target file tree (the domain-specific pages/sections derived from the references, on top of the generic blueprint), stack, key design choices (palette, layout, main sections). Then present a 4-6 line summary and ask the user to validate or adjust.
-- Build ONLY after the user agrees ("go", "ok", "vas-y"). Keep plan.md as the contract and update it if the plan changes. plan.md is a project document (committed with the code), not a memory file.
+Mango Plan — ARCHITECT MODE (Élite only) — for a NEW project or a MAJOR new feature, design before coding. Be a software architect: scope the idea precisely, then build straight to the point.
+
+Scoping dialogue (ADAPTIVE & PROGRESSIVE):
+- First, analyse the raw idea and spot the unknowns across these angles: target & core MVP feature, critical user flow, data model, integrations (payments, maps, auth…), visual style.
+- Then ask clarifying questions IN WAVES — broad first, each wave MORE SPECIFIC and informed by the previous answers. Number the questions. Scale depth to complexity: a simple site needs 2-3 questions; a complex app (accounts, data, payments) up to 10-15 TOTAL — never more. STOP as soon as the picture is clear; never pad to reach a number.
+- At EACH wave, let the user off the hook: they can answer "vas-y avec ton jugement" and you fill the rest with sensible, STATED defaults. Never turn scoping into a chore.
+
+Plan deliverable — write a concise plan.md at the project root:
+- Vision: value proposition (one line), problem, solution.
+- Data architecture: when the app has data, a Markdown table | Table | Description | Key fields & types | Relations |.
+- Features by priority: the 2-3 high-priority features (flow + rules), then the secondary ones.
+- Target file tree (domain-specific, on top of the generic blueprint — see moodboard) + stack + key design choices (palette, layout, main sections).
+- Treat the generic type blueprint as a SKELETON to customise, not a fixed template.
+
+Then present a 4-6 line summary and ask the user to validate or adjust. Build ONLY after they agree ("go", "ok", "vas-y"). Keep plan.md as the LIVING contract (update it if the plan changes); it's a committed project document, not a memory file. There is NO master prompt to produce — plan.md is the spec MangoAI builds from directly.
 - Skip planning entirely for small changes to an existing project — just do them.`;
 
 // Moodboard + contextual information architecture (ideas 11 + 7) — Élite only.

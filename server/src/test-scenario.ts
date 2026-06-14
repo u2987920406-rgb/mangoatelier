@@ -47,6 +47,10 @@ check("vision MVP = allégée", mvp.includes(VISION_MIN) && !mvp.includes(VISION
 check("arborescence contextuelle présente en Élite", elite.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
 check("arborescence contextuelle absente en MVP", !mvp.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
 
+// PromptArchitect — mode architecte (scoping adaptatif progressif), Élite-only
+check("mode architecte (scoping progressif) présent en Élite", elite.includes("ADAPTIVE & PROGRESSIVE"));
+check("mode architecte absent en MVP", !mvp.includes("ADAPTIVE & PROGRESSIVE"));
+
 // Communs (présents dans les deux)
 check("Figma présent dans les deux modes", elite.includes("figma.com") && mvp.includes("figma.com"));
 
