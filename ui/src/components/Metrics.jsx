@@ -74,6 +74,9 @@ export default function Metrics() {
   const emancipation = insights?.emancipation ?? [];
   const byType = insights?.byType ?? [];
   const axiomMap = insights?.axiomMap;
+  const weekly = insights?.weekly ?? [];
+  const costDrivers = insights?.costDrivers ?? [];
+  const maxWeekCost = Math.max(...weekly.map((w) => w.costUsd), 0.0001);
 
   return (
     <div className="space-y-3 px-2 py-2">
@@ -114,6 +117,64 @@ export default function Metrics() {
           <Breakdown entries={byKey("mode", "legacy")} />
         </Section>
       </div>
+
+      {weekly.length > 1 && (
+        <Section title="Coût par semaine (tendance)">
+          <div className="space-y-1">
+            {weekly.map((w) => (
+              <div key={w.week} className="flex items-center gap-2 text-[11px]">
+                <span className="w-16 shrink-0 font-mono text-faint" title={`Semaine du ${w.week}`}>
+                  {w.week.slice(5)}
+                </span>
+                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-edge-soft">
+                  <span
+                    className="block h-full rounded-full bg-accent"
+                    style={{ width: `${Math.max(4, (w.costUsd / maxWeekCost) * 100)}%` }}
+                  />
+                </span>
+                <span className="w-12 shrink-0 text-right font-mono text-dim">{fmt$(w.costUsd)}</span>
+                <span
+                  className="w-14 shrink-0 text-right font-mono text-faint"
+                  title="coût moyen par tâche cette semaine"
+                >
+                  {fmt$(w.avgCostUsd)}/t
+                </span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {costDrivers.length > 0 && (
+        <Section title="Drivers de coût (audit 22/06)">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wide text-faint">
+                <th className="pb-1 text-left font-medium">Type</th>
+                <th className="pb-1 text-right font-medium">$ moy.</th>
+                <th className="pb-1 text-right font-medium">tours</th>
+                <th className="pb-1 text-right font-medium" title="snapshots moyens par tâche">
+                  snaps
+                </th>
+              </tr>
+            </thead>
+            <tbody className="font-mono text-dim">
+              {costDrivers.map((d) => (
+                <tr key={d.type}>
+                  <td className="py-0.5 text-left">{d.type}</td>
+                  <td className="py-0.5 text-right">{fmt$(d.avgCostUsd)}</td>
+                  <td className="py-0.5 text-right text-faint">{d.avgTurns.toFixed(1)}</td>
+                  <td className="py-0.5 text-right text-faint">{d.avgSnapshots.toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-1 px-1 text-[10px] leading-snug text-faint">
+            Moyennes par tâche, triées par coût total. Cibles d'optimisation : tours et snapshots
+            élevés = leviers de coût.
+          </p>
+        </Section>
+      )}
 
       {hasRelay && (
         <Section title="Compagnonnage de l'Élève">

@@ -1,7 +1,7 @@
 // Preuve déterministe de l'agrégateur du dashboard (computeInsights).
 // Lancer :  npx tsx src/test-insights.ts
 
-import { computeInsights } from "./metrics-insights.js";
+import { computeInsights, weekStart } from "./metrics-insights.js";
 import { inferProjectType } from "./blueprints.js";
 import type { TurnMetrics } from "./metrics.js";
 import type { AxiomStats } from "./axioms.js";
@@ -77,6 +77,18 @@ check("dashboard : 2t, 0 % 1er tour, ≈$0.30", !!dashboard && dashboard.turns =
 
 // Cartographie du clapet : echo des stats
 check("axiomMap relayé (total 3)", ins.axiomMap.total === 3 && ins.axiomMap.byCat.DATA === 2);
+
+// Idée 21 — coût par semaine : 2026-06-13 (samedi) et 2026-06-14 (dimanche)
+// tombent dans la MÊME semaine ISO (lundi 2026-06-08). 6 tours, coût total 0.70.
+check("weekly : 1 semaine (lundi 08/06)", ins.weekly.length === 1 && ins.weekly[0].week === "2026-06-08");
+check("weekly : 6 tours, coût ≈ $0.70", ins.weekly[0].turns === 6 && near(ins.weekly[0].costUsd, 0.7, 1e-9));
+
+// Idée 21 — drivers de coût : vitrine/dashboard ont projectType ; les 2 tours
+// Claude sans type tombent dans "?". Tri par coût total décroissant.
+const drvQ = ins.costDrivers.find((d) => d.type === "?");
+check("costDrivers : type '?' = 2 tours Claude, $ moy 0.30", !!drvQ && drvQ.turns === 2 && near(drvQ.avgCostUsd, 0.3, 1e-9));
+check("costDrivers trié par coût total (\"?\" en tête)", ins.costDrivers[0].type === "?");
+check("weekStart hors agrégat : dimanche → lundi précédent", weekStart("2026-06-14T10:00:00") === "2026-06-08");
 
 // inferProjectType : classification par mots-clés
 check("infer dashboard", inferProjectType("Crée un dashboard avec des graphiques") === "dashboard");

@@ -31,6 +31,28 @@ export interface Insights {
   // Rendement & économies par type de projet (Phase 2) — où l'Élève excelle/peine.
   byType: Array<{ type: string; turns: number; firstPassPct: number; savedUsd: number }>;
   axiomMap: AxiomStats;
+  // Idée 21 — vues d'audit (nourrissent l'audit coûts du 2026-06-22). Sur TOUS
+  // les tours (pas seulement l'Élève) : la tendance et les drivers de coût.
+  weekly: Array<{ week: string; turns: number; costUsd: number; avgTurns: number; avgCostUsd: number }>;
+  costDrivers: Array<{
+    type: string;
+    turns: number;
+    totalCostUsd: number;
+    avgCostUsd: number;
+    avgTurns: number;
+    avgSnapshots: number;
+    avgDurationMs: number;
+  }>;
+}
+
+// Lundi (UTC) de la semaine d'un horodatage, en "YYYY-MM-DD" — clé de
+// regroupement hebdomadaire stable et lisible. Pur. "?" si date invalide.
+export function weekStart(ts: string): string {
+  const d = new Date(`${(ts ?? "").slice(0, 10)}T00:00:00Z`);
+  if (isNaN(d.getTime())) return "?";
+  const dow = (d.getUTCDay() + 6) % 7; // lundi = 0 … dimanche = 6
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
 }
 
 export function computeInsights(rows: TurnMetrics[], axiomMap: AxiomStats): Insights {
@@ -108,5 +130,60 @@ export function computeInsights(rows: TurnMetrics[], axiomMap: AxiomStats): Insi
     }))
     .sort((a, b) => b.turns - a.turns);
 
-  return { relayTurns: relay.length, firstPassYield, sovereignty, emancipation, byType, axiomMap };
+  // Coût par semaine (tendance lissée vs le bruit journalier) — sur tous les tours.
+  const perWeek: Record<string, { turns: number; cost: number; numTurns: number }> = {};
+  for (const r of rows) {
+    const w = weekStart(r.ts);
+    const x = (perWeek[w] ??= { turns: 0, cost: 0, numTurns: 0 });
+    x.turns++;
+    x.cost += r.costUsd ?? 0;
+    x.numTurns += r.numTurns ?? 0;
+  }
+  const weekly = Object.entries(perWeek)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([week, v]) => ({
+      week,
+      turns: v.turns,
+      costUsd: v.cost,
+      avgTurns: v.turns ? v.numTurns / v.turns : 0,
+      avgCostUsd: v.turns ? v.cost / v.turns : 0,
+    }));
+
+  // Drivers de coût par type de projet : où l'argent, les tours, les snapshots et
+  // le temps se concentrent → cibles d'optimisation pour l'audit du 2026-06-22.
+  const drv: Record<
+    string,
+    { turns: number; cost: number; numTurns: number; snaps: number; dur: number }
+  > = {};
+  for (const r of rows) {
+    const t = r.projectType ?? "?";
+    const x = (drv[t] ??= { turns: 0, cost: 0, numTurns: 0, snaps: 0, dur: 0 });
+    x.turns++;
+    x.cost += r.costUsd ?? 0;
+    x.numTurns += r.numTurns ?? 0;
+    x.snaps += r.snapshots ?? 0;
+    x.dur += r.durationMs ?? 0;
+  }
+  const costDrivers = Object.entries(drv)
+    .map(([type, v]) => ({
+      type,
+      turns: v.turns,
+      totalCostUsd: v.cost,
+      avgCostUsd: v.turns ? v.cost / v.turns : 0,
+      avgTurns: v.turns ? v.numTurns / v.turns : 0,
+      avgSnapshots: v.turns ? v.snaps / v.turns : 0,
+      avgDurationMs: v.turns ? v.dur / v.turns : 0,
+    }))
+    .sort((a, b) => b.totalCostUsd - a.totalCostUsd);
+
+  return {
+    relayTurns: relay.length,
+    firstPassYield,
+    sovereignty,
+    emancipation,
+    byType,
+    axiomMap,
+    weekly,
+    costDrivers,
+  };
 }
