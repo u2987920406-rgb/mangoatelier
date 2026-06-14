@@ -1,7 +1,8 @@
-import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, History, Loader2, Rocket, Triangle, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
+import Guide from "./Guide.jsx";
 
 // Static-host targets for one-click publish (idea 18). Each maps to a CLI in
 // server/src/deploy.ts; the id is sent as { target } to POST /api/deploy.
@@ -80,6 +81,18 @@ export default function Header({
             <span className="truncate">{deployedUrl.replace("https://", "")}</span>
           </a>
         )}
+
+        <Dropdown
+          width="w-[28rem]"
+          button={
+            <>
+              <HelpCircle size={14} className="text-accent-soft" />
+              Aide
+            </>
+          }
+        >
+          <Guide />
+        </Dropdown>
 
         <Dropdown
           width="w-96"
