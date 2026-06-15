@@ -45,6 +45,10 @@ import { registerQARoutes } from "./qa-temporal.js";
 import { registerStripeRoutes } from "./stripe.js";
 import { registerCronRoutes } from "./cron-scheduler.js";
 import { registerMetricsDashboardRoutes } from "./metrics-dashboard.js";
+import { registerNotesRAGRoutes } from "./notes-rag.js";
+import { registerMultiProjectRoutes } from "./multi-project.js";
+import { registerAutoAblationRoutes } from "./auto-ablation.js";
+import { registerDesignReviewRoutes } from "./design-review.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -934,6 +938,10 @@ registerQARoutes(app);
 registerStripeRoutes(app);
 registerCronRoutes(app);
 registerMetricsDashboardRoutes(app);
+registerNotesRAGRoutes(app);
+registerAutoAblationRoutes(app);
+registerMultiProjectRoutes(app);
+registerDesignReviewRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);

@@ -1,8 +1,8 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 — Vague 3 : #14 Dashboard d'évolution ✅ (métriques JSONL → visualisation complète).*
+*Dernière mise à jour : 2026-06-15 — Vague 4 : #22 Agent de notes & RAG personnel ✅ (CRUD JSONL + RAG Claude Haiku).*
 
-> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés. Session du 2026-06-15 (vague 2) : #1 Agent QA temporel, #3 Généalogie visuelle, #4 Documentation multimodale, #39 Paiements Stripe, roadmap #2 Skills panel, #C Agents cron, #4 Bouton micro, #5 Menu mode, #7 Sélecteur contexte — tous ✅ livrés. Session du 2026-06-15 (vague 3) : #14 Dashboard d'évolution ✅ — KPI cards + graphique 21j + Élève vs Maître + distribution modèles + top projets + modes. `tsc` 0, build UI OK (8s, 1938 modules).
+> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés. Session du 2026-06-15 (vague 2) : #1 Agent QA temporel, #3 Généalogie visuelle, #4 Documentation multimodale, #39 Paiements Stripe, roadmap #2 Skills panel, #C Agents cron, #4 Bouton micro, #5 Menu mode, #7 Sélecteur contexte — tous ✅ livrés. Session du 2026-06-15 (vague 3) : #14 Dashboard d'évolution ✅ — KPI cards + graphique 21j + Élève vs Maître + distribution modèles + top projets + modes. Session du 2026-06-15 (vague 4) : #22 Agent de notes & RAG personnel ✅ — CRUD JSONL (POST/GET/DELETE /api/notes) + RAG Claude Haiku (/api/notes/ask, keyword match → top 5 → prompt). `tsc` 0, build UI OK (8s, 1938 modules).
 >
 > **📅 Date fixe** : audit coûts (idée 13) le **2026-06-22** · veille mensuelle le **13 de chaque mois**
 
@@ -54,7 +54,7 @@
 | 19 | Lab de prompts interactif | ✅ FAIT | — | — |
 | 20 | Visualiseur de tokenisation | ✅ FAIT | — | — |
 | 21 | Panneau de métriques avancé | ✅ FAIT | — | — |
-| 22 | Agent de notes & RAG personnel | 💤 | 🧠 Opus 4.8 | L |
+| 22 | Agent de notes & RAG personnel | ✅ FAIT | — | — |
 | 23 | Dashboard de veille IA automatisé | ✅ FAIT | — | — |
 | 24 | Générateur de tests automatiques | ✅ FAIT | — | — |
 | 25 | MCP Figma intégré | 🗑️ RETIRÉ | — | — |
