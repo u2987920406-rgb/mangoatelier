@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 (session « comparaison Élève — qwen2.5-coder:14b »)*
+*Dernière mise à jour : 2026-06-15 (session « Chantier #8 — URL Analyser Sharingan »)*
 
 > **🟢 Où on en est — 2026-06-15 (session « comparaison Élève »).** Aucun code produit modifié. **Fait cette session** : comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
 >
@@ -103,7 +103,7 @@
 | **5** | **Menu de mode dans le chat** | Sélecteur scroll 3 modes : **Construire** (Sonnet, effort max) · **Planifier** (analytique) · **Discuter** (Haiku, rapide) — change modèle + effort en background | 🟢 | ⚖️ Sonnet 4.6 | S |
 | **6** | **Menu d'accueil repensé** | Page d'accueil ergonomique : scroll projets, accès rapide, design épuré | 🟡 | ⚖️ Sonnet 4.6 | M |
 | **7** | **Sélecteur de contexte fichier** | Icône ⚙ dans le chat : cibler un fichier/dossier précis → l'IA cible ce contexte directement | 🟡 | ⚖️ Sonnet 4.6 | M |
-| **8** | **URL Analyser — Sharingan** | 6 couches : pixels + CSS calculé + CSS variables + structure sémantique + assets + génération React. Voit une URL une fois, copie tout. Combines : k-means couleurs, interception réseau fonts, pseudo-éléments injectés, canvas fingerprint, accessibility tree. Différenciateur majeur. | 🔴 | 🧠 Opus 4.8 | XL |
+| **8** | **URL Analyser — Sharingan** | **✅ FAIT (2026-06-15)** : outil MCP `mcp__vision__sharingan_url` ajouté à `vision.ts` — 6 couches en 1 session Playwright : (1) screenshot JPEG 1280px, (2) CSS calculé des sélecteurs clés (typo, couleurs), (3) variables CSS `:root` (design tokens), (4) structure sémantique (titre, nav, sections, headings, CTAs, ARIA landmarks), (5) fonts détectées (CSS @font-face + interception réseau Google Fonts), (6) palette dédupliquée depuis le CSS calculé. Fonctions pures `cssColorToHex` + `dedupeColors` exportées et prouvées (24/24 tests). Bloc SHARINGAN ajouté à `VISION_INPUTS` (disponible en Élite + MVP). `tsc` 0. Déclencher via : "Sharingan", "deep clone", "pixel-perfect", ou après un premier clone insuffisant. Différenciateur majeur. | 🔴 | — | — |
 
 *🔴 différenciateur majeur · 🟠 saut qualitatif · 🟢 impact UX immédiat · 🟡 valeur ajoutée · 🔵 long terme*
 

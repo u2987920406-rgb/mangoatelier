@@ -36,6 +36,45 @@ let counter = 0;
 let browser: Browser | null = null;
 let idleTimer: NodeJS.Timeout | null = null;
 
+// ── Sharingan color helpers (pure — exported for unit tests) ─────────────────
+
+/** Converts a CSS color string (rgb/rgba/hex) to a lowercase #rrggbb hex, or
+ *  null for transparent/invalid/default values. Pure → unit-testable. */
+export function cssColorToHex(color: string): string | null {
+  if (!color) return null;
+  const s = color.trim();
+  if (s === "transparent" || s === "initial" || s === "inherit" || s === "none" || s === "currentColor") return null;
+  const m = s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (m) {
+    const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+    if (a === 0) return null; // fully transparent
+    return `#${[parseInt(m[1]), parseInt(m[2]), parseInt(m[3])].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toLowerCase();
+  return null;
+}
+
+function _isNearBlack(hex: string): boolean {
+  return parseInt(hex.slice(1, 3), 16) < 12 && parseInt(hex.slice(3, 5), 16) < 12 && parseInt(hex.slice(5, 7), 16) < 12;
+}
+function _isNearWhite(hex: string): boolean {
+  return parseInt(hex.slice(1, 3), 16) > 243 && parseInt(hex.slice(3, 5), 16) > 243 && parseInt(hex.slice(5, 7), 16) > 243;
+}
+
+/** Deduplicates CSS color strings, filters near-black/near-white, sorts by
+ *  frequency, returns up to 8 design colors as #rrggbb hex. Pure → unit-testable. */
+export function dedupeColors(rawColors: string[]): string[] {
+  const freq = new Map<string, number>();
+  for (const c of rawColors) {
+    const hex = cssColorToHex(c);
+    if (!hex || hex.length !== 7) continue;
+    if (_isNearBlack(hex) || _isNearWhite(hex)) continue;
+    freq.set(hex, (freq.get(hex) ?? 0) + 1);
+  }
+  return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([h]) => h);
+}
+
 /** Called at the start of each /api/chat turn: binds the tool to the active
  * project, sets the snapshot budget for the chosen effort mode, resets the
  * counter and purges the previous turn's files. */
@@ -63,7 +102,7 @@ export function visionStatus(): { used: number; budget: number } {
 // The browser is a subprocess (jalon 1 isolation stance): a Playwright crash
 // surfaces as a tool error, never as a server crash. Closed after idle so a
 // finished turn doesn't keep Edge in memory.
-async function getBrowser(): Promise<Browser> {
+export async function getBrowser(): Promise<Browser> {
   if (browser?.isConnected()) return browser;
   browser = await chromium.launch({ channel: "msedge", headless: true });
   return browser;
@@ -428,11 +467,281 @@ const scrapeTool = tool(
   },
 );
 
+// ── Sharingan (Chantier #8): 6-layer deep extraction of a live site ──────────
+// Layer 1: Pixels (screenshot). Layer 2: Computed CSS (typography + key styles).
+// Layer 3: CSS Variables (design tokens). Layer 4: Semantic structure (sections,
+// nav, headings, CTAs, ARIA landmarks). Layer 5: Assets (fonts). Layer 6: Color
+// palette deduced from computed CSS (faster and more design-accurate than
+// pixel-level k-means). Plus bonus: network font interception, pseudo-elements.
+
+export interface SharinganResult {
+  url: string;
+  screenshot: Buffer;
+  screenshotHeight: number;
+  palette: string[];
+  cssVars: Record<string, string>;
+  typography: { families: string[]; sizes: string[]; weights: string[] };
+  structure: {
+    title: string;
+    sections: string[];
+    navItems: string[];
+    headings: { level: number; text: string }[];
+    ctaTexts: string[];
+    landmarks: { role: string; label: string; heading: string }[];
+  };
+  fonts: string[];
+  pseudoElements: { selector: string; pseudo: string; content: string; color: string; background: string }[];
+}
+
+/** Formats a SharinganResult into an agent-friendly Markdown analysis text. */
+function formatSharinganAnalysis(r: SharinganResult): string {
+  const lines: string[] = [
+    `# Sharingan Analysis — ${r.url}`,
+    `Screenshot : 1280×${r.screenshotHeight}px`,
+    "",
+    "## Palette CSS (couleurs dominantes)",
+    r.palette.length ? r.palette.join(", ") : "(aucune couleur de design détectée)",
+    "",
+  ];
+
+  const usefulVars = Object.entries(r.cssVars).filter(([k]) =>
+    /color|bg|background|primary|secondary|accent|text|border|font|shadow|radius|spacing|size|gap|weight/i.test(k),
+  ).slice(0, 30);
+  if (usefulVars.length > 0) {
+    lines.push("## Variables CSS (design tokens)");
+    lines.push(...usefulVars.map(([k, v]) => `  ${k}: ${v}`));
+    lines.push("");
+  }
+
+  lines.push(
+    "## Typographie",
+    `Familles : ${r.typography.families.join(", ") || "(non détectées)"}`,
+    `Tailles  : ${r.typography.sizes.slice(0, 5).join(", ") || "(non détectées)"}`,
+    `Graisses : ${r.typography.weights.join(", ") || "(non détectées)"}`,
+    "",
+    "## Fonts détectées",
+    r.fonts.length ? r.fonts.join(", ") : "(système uniquement)",
+    "",
+    "## Structure sémantique",
+    `Titre page : ${r.structure.title || "(aucun)"}`,
+    `Nav items  : ${r.structure.navItems.join(" | ") || "(aucun)"}`,
+    `Sections   : ${r.structure.sections.join(", ") || "(non détectées)"}`,
+    `CTAs       : ${r.structure.ctaTexts.join(" | ") || "(aucun)"}`,
+    "",
+    "## Headings",
+    ...r.structure.headings.map((h) => `  H${h.level}: ${h.text}`),
+    "",
+    "## Landmarks ARIA",
+    ...r.structure.landmarks.map((l) => `  [${l.role}] ${l.label || l.heading || ""}`),
+  );
+
+  if (r.pseudoElements.length > 0) {
+    lines.push("", "## Pseudo-éléments détectés");
+    lines.push(...r.pseudoElements.slice(0, 8).map((p) => `  ${p.selector}${p.pseudo} → content: ${p.content} | color: ${p.color}`));
+  }
+
+  lines.push(
+    "",
+    "## Instructions de génération",
+    "- Utilise TOUTES les couleurs de palette et CSS variables dans le code généré.",
+    "- Injecte les variables comme propriétés :root dans index.css ou dans le composant.",
+    "- Reproduis la structure des sections dans l'ordre des headings détectés.",
+    "- Importe les fonts via Google Fonts si absentes du système.",
+    "- Objectif : comparaison côte à côte avec l'original < 20 % d'écart visuel.",
+  );
+
+  return lines.join("\n");
+}
+
+const SHARINGAN_VIEWPORT = { width: 1280, height: 900 };
+
+/** Runs the 6-layer Sharingan extraction on a public URL. All layers are
+ *  collected in a single Playwright page load for efficiency. */
+export async function sharinganAnalyze(url: string): Promise<SharinganResult> {
+  const b = await getBrowser();
+  const networkFontUrls: string[] = [];
+
+  const ctx = await b.newContext({ viewport: SHARINGAN_VIEWPORT, deviceScaleFactor: 1 });
+  try {
+    const page = await ctx.newPage();
+
+    // Layer 5 — network font interception (before navigating)
+    page.on("response", (response) => {
+      const u = response.url();
+      if (/\.(woff2?|ttf|otf|eot)(\?|$)/i.test(u) || u.includes("fonts.googleapis") || u.includes("fonts.gstatic")) {
+        networkFontUrls.push(u);
+      }
+    });
+
+    await page.goto(url, { waitUntil: "load", timeout: 25_000 });
+    await page.waitForLoadState("networkidle", { timeout: 6_000 }).catch(() => {});
+    await page.waitForTimeout(800); // settle fonts and lazy images
+
+    // Layers 2, 3, 4, 5 — single evaluate call to avoid multiple round-trips.
+    const domData = await page.evaluate(() => {
+      // Layer 3: CSS custom properties from :root
+      const rootCs = window.getComputedStyle(document.documentElement);
+      const cssVars: Record<string, string> = {};
+      for (const prop of rootCs) {
+        if (prop.startsWith("--")) {
+          const v = rootCs.getPropertyValue(prop).trim();
+          if (v) cssVars[prop] = v;
+        }
+      }
+
+      // Layer 2: computed styles from key selectors
+      const rawColors: string[] = [];
+      const fontFamilies: string[] = [];
+      const fontSizes: string[] = [];
+      const fontWeights: string[] = [];
+      const KEY_SEL = "h1,h2,h3,p,a,button,nav,header,footer,section,main,article,aside,[class*='hero'],[class*='card'],[class*='btn'],[class*='primary'],[class*='accent'],[class*='banner'],[class*='container']";
+      document.querySelectorAll<HTMLElement>(KEY_SEL).forEach((el) => {
+        const cs = window.getComputedStyle(el);
+        rawColors.push(cs.color, cs.backgroundColor, cs.borderColor);
+        const ff = cs.fontFamily.split(",")[0].replace(/['"]/g, "").trim();
+        if (ff && !fontFamilies.includes(ff)) fontFamilies.push(ff);
+        if (cs.fontSize && !fontSizes.includes(cs.fontSize)) fontSizes.push(cs.fontSize);
+        if (cs.fontWeight && !fontWeights.includes(cs.fontWeight)) fontWeights.push(cs.fontWeight);
+      });
+
+      // Sweep all elements for colors (capped to 300 for performance)
+      const allEls = [...document.querySelectorAll<HTMLElement>("*")].slice(0, 300);
+      for (const el of allEls) {
+        const cs = window.getComputedStyle(el);
+        rawColors.push(cs.backgroundColor, cs.color);
+      }
+
+      // Layer 5: @font-face families from stylesheets
+      const cssFontFamilies: string[] = [];
+      for (const sheet of [...document.styleSheets]) {
+        try {
+          for (const rule of [...sheet.cssRules]) {
+            if (rule instanceof CSSFontFaceRule) {
+              const fam = rule.style.getPropertyValue("font-family").replace(/['"]/g, "").trim();
+              if (fam && !cssFontFamilies.includes(fam)) cssFontFamilies.push(fam);
+            }
+          }
+        } catch { /* cross-origin sheet — inaccessible */ }
+      }
+
+      // Layer 4: semantic structure
+      const title = document.title || "";
+      const sections: string[] = [...document.querySelectorAll("section,[id*='section'],[class*='section']")]
+        .map((el) => el.querySelector("h1,h2,h3")?.textContent?.trim().slice(0, 60) || (el as HTMLElement).id || "")
+        .filter(Boolean).slice(0, 8);
+
+      const navItems: string[] = [...document.querySelectorAll("nav a,header a,[class*='nav'] a")]
+        .map((a) => a.textContent?.trim()).filter(Boolean).slice(0, 10) as string[];
+
+      const headings = [...document.querySelectorAll("h1,h2,h3,h4")]
+        .map((h) => ({ level: parseInt(h.tagName[1]), text: h.textContent?.trim().slice(0, 80) || "" }))
+        .filter((h) => h.text).slice(0, 14);
+
+      const ctaTexts: string[] = [...document.querySelectorAll("button,a[class*='btn'],[class*='cta'],[class*='button']")]
+        .map((el) => el.textContent?.trim()).filter(Boolean).slice(0, 8) as string[];
+
+      const landmarks = [...document.querySelectorAll("[role],main,nav,header,footer,aside,article")]
+        .map((el) => ({
+          role: el.getAttribute("role") || el.tagName.toLowerCase(),
+          label: el.getAttribute("aria-label") || "",
+          heading: el.querySelector("h1,h2,h3")?.textContent?.trim().slice(0, 60) || "",
+        })).slice(0, 10);
+
+      // Bonus: pseudo-elements (sample from focused elements)
+      const pseudoElements: { selector: string; pseudo: string; content: string; color: string; background: string }[] = [];
+      [...document.querySelectorAll<HTMLElement>("[class*='icon'],[class*='badge'],[class*='tag'],li,a,button")].slice(0, 60).forEach((el) => {
+        for (const pseudo of ["::before", "::after"]) {
+          const cs = window.getComputedStyle(el, pseudo);
+          const content = cs.content;
+          if (content && content !== "none" && content !== '""' && content !== "''") {
+            const sel = el.className ? `.${el.className.split(" ")[0]}` : el.tagName.toLowerCase();
+            pseudoElements.push({ selector: sel, pseudo, content, color: cs.color, background: cs.backgroundColor });
+          }
+        }
+      });
+
+      return { cssVars, rawColors, fontFamilies, fontSizes, fontWeights, cssFontFamilies, title, sections, navItems, headings, ctaTexts, landmarks, pseudoElements: pseudoElements.slice(0, 12) };
+    });
+
+    // Layer 1: screenshot
+    const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+    const height = Math.min(pageHeight || SHARINGAN_VIEWPORT.height, CLONE_MAX_HEIGHT);
+    const screenshot = await page.screenshot({
+      type: "jpeg", quality: 82,
+      clip: { x: 0, y: 0, width: SHARINGAN_VIEWPORT.width, height },
+    });
+
+    // Layer 6: deduplicated color palette from CSS
+    const palette = dedupeColors(domData.rawColors);
+
+    // Merge CSS @font-face names + network-intercepted Google Fonts names
+    const gFontNames = networkFontUrls
+      .map((u) => { const m = u.match(/family=([^&:]+)/); return m ? decodeURIComponent(m[1]).replace(/\+/g, " ") : null; })
+      .filter((n): n is string => Boolean(n));
+    const allFontSources = [...domData.fontFamilies, ...domData.cssFontFamilies, ...gFontNames];
+    const fonts = [...new Set(allFontSources)].filter(Boolean).slice(0, 6);
+
+    return {
+      url,
+      screenshot,
+      screenshotHeight: height,
+      palette,
+      cssVars: domData.cssVars,
+      typography: {
+        families: domData.fontFamilies.slice(0, 5),
+        sizes: domData.fontSizes.slice(0, 6),
+        weights: domData.fontWeights.slice(0, 4),
+      },
+      structure: {
+        title: domData.title,
+        sections: domData.sections,
+        navItems: domData.navItems,
+        headings: domData.headings,
+        ctaTexts: domData.ctaTexts,
+        landmarks: domData.landmarks,
+      },
+      fonts,
+      pseudoElements: domData.pseudoElements,
+    };
+  } finally {
+    await ctx.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
+const sharinganTool = tool(
+  "sharingan_url",
+  "6-layer deep extraction of a live website: pixels (screenshot) + computed CSS + CSS variables (design tokens) + " +
+    "semantic structure (sections, nav, headings, CTAs, ARIA) + font detection (CSS @font-face + Google Fonts interception) + " +
+    "color palette from computed styles. Returns BOTH a screenshot AND a rich structured analysis. " +
+    "Call when the user wants maximum-fidelity cloning (says 'pixel-perfect', 'Sharingan', 'exact copy', 'deep clone', or after a first clone that looks off). " +
+    "Use ALL returned data: inject CSS variables as :root props, match palette exactly, use detected fonts, reproduce semantic structure.",
+  { url: z.string().describe("Public http(s) URL of the website to analyse") },
+  async (args) => {
+    if (!isCloneableUrl(args.url)) {
+      return text("URL invalide pour le Sharingan — fournis une adresse http(s) publique (pas localhost).", true);
+    }
+    try {
+      const result = await sharinganAnalyze(args.url);
+      const analysis = formatSharinganAnalysis(result);
+      const content: ({ type: "image"; data: string; mimeType: string } | { type: "text"; text: string })[] = [];
+      if (result.screenshot.length <= MAX_IMAGE_BYTES) {
+        content.push({ type: "image" as const, data: result.screenshot.toString("base64"), mimeType: "image/jpeg" });
+      }
+      content.push({ type: "text" as const, text: analysis });
+      return { content };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      return text(`Échec de l'analyse Sharingan : ${msg}`, true);
+    }
+  },
+);
+
 export const visionServer = createSdkMcpServer({
   name: "vision",
   version: "1.0.0",
   // Core mechanism: always in the prompt, never deferred behind ToolSearch
   // (saves one discovery round-trip per visual turn).
   alwaysLoad: true,
-  tools: [snapshotTool, cloneTool, scrapeTool],
+  tools: [snapshotTool, cloneTool, scrapeTool, sharinganTool],
 });
