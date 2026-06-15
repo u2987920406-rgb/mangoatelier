@@ -10,6 +10,26 @@ const client = new Anthropic();
 
 export type FeedbackRating = "like" | "dislike";
 
+// Suivi des 👎 consécutifs par projet (in-memory, reset au démarrage — acceptable phase A)
+const dislikeStreaks = new Map<string, number>();
+const ESCALATION_THRESHOLD = 2;
+
+/** Mise à jour synchrone du streak — renvoie true si le seuil d'escalade est atteint. */
+export function checkAndUpdateStreak(projectName: string, rating: FeedbackRating): boolean {
+  if (rating === "like") {
+    dislikeStreaks.delete(projectName);
+    return false;
+  }
+  const streak = (dislikeStreaks.get(projectName) ?? 0) + 1;
+  dislikeStreaks.set(projectName, streak);
+  return streak >= ESCALATION_THRESHOLD;
+}
+
+/** Reset du streak après une escalade traitée. */
+export function resetStreak(projectName: string): void {
+  dislikeStreaks.delete(projectName);
+}
+
 export async function processFeedback(
   workspaceDir: string,
   rating: FeedbackRating,
@@ -43,6 +63,47 @@ AXIOME-${axiomCat}-XX [candidat] [${tag}]
 - Piège: (ce qui déplaît à l'utilisateur)
 - Règle d'or: (ce qu'il faut faire à la place)
 - Source: 👎 utilisateur (${today}) — projet ${projectName}`;
+
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 400,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const axiomText = response.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+
+  if (!axiomText.startsWith("AXIOME-")) return;
+
+  const axiomsPath = path.join(workspaceDir, AXIOMS_FILE_NAME);
+  const existing = fs.existsSync(axiomsPath)
+    ? fs.readFileSync(axiomsPath, "utf8").trim()
+    : "";
+  const updated = existing ? `${existing}\n\n${axiomText}` : axiomText;
+  fs.writeFileSync(axiomsPath, updated + "\n", "utf8");
+}
+
+export async function processEscalationReference(
+  workspaceDir: string,
+  projectName: string,
+  referenceText: string,
+): Promise<void> {
+  // Haiku analyse la référence et extrait le goût visuel de l'utilisateur
+  // comme axiome [validé-utilisateur]
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = `L'utilisateur a fourni cette référence visuelle/stylistique à MangoAI pour corriger sa direction : "${referenceText.slice(0, 1000)}"
+
+Extrait le GOÛT VISUEL / STYLISTIQUE précis de l'utilisateur sous forme d'axiome universel réutilisable. Ne décris pas la référence — extrait la RÈGLE ABSTRAITE sur ce que l'utilisateur aime visuellement.
+
+Réponds UNIQUEMENT avec un bloc axiome dans ce format exact (rien d'autre) :
+AXIOME-UX-XX [candidat] [validé-utilisateur]
+- Contexte: (quand appliquer ce style)
+- Piège: (ce que l'utilisateur n'aime pas)
+- Règle d'or: (ce que l'utilisateur préfère visuellement)
+- Source: 🎯 escalade utilisateur (${today}) — projet ${projectName}`;
 
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",

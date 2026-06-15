@@ -32,7 +32,7 @@ import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
-import { processFeedback, type FeedbackRating } from "./feedback.js";
+import { processFeedback, checkAndUpdateStreak, resetStreak, processEscalationReference, type FeedbackRating } from "./feedback.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -771,10 +771,26 @@ app.post("/api/feedback", async (req, res) => {
     res.status(400).json({ error: "projectName, text et rating (like|dislike) requis" });
     return;
   }
-  res.json({ ok: true });
+  const escalate = checkAndUpdateStreak(projectName, rating as FeedbackRating);
+  res.json({ ok: true, escalate });
   // Traitement en arrière-plan — ne bloque pas l'UI
   processFeedback(WORKSPACE_DIR, rating as FeedbackRating, text, projectName).catch((err) =>
     console.error("[feedback]", err instanceof Error ? err.message : err)
+  );
+});
+
+// Idée #43 — Escalade par signal humain : l'utilisateur fournit une référence
+// visuelle après 2 👎 consécutifs → axiome [validé-utilisateur] sur son goût.
+app.post("/api/escalation-reference", async (req, res) => {
+  const { projectName, referenceText } = req.body as { projectName?: string; referenceText?: string };
+  if (!projectName?.trim() || !referenceText?.trim()) {
+    res.status(400).json({ error: "projectName et referenceText requis" });
+    return;
+  }
+  res.json({ ok: true });
+  resetStreak(projectName);
+  processEscalationReference(WORKSPACE_DIR, projectName, referenceText).catch((err) =>
+    console.error("[escalation]", err instanceof Error ? err.message : err)
   );
 });
 
