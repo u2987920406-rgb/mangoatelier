@@ -32,6 +32,7 @@ import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
+import { processFeedback, type FeedbackRating } from "./feedback.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -764,6 +765,19 @@ app.post("/api/rollback", async (req, res) => {
 });
 
 // Interrupt the agent currently working (if any)
+app.post("/api/feedback", async (req, res) => {
+  const { projectName, rating, text } = req.body as { projectName?: string; rating?: string; text?: string };
+  if (!projectName || !text || (rating !== "like" && rating !== "dislike")) {
+    res.status(400).json({ error: "projectName, text et rating (like|dislike) requis" });
+    return;
+  }
+  res.json({ ok: true });
+  // Traitement en arrière-plan — ne bloque pas l'UI
+  processFeedback(WORKSPACE_DIR, rating as FeedbackRating, text, projectName).catch((err) =>
+    console.error("[feedback]", err instanceof Error ? err.message : err)
+  );
+});
+
 const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 app.post("/api/transcribe", audioUpload.single("audio"), async (req, res) => {
   if (!req.file) { res.status(400).json({ error: "Aucun fichier audio reçu" }); return; }

@@ -398,7 +398,18 @@ export default function Chat({
           g.kind === "tools" ? (
             <ToolGroup key={g.key} items={g.items} busy={busy && g.isLast} />
           ) : (
-            <Message key={g.key} m={g.message} showThinking={showThinking} />
+            <Message
+              key={g.key}
+              m={g.message}
+              showThinking={showThinking}
+              onFeedback={(rating, text) => {
+                fetch("/api/feedback", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ projectName, rating, text }),
+                }).catch(() => {});
+              }}
+            />
           ),
         )}
         {busy && (
@@ -635,7 +646,15 @@ function groupMessages(messages) {
   return out;
 }
 
-function Message({ m, showThinking = true }) {
+function Message({ m, showThinking = true, onFeedback }) {
+  const [voted, setVoted] = useState(null); // "like" | "dislike" | null
+
+  function handleVote(rating) {
+    if (voted) return;
+    setVoted(rating);
+    onFeedback?.(rating, m.text);
+  }
+
   switch (m.role) {
     case "user":
       return (
@@ -652,6 +671,41 @@ function Message({ m, showThinking = true }) {
           </div>
           <div className="md rounded-2xl rounded-tl-md border border-accent/15 bg-accent/[0.06] px-3.5 py-2.5 text-sm leading-relaxed break-words">
             <ReactMarkdown>{m.text}</ReactMarkdown>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <button
+              onClick={() => handleVote("like")}
+              disabled={!!voted}
+              className={`rounded-lg px-2 py-0.5 text-xs transition-colors disabled:cursor-default ${
+                voted === "like"
+                  ? "bg-green-500/20 text-green-500"
+                  : voted
+                  ? "text-faint opacity-30"
+                  : "text-faint hover:text-green-500 hover:bg-green-500/10"
+              }`}
+              title="J'aime — enregistre ce pattern"
+            >
+              👍
+            </button>
+            <button
+              onClick={() => handleVote("dislike")}
+              disabled={!!voted}
+              className={`rounded-lg px-2 py-0.5 text-xs transition-colors disabled:cursor-default ${
+                voted === "dislike"
+                  ? "bg-err/20 text-err"
+                  : voted
+                  ? "text-faint opacity-30"
+                  : "text-faint hover:text-err hover:bg-err/10"
+              }`}
+              title="Je n'aime pas — éviter ce pattern"
+            >
+              👎
+            </button>
+            {voted && (
+              <span className="text-[10px] text-faint">
+                {voted === "like" ? "Pattern enregistré ✓" : "Pattern évité ✓"}
+              </span>
+            )}
           </div>
         </div>
       );
