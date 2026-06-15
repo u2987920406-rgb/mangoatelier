@@ -1,8 +1,8 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 — 7 features livrées en parallèle : SidePanel (#1/#1a/#1b/#1c), Home repensée (#6), Routing modèle (#B), PromptLab (#19), Tokenizer (#20), Veille IA (#23), Idéation (#37).*
+*Dernière mise à jour : 2026-06-15 — Vague 2 : docs autonomes (#1), généalogie visuelle (#3), documentation multimodale (#4), Stripe (#39), skills panel (#2), agents cron (#C), + micro (#4), menu mode (#5), sélecteur contexte (#7).*
 
-> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés, `tsc` 0, build UI OK (8s, 1932 modules).
+> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés. Session du 2026-06-15 (vague 2) : #1 Agent QA temporel, #3 Généalogie visuelle, #4 Documentation multimodale, #39 Paiements Stripe, roadmap #2 Skills panel, #C Agents cron, #4 Bouton micro, #5 Menu mode, #7 Sélecteur contexte — tous ✅ livrés, `tsc` 0, build UI OK (8s, 1937 modules).
 >
 > **📅 Date fixe** : audit coûts (idée 13) le **2026-06-22** · veille mensuelle le **13 de chaque mois**
 
@@ -33,10 +33,10 @@
 
 | # | Idée | Statut | Modèle optimal | Effort |
 |---|------|--------|----------------|--------|
-| 1 | Agent QA temporel | 💤 | ⚖️ Sonnet 4.6 | L |
+| 1 | Agent QA temporel | ✅ FAIT | — | — |
 | 2 | Design pair-programming | 💤 | 🧠 Opus 4.8 | XL |
-| 3 | Généalogie visuelle (rollback graphique) | 💤 | ⚖️ Sonnet 4.6 | L |
-| 4 | Documentation multimodale autonome | 💤 | ⚖️ Sonnet 4.6 | M |
+| 3 | Généalogie visuelle (rollback graphique) | ✅ FAIT | — | — |
+| 4 | Documentation multimodale autonome | ✅ FAIT | — | — |
 | 5 | Guide utilisateur MangoAI | ✅ FAIT | — | — |
 | 6 | Modèles full-stack par type | ✅ FAIT | — | — |
 | 7 | Inspiration web & blueprint contextuel | ✅ FAIT | — | — |
@@ -71,7 +71,7 @@
 | 36 | Bibliothèque de composants inter-projets | ✅ FAIT | — | — |
 | 37 | Mode idéation visuelle (avant le code) | ✅ FAIT | — | — |
 | 38 | Carte d'architecture vivante | ✅ FAIT | — | — |
-| 39 | Paiements Stripe | 💤 après #35 | 🧠 Opus 4.8 | L |
+| 39 | Paiements Stripe | ✅ FAIT | — | — |
 | 40 | Invocation super-agent spécialisé | 💤 vision | 🧠 Opus 4.8 | XL |
 | 41 | Signal humain 👍/👎 — RLHF personnel | ✅ FAIT | — | — |
 | 42 | MangoAI cerveau personnel (3 couches identité) | ✅ FAIT | — | — |
@@ -83,17 +83,17 @@
 |---|----------|--------|----------------|--------|
 | A | Design system persistant | ✅ FAIT | — | — |
 | B | Routing modèle automatique | ✅ FAIT | — | — |
-| C | Agents autonomes (cron) | 💤 | 🧠 Opus 4.8 | XL |
+| C | Agents autonomes (cron) | ✅ FAIT | — | — |
 | 1 | Panel latéral pop-up (éditeur visuel) | ✅ FAIT | — | — |
 | 1a | ↳ Modificateur de police | ✅ FAIT | — | — |
 | 1b | ↳ Modificateur de couleur | ✅ FAIT | — | — |
 | 1c | ↳ Sélecteur d'éléments | ✅ FAIT | — | — |
-| 2 | Créateur de skills dans le panel | 💤 | ⚖️ Sonnet 4.6 | M |
+| 2 | Créateur de skills dans le panel | ✅ FAIT | — | — |
 | 3 | Mode discret | ✅ DÉJÀ FAIT | — | — |
-| 4 | Bouton micro (entrée vocale) | 💤 | ⚡ Haiku 4.5 | S |
-| 5 | Menu de mode dans le chat | 💤 | ⚖️ Sonnet 4.6 | S |
+| 4 | Bouton micro (entrée vocale) | ✅ FAIT | — | — |
+| 5 | Menu de mode dans le chat | ✅ FAIT | — | — |
 | 6 | Menu d'accueil repensé | ✅ FAIT | — | — |
-| 7 | Sélecteur de contexte fichier | 💤 | ⚖️ Sonnet 4.6 | M |
+| 7 | Sélecteur de contexte fichier | ✅ FAIT | — | — |
 | 8 | URL Analyser — Sharingan | ✅ FAIT | — | — |
 
 ### Phase Ultime — Jalons Compagnonnage
