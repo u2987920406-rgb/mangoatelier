@@ -5,9 +5,11 @@ import {
   Monitor,
   MonitorX,
   MousePointerClick,
+  Palette,
   RefreshCw,
   Smartphone,
   TriangleAlert,
+  Type,
   Wrench,
   X,
 } from "lucide-react";
@@ -22,6 +24,7 @@ export default function Preview({
   onToggleInspect,
   selectedElement = null,
   onClearSelection = () => {},
+  onApplyStyle = () => {},
 }) {
   const [device, setDevice] = useState("desktop");
   const iframeRef = useRef(null);
@@ -134,28 +137,129 @@ export default function Preview({
       )}
 
       {selectedElement && (
-        <div className="flex shrink-0 items-center gap-2.5 border-b border-accent/30 bg-accent/[0.06] px-3.5 py-2 text-[13px]">
-          <Layers size={13} className="shrink-0 text-accent-soft" />
-          <code className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
-            &lt;{selectedElement.tag}&gt;
-          </code>
-          {selectedElement.text && (
-            <span className="min-w-0 flex-1 truncate text-dim">
-              {selectedElement.text}
-            </span>
-          )}
-          {selectedElement.src && (
-            <span className="shrink-0 font-mono text-xs text-faint">
-              {selectedElement.src}
-            </span>
-          )}
-          <button
-            onClick={onClearSelection}
-            className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:text-ink transition-colors"
-            title="Effacer la sélection"
-          >
-            <X size={12} />
-          </button>
+        <div className="shrink-0 border-b border-accent/30 bg-accent/[0.06]">
+          {/* Ligne 1 : identité de l'élément */}
+          <div className="flex items-center gap-2.5 px-3.5 py-2 text-[13px]">
+            <Layers size={13} className="shrink-0 text-accent-soft" />
+            <code className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
+              &lt;{selectedElement.tag}&gt;
+            </code>
+            {selectedElement.text && (
+              <span className="min-w-0 flex-1 truncate text-dim">
+                {selectedElement.text}
+              </span>
+            )}
+            {selectedElement.src && (
+              <span className="shrink-0 font-mono text-xs text-faint">
+                {selectedElement.src}
+              </span>
+            )}
+            <button
+              onClick={onClearSelection}
+              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:text-ink transition-colors"
+              title="Effacer la sélection"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          {/* Ligne 2 : contrôles de police */}
+          <div className="flex flex-wrap items-center gap-3 border-t border-accent/10 px-3.5 py-2">
+            <Type size={12} className="shrink-0 text-faint" />
+            {/* Famille */}
+            <div className="flex gap-1">
+              {[
+                { label: "Sans", value: "sans-serif" },
+                { label: "Serif", value: "Georgia, serif" },
+                { label: "Mono", value: "monospace" },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => onApplyStyle(`Change la police de l'élément ${selectedElement.tag}${selectedElement.src ? ` (${selectedElement.src})` : ""} en font-family: ${value}`)}
+                  className="rounded px-2 py-0.5 text-xs text-faint hover:bg-accent/10 hover:text-accent transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-edge">|</span>
+            {/* Taille */}
+            <div className="flex gap-1">
+              {[
+                { label: "sm", value: "0.875rem" },
+                { label: "md", value: "1rem" },
+                { label: "lg", value: "1.25rem" },
+                { label: "xl", value: "1.5rem" },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => onApplyStyle(`Change la taille du texte de l'élément ${selectedElement.tag}${selectedElement.src ? ` (${selectedElement.src})` : ""} à ${value}`)}
+                  className="rounded px-2 py-0.5 text-xs text-faint hover:bg-accent/10 hover:text-accent transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-edge">|</span>
+            {/* Graisse */}
+            <div className="flex gap-1">
+              {[
+                { label: "Normal", value: "400" },
+                { label: "Semi", value: "600" },
+                { label: "Bold", value: "700" },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => onApplyStyle(`Change la graisse du texte de l'élément ${selectedElement.tag}${selectedElement.src ? ` (${selectedElement.src})` : ""} à font-weight: ${value}`)}
+                  className="rounded px-2 py-0.5 text-xs text-faint hover:bg-accent/10 hover:text-accent transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Ligne 3 : couleurs */}
+          <div className="flex flex-wrap items-center gap-3 border-t border-accent/10 px-3.5 py-2">
+            <Palette size={12} className="shrink-0 text-faint" />
+            {/* Couleur texte */}
+            <span className="text-xs text-faint">Texte</span>
+            <div className="flex gap-1">
+              {[
+                { label: "Noir", value: "#111111" },
+                { label: "Gris", value: "#6b7280" },
+                { label: "Blanc", value: "#ffffff" },
+                { label: "Accent", value: "#6366f1" },
+                { label: "Rouge", value: "#ef4444" },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => onApplyStyle(`Change la couleur du texte de l'élément ${selectedElement.tag}${selectedElement.src ? ` (${selectedElement.src})` : ""} à ${value}`)}
+                  className="h-5 w-5 rounded-full border border-edge shadow-sm hover:scale-110 transition-transform"
+                  style={{ backgroundColor: value }}
+                  title={label}
+                />
+              ))}
+            </div>
+            <span className="text-edge">|</span>
+            {/* Couleur fond */}
+            <span className="text-xs text-faint">Fond</span>
+            <div className="flex gap-1">
+              {[
+                { label: "Transparent", value: "transparent" },
+                { label: "Blanc", value: "#ffffff" },
+                { label: "Gris clair", value: "#f3f4f6" },
+                { label: "Sombre", value: "#1f2937" },
+                { label: "Accent", value: "#eef2ff" },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => onApplyStyle(`Change la couleur de fond de l'élément ${selectedElement.tag}${selectedElement.src ? ` (${selectedElement.src})` : ""} à ${value}`)}
+                  className="h-5 w-5 rounded-full border border-edge shadow-sm hover:scale-110 transition-transform"
+                  style={{ backgroundColor: value === "transparent" ? "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%) 0 0 / 8px 8px" : value }}
+                  title={label}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

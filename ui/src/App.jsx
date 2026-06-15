@@ -309,6 +309,7 @@ export default function App() {
               onToggleInspect={() => setInspecting((v) => !v)}
               selectedElement={editTarget}
               onClearSelection={() => setEditTarget(null)}
+              onApplyStyle={(msg) => setSeedInput(msg)}
             />
           </div>
         </div>
