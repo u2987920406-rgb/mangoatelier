@@ -307,6 +307,8 @@ export default function App() {
               onReload={() => setPreviewKey((k) => k + 1)}
               inspecting={inspecting}
               onToggleInspect={() => setInspecting((v) => !v)}
+              selectedElement={editTarget}
+              onClearSelection={() => setEditTarget(null)}
             />
           </div>
         </div>

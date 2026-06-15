@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ExternalLink,
+  Layers,
   Monitor,
   MonitorX,
   MousePointerClick,
@@ -8,6 +9,7 @@ import {
   Smartphone,
   TriangleAlert,
   Wrench,
+  X,
 } from "lucide-react";
 
 export default function Preview({
@@ -18,6 +20,8 @@ export default function Preview({
   onReload,
   inspecting = false,
   onToggleInspect,
+  selectedElement = null,
+  onClearSelection = () => {},
 }) {
   const [device, setDevice] = useState("desktop");
   const iframeRef = useRef(null);
@@ -125,6 +129,32 @@ export default function Preview({
           >
             <Wrench size={12} />
             Corriger
+          </button>
+        </div>
+      )}
+
+      {selectedElement && (
+        <div className="flex shrink-0 items-center gap-2.5 border-b border-accent/30 bg-accent/[0.06] px-3.5 py-2 text-[13px]">
+          <Layers size={13} className="shrink-0 text-accent-soft" />
+          <code className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
+            &lt;{selectedElement.tag}&gt;
+          </code>
+          {selectedElement.text && (
+            <span className="min-w-0 flex-1 truncate text-dim">
+              {selectedElement.text}
+            </span>
+          )}
+          {selectedElement.src && (
+            <span className="shrink-0 font-mono text-xs text-faint">
+              {selectedElement.src}
+            </span>
+          )}
+          <button
+            onClick={onClearSelection}
+            className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:text-ink transition-colors"
+            title="Effacer la sélection"
+          >
+            <X size={12} />
           </button>
         </div>
       )}

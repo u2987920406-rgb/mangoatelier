@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Bookmark, BrainCircuit, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Bookmark, BrainCircuit, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 
 let nextId = 1;
@@ -38,6 +38,8 @@ export default function Chat({
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const fileRef = useRef(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   const ACCEPTED = /\.(png|jpe?g|webp|gif|pdf)$/i;
   const addFiles = (files) => {
@@ -288,6 +290,29 @@ export default function Chat({
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }
 
+  function toggleMic() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "fr-FR";
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setInput((prev) => (prev ? prev + " " + transcript : transcript));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.start();
+    recognitionRef.current = rec;
+    setListening(true);
+  }
+
   return (
     <section className="flex w-2/5 min-w-[360px] flex-col border-r border-edge bg-panel">
       {snapMode && (
@@ -421,6 +446,16 @@ export default function Chat({
             title="Snap : capturer une zone de l'aperçu"
           >
             <Scan size={16} />
+          </button>
+          <button
+            onClick={toggleMic}
+            disabled={busy}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+              listening ? "animate-pulse text-err" : "text-faint hover:text-ink"
+            }`}
+            title={listening ? "Arrêter la dictée" : "Dicter un message (français)"}
+          >
+            {listening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
           <textarea
             ref={inputRef}
