@@ -17,6 +17,7 @@ import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
+import { hasBackend } from "./backend-generator.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -117,6 +118,18 @@ Finition protocol (apply rigorously this turn — you are now a Lead QA, not a b
 - RECORD THE BACKLOG (mandatory final step) — list every out-of-scope item you deliberately did NOT do (a missing feature, a real-content/URL decision, a heavier refactor you flagged) AND append them to the project memory file ${MEMORY_FILE_NAME} under a "## TODO — décisions en attente" heading (in French, "- [ ] ..." items; merge with any existing TODO, never duplicate). IMPORTANT: the general rule above that you only edit ${MEMORY_FILE_NAME} when the user explicitly asks does NOT apply to this step — recording the finition backlog is a standing instruction of THIS phase, do it without being asked. If there is genuinely nothing pending, write nothing. Use Read then Edit/Write on the file directly.
 - Deliver a short French summary of what was hardened, then point the user to the TODO you recorded for what still needs their decision.`;
 
+// Chantier #35 — Generated backend (Express alongside the React/Vite frontend).
+// Injected only when the project already has an api/ folder (hasBackend check
+// happens at the call site — see assembleSystemPrompt). When absent, the block
+// is "" so the prompt stays lean for pure-frontend projects.
+const BACKEND_RULES = `
+Generated backend (api/ subfolder):
+- The project has a Node.js/Express backend in api/. Entry point: api/src/index.ts. Add new routes there (or split into api/src/routes/*.ts following the existing pattern).
+- The frontend calls the backend via import.meta.env.VITE_API_URL — NEVER hardcode the URL. Example: \`\${import.meta.env.VITE_API_URL}/api/items\`. Degrade gracefully if VITE_API_URL is undefined (show a "backend not started" notice rather than crash).
+- Keep secrets in api/.env (git-ignored) — use process.env on the server side. NEVER put secrets in frontend .env with VITE_ prefix (they are baked into the bundle).
+- CORS is already configured to the frontend origin. Do NOT change the cors() call unless the user explicitly needs a different origin.
+- When you add a route that needs a database, prefer Supabase server-side (supabase-js with the service_role key in api/.env — it bypasses RLS safely on the server) over raw SQL.`;
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   mode: (ctx) => MODE_RULES[ctx.mode],
@@ -142,6 +155,9 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // (components, pages, API, data, stack, decisions). Injected only when the
   // file exists (non-empty), so it never pollutes brand-new projects.
   architecture: (ctx) => ARCHITECTURE_RULES + architecturePromptSection(ctx.projectDir),
+  // Chantier #35 — generated Express backend. Injected only when the project
+  // has an api/ subfolder (hasBackend check), keeping pure-frontend prompts lean.
+  backend: (ctx) => (hasBackend(ctx.projectDir) ? BACKEND_RULES : ""),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -149,11 +165,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "designSystem", "architecture", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "architecture", "memory", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

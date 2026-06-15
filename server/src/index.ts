@@ -28,6 +28,7 @@ import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
 import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
+import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -537,6 +538,57 @@ app.put("/api/design-system", (req, res) => {
   }
   try {
     saveDesignSystem(WORKSPACE_DIR, content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// ── Chantier #35 — Backend généré (Express alongside React/Vite) ────────────
+
+// Status: is the api/ server scaffolded and/or running for this project?
+app.get("/api/backend-server/:name/status", (req, res) => {
+  const dir = projectDir(req.params.name);
+  const status = backendServerStatus();
+  res.json({
+    scaffolded: hasBackend(dir),
+    running: status.running && status.projectDir === dir,
+    url: status.projectDir === dir ? status.url : null,
+    port: status.projectDir === dir ? status.port : null,
+  });
+});
+
+// Scaffold: copy the Express template into api/ (idempotent).
+app.post("/api/backend-server/:name/scaffold", (req, res) => {
+  try {
+    const dir = projectDir(req.params.name);
+    scaffoldBackend(dir);
+    res.json({ ok: true, message: "Backend scaffolded in api/. Run npm install then start." });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Start: install deps (if needed) then launch the Express dev server.
+app.post("/api/backend-server/:name/start", async (req, res) => {
+  try {
+    const dir = projectDir(req.params.name);
+    if (!hasBackend(dir)) {
+      res.status(400).json({ error: "No api/ folder found. Scaffold the backend first." });
+      return;
+    }
+    installBackendDeps(dir); // sync npm install if node_modules absent
+    const { url, port } = await startBackendServer(dir);
+    res.json({ ok: true, url, port });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Stop: kill the Express dev server.
+app.post("/api/backend-server/:name/stop", async (_req, res) => {
+  try {
+    await stopBackendServer();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

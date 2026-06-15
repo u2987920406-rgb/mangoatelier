@@ -1,4 +1,4 @@
-import { BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Shield, Triangle, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Server, Shield, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -46,6 +46,10 @@ export default function Header({
   pushingGithub,
   onGithub,
   githubUrl,
+  backendStatus,
+  onBackendScaffold,
+  onBackendStart,
+  onBackendStop,
   cost,
   context,
   showThinking,
@@ -238,6 +242,15 @@ export default function Header({
           </a>
         )}
 
+        {backendStatus && (
+          <BackendButton
+            status={backendStatus}
+            onScaffold={onBackendScaffold}
+            onStart={onBackendStart}
+            onStop={onBackendStop}
+          />
+        )}
+
         {canDeploy && (
           <Dropdown
             width="w-64"
@@ -304,6 +317,48 @@ function ContextGauge({ tokens, window: win }) {
       </span>
       {pct}%
     </span>
+  );
+}
+
+function BackendButton({ status, onScaffold, onStart, onStop }) {
+  const { scaffolded, running, url } = status;
+
+  if (!scaffolded) {
+    return (
+      <button
+        onClick={onScaffold}
+        className="flex h-9 items-center gap-1.5 rounded-lg border border-edge bg-panel px-3 text-[13px] font-medium text-dim hover:border-faint hover:text-ink transition-colors"
+        title="Ajouter un backend Express à ce projet"
+      >
+        <Server size={14} />
+        Backend
+      </button>
+    );
+  }
+
+  if (running) {
+    return (
+      <button
+        onClick={onStop}
+        className="flex h-9 items-center gap-1.5 rounded-lg border border-ok/40 bg-ok/10 px-3 text-[13px] font-medium text-ok hover:bg-ok/20 transition-colors"
+        title={`Backend actif : ${url} — cliquer pour arrêter`}
+      >
+        <span className="h-2 w-2 rounded-full bg-ok animate-pulse" />
+        <Server size={14} />
+        api
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onStart}
+      className="flex h-9 items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/10 px-3 text-[13px] font-medium text-warn hover:bg-warn/20 transition-colors"
+      title="Démarrer le backend Express (api/)"
+    >
+      <Server size={14} />
+      Démarrer api
+    </button>
   );
 }
 

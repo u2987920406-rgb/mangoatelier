@@ -17,12 +17,13 @@ Project blueprints — when the request matches a type below, DEFAULT to its sta
 - Dashboard / admin: install recharts. src/layout/ (Sidebar, Topbar), src/widgets/ (StatCard, ChartCard, DataTable), src/data/ (mock or supabase); App.jsx = responsive grid. Numbers right-aligned, accessible color contrast.
 - Jeu 2D: HTML <canvas> + a fixed-timestep requestAnimationFrame loop. src/game/ (loop.js, entities.js, input.js, render.js), src/components/GameCanvas.jsx, App.jsx. Sync the canvas to devicePixelRatio before the first frame for crisp sprites; decouple update() from render().
 - Présentation / slides: src/slides/ (one component per slide), src/components/Deck.jsx (←/→ + space nav, progress bar, 16:9), App.jsx renders the deck. Keyboard-first.
-- Agent spécialisé (AI assistant app): install @anthropic-ai/sdk. src/lib/claude.js (client reading import.meta.env.VITE_ANTHROPIC_API_KEY, never hardcoded), src/prompts/ (the assistant's system prompt), src/components/Chat.jsx (message list + streaming), App.jsx. Default to a current model (claude-opus-4-8, or claude-sonnet-4-6 for speed) and stream responses. SECURITY: the key sits in .env (git-ignored, excluded from the zip, NEVER deployed) — this is fine for local/personal use; tell the user a production deploy needs a small backend proxy so the key isn't shipped to the browser.`;
+- Agent spécialisé (AI assistant app): install @anthropic-ai/sdk. src/lib/claude.js (client reading import.meta.env.VITE_ANTHROPIC_API_KEY, never hardcoded), src/prompts/ (the assistant's system prompt), src/components/Chat.jsx (message list + streaming), App.jsx. Default to a current model (claude-opus-4-8, or claude-sonnet-4-6 for speed) and stream responses. SECURITY: the key sits in .env (git-ignored, excluded from the zip, NEVER deployed) — this is fine for local/personal use; tell the user a production deploy needs a small backend proxy so the key isn't shipped to the browser.
+- Fullstack (React + Express backend): frontend in src/ (standard React/Vite), backend in api/src/index.ts (Express + CORS + dotenv, already scaffolded). Frontend calls the backend via import.meta.env.VITE_API_URL. Add routes in api/src/index.ts (or split into api/src/routes/*.ts). Never hardcode the API URL — always use VITE_API_URL. Keep secrets in api/.env (git-ignored), never in the frontend .env with VITE_ prefix.`;
 
 // Lightweight classifier (jalon D Phase 2): maps a prompt to one of the blueprint
 // types, for the metrics' "par type" breakdowns. Heuristic and order-sensitive —
 // the most specific types are tested first. Returns "autre" when nothing matches.
-export type ProjectType = "dashboard" | "jeu" | "slides" | "agent" | "vitrine" | "webapp" | "autre";
+export type ProjectType = "dashboard" | "jeu" | "slides" | "agent" | "vitrine" | "webapp" | "fullstack" | "autre";
 
 export function inferProjectType(text: string): ProjectType {
   const t = (text ?? "").toLowerCase();
@@ -31,6 +32,7 @@ export function inferProjectType(text: string): ProjectType {
   if (/\bslides?\b|présentation|presentation|powerpoint|\bdeck\b|diapo/.test(t)) return "slides";
   if (/\bagent\b|chatbot|\bllm\b|assistant ia|\bia\b\s+(qui|conversationnel)/.test(t)) return "agent";
   if (/vitrine|landing|page d'accueil|site (web|vitrine)|portfolio/.test(t)) return "vitrine";
+  if (/fullstack|full.stack|\bbackend\b|express|fastify|api\s+rest|webhook|server.side|côté serveur/.test(t)) return "fullstack";
   if (/\bapp(lication)?\b|formulaire|\bauth\b|login|signup|\bcrud\b|supabase|panier|e-?commerce|todo/.test(t)) return "webapp";
   return "autre";
 }

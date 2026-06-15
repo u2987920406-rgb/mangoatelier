@@ -43,6 +43,7 @@ export default function App() {
   const [githubEnabled, setGithubEnabled] = useState(false);
   const [githubUrl, setGithubUrl] = useState(null);
   const [pushingGithub, setPushingGithub] = useState(false);
+  const [backendStatus, setBackendStatus] = useState(null); // { scaffolded, running, url, port }
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
   const toastId = useRef(1);
@@ -139,6 +140,42 @@ export default function App() {
   useEffect(() => {
     refreshVersions();
   }, [refreshVersions]);
+
+  const refreshBackendStatus = useCallback(() => {
+    if (!projectName.trim()) { setBackendStatus(null); return; }
+    fetch(`/api/backend-server/${encodeURIComponent(projectName)}/status`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setBackendStatus(d))
+      .catch(() => setBackendStatus(null));
+  }, [projectName]);
+
+  useEffect(() => {
+    refreshBackendStatus();
+  }, [refreshBackendStatus]);
+
+  async function scaffoldBackend() {
+    await fetch(`/api/backend-server/${encodeURIComponent(projectName)}/scaffold`, { method: "POST" });
+    pushToast("ok", "Backend Express scaffoldé dans api/ — cliquer 'Démarrer api' pour le lancer");
+    refreshBackendStatus();
+  }
+
+  async function startBackend() {
+    pushToast("info", "Démarrage du backend (npm install si nécessaire)…");
+    const r = await fetch(`/api/backend-server/${encodeURIComponent(projectName)}/start`, { method: "POST" });
+    const d = await r.json();
+    if (d.ok) {
+      pushToast("ok", `Backend actif sur ${d.url}`);
+    } else {
+      pushToast("err", `Erreur backend : ${d.error}`);
+    }
+    refreshBackendStatus();
+  }
+
+  async function stopBackend() {
+    await fetch(`/api/backend-server/${encodeURIComponent(projectName)}/stop`, { method: "POST" });
+    pushToast("ok", "Backend arrêté");
+    refreshBackendStatus();
+  }
 
   function openProject(name, { template: tpl = "", prompt = null } = {}) {
     setProjectName(name);
@@ -264,6 +301,10 @@ export default function App() {
             pushingGithub={pushingGithub}
             onGithub={pushGithub}
             githubUrl={githubUrl}
+            backendStatus={projects.includes(projectName) ? backendStatus : null}
+            onBackendScaffold={scaffoldBackend}
+            onBackendStart={startBackend}
+            onBackendStop={stopBackend}
             cost={cost}
             context={context}
             showThinking={showThinking}
