@@ -6,6 +6,12 @@ import ToolGroup from "./components/ToolGroup.jsx";
 let nextId = 1;
 const uid = () => nextId++;
 
+const CHAT_MODES = [
+  { id: "construire", label: "Construire", model: "sonnet", mode: "elite" },
+  { id: "planifier",  label: "Planifier",  model: "opus",   mode: "elite" },
+  { id: "discuter",   label: "Discuter",   model: "haiku",  mode: "mvp"   },
+];
+
 export default function Chat({
   projectName,
   model,
@@ -21,6 +27,7 @@ export default function Chat({
   onSeedConsumed,
   editTarget,
   onEditTargetConsumed,
+  onChatMode = () => {},
   showThinking = true,
 }) {
   const [messages, setMessages] = useState([]);
@@ -367,6 +374,24 @@ export default function Chat({
               ))}
             </div>
           )}
+          <div className="flex gap-1 px-1.5 pb-2">
+            {CHAT_MODES.map((cm) => {
+              const active = cm.model === model && cm.mode === mode;
+              return (
+                <button
+                  key={cm.id}
+                  onClick={() => onChatMode({ model: cm.model, mode: cm.mode })}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-accent/15 text-accent"
+                      : "text-faint hover:text-dim hover:bg-edge-soft"
+                  }`}
+                >
+                  {cm.label}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex items-end gap-1.5 pl-1.5">
           <button
             onClick={() => fileRef.current?.click()}

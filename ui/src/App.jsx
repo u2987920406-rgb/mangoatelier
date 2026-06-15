@@ -20,6 +20,13 @@ export default function App() {
   // Effort mode (idea 12), orthogonal to the model — survives reload like it.
   const [mode, setMode] = useState(() => localStorage.getItem("mangoai.mode") ?? "elite");
 
+  const handleChatMode = useCallback(({ model: m, mode: md }) => {
+    setModel(m);
+    setMode(md);
+    localStorage.setItem("mangoai.model", m);
+    localStorage.setItem("mangoai.mode", md);
+  }, []);
+
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
@@ -290,6 +297,7 @@ export default function App() {
               editTarget={editTarget}
               onEditTargetConsumed={() => setEditTarget(null)}
               showThinking={showThinking}
+              onChatMode={handleChatMode}
             />
             <Preview
               url={previewUrl}
