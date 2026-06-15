@@ -5,6 +5,7 @@ export default function SuperAgentBuilder({ onBack }) {
   const [domain, setDomain] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingStep, setLoadingStep] = useState(null) // 'search' | 'generate'
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [agents, setAgents] = useState([])
@@ -43,8 +44,14 @@ export default function SuperAgentBuilder({ onBack }) {
   const handleBuild = async () => {
     if (!domain.trim()) return
     setLoading(true)
+    setLoadingStep('search')
     setError(null)
     setResult(null)
+
+    // Séquençage temporel : afficher « Recherche… » ~3 s puis basculer sur « Génération… »
+    // Le backend fait les 2 appels en un seul POST — on ne peut pas suivre la vraie progression.
+    const stepTimer = setTimeout(() => setLoadingStep('generate'), 3500)
+
     try {
       const r = await fetch('/api/super-agent/build', {
         method: 'POST',
@@ -58,7 +65,9 @@ export default function SuperAgentBuilder({ onBack }) {
     } catch (e) {
       setError(e.message)
     } finally {
+      clearTimeout(stepTimer)
       setLoading(false)
+      setLoadingStep(null)
     }
   }
 
@@ -148,7 +157,7 @@ export default function SuperAgentBuilder({ onBack }) {
               {loading ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  Génération en cours…
+                  {loadingStep === 'search' ? 'Recherche du domaine…' : 'Génération de l\'agent…'}
                 </>
               ) : (
                 <>

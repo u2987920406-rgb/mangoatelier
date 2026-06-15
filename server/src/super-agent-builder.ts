@@ -58,10 +58,44 @@ export function registerSuperAgentRoutes(app: Express): void {
       ? `\n\nContexte supplémentaire fourni par l'utilisateur :\n${description.trim()}`
       : ''
 
+    // ── Étape 1 — Recherche web (fallback gracieux si indisponible) ────────────
+    // On utilise le web search tool natif de l'API Anthropic.
+    // Le type 'web_search_20260209' est casté en `any` pour compatibilité TypeScript
+    // avec des SDK ne déclarant pas encore ce type littéral exact.
+    // Version antérieure de secours : 'web_search_20250305'.
+    let webContext = ''
+    try {
+      const researchMessage = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }] as any,
+        messages: [{
+          role: 'user',
+          content: `Recherche les meilleures pratiques, le vocabulaire métier et le mode de raisonnement d'un expert en : ${domain.trim()}. Synthétise en 8-12 puces concrètes et opérationnelles.`,
+        }],
+      })
+      // La réponse contient des blocs interleaved (server_tool_use, web_search_tool_result, text).
+      // On filtre uniquement les blocs text pour la synthèse de Claude.
+      webContext = researchMessage.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b as { type: 'text'; text: string }).text)
+        .join('')
+    } catch {
+      // Fallback gracieux : org sans accès au web search tool, erreur réseau, type non supporté…
+      // webContext reste '' → génération continue sans contexte web (comportement actuel inchangé).
+      webContext = ''
+    }
+
+    // ── Étape 2 — Génération de l'agent ──────────────────────────────────────
+    const webContextBlock = webContext.trim()
+      ? `\nContexte web récent sur le domaine (à utiliser pour ancrer le system prompt dans des pratiques réelles) :\n<webContext>\n${webContext.trim()}\n</webContext>\n`
+      : ''
+
     const systemPrompt = `Tu es un architecte d'agents IA. Tu génères des agents experts hautement opérationnels.`
 
     const userPrompt = `Génère un agent expert spécialisé en : ${domain.trim()}.${descriptionBlock}
-
+${webContextBlock}
 Retourne UNIQUEMENT un objet JSON valide (sans markdown, sans explication, sans code fence) avec exactement ces clés :
 
 {

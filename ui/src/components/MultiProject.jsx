@@ -1,6 +1,53 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Layers, ChevronDown, ChevronRight, Copy, Check, X, FileCode2 } from "lucide-react";
 
+// --- Badges catégorie ---
+const CATEGORY_META = {
+  component: { label: "composant", className: "bg-purple-500/15 text-purple-300" },
+  hook:      { label: "hook",      className: "bg-blue-500/15 text-blue-300" },
+  util:      { label: "utilitaire",className: "bg-teal-500/15 text-teal-300" },
+  service:   { label: "service",   className: "bg-orange-500/15 text-orange-300" },
+  type:      { label: "type",      className: "bg-yellow-500/15 text-yellow-300" },
+  other:     { label: "autre",     className: "bg-zinc-500/15 text-zinc-400" },
+};
+
+function CategoryBadge({ category }) {
+  const meta = CATEGORY_META[category] ?? CATEGORY_META.other;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${meta.className}`}>
+      {meta.label}
+    </span>
+  );
+}
+
+// --- Toggles filtre catégorie ---
+const ALL_CATEGORIES = Object.keys(CATEGORY_META);
+
+function CategoryFilters({ active, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {ALL_CATEGORIES.map((cat) => {
+        const meta = CATEGORY_META[cat];
+        const isActive = active.has(cat);
+        return (
+          <button
+            key={cat}
+            onClick={() => onChange(cat)}
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+              isActive
+                ? `${meta.className} border-current`
+                : "border-edge text-dim hover:text-ink"
+            }`}
+          >
+            {meta.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// --- Toast ---
 function Toast({ message, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
@@ -18,32 +65,41 @@ function Toast({ message, onClose }) {
   );
 }
 
+// --- CopyPanel avec gestion 409 ---
 function CopyPanel({ projects, sourceProject, sourceFile, onClose }) {
   const [targetProject, setTargetProject] = useState("");
   const [targetFile, setTargetFile] = useState(() => {
-    // Suggestion : même nom de fichier
     const parts = sourceFile.split("/");
     return parts[parts.length - 1] ?? sourceFile;
   });
   const [copying, setCopying] = useState(false);
   const [error, setError] = useState("");
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
 
   const availableTargets = projects.filter((p) => p.name !== sourceProject);
 
-  async function handleCopy() {
-    if (!targetProject || !targetFile.trim()) {
-      setError("Sélectionne un projet cible et un nom de fichier.");
-      return;
-    }
+  async function doCopy(overwrite = false) {
     setCopying(true);
     setError("");
+    setConfirmOverwrite(false);
     try {
       const resp = await fetch("/api/multi-project/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceProject, sourceFile, targetProject, targetFile: `src/components/${targetFile.trim()}` }),
+        body: JSON.stringify({
+          sourceProject,
+          sourceFile,
+          targetProject,
+          targetFile: `src/components/${targetFile.trim()}`,
+          overwrite,
+        }),
       });
       const data = await resp.json();
+      if (resp.status === 409 && data.exists) {
+        // Fichier cible déjà présent — demander confirmation
+        setConfirmOverwrite(true);
+        return;
+      }
       if (!resp.ok) throw new Error(data.error ?? "Erreur inconnue");
       onClose(true, `Copié dans ${targetProject}/src/components/${targetFile.trim()}`);
     } catch (err) {
@@ -51,6 +107,14 @@ function CopyPanel({ projects, sourceProject, sourceFile, onClose }) {
     } finally {
       setCopying(false);
     }
+  }
+
+  async function handleCopy() {
+    if (!targetProject || !targetFile.trim()) {
+      setError("Sélectionne un projet cible et un nom de fichier.");
+      return;
+    }
+    await doCopy(false);
   }
 
   return (
@@ -61,7 +125,7 @@ function CopyPanel({ projects, sourceProject, sourceFile, onClose }) {
         <label className="block text-xs text-dim">Projet cible</label>
         <select
           value={targetProject}
-          onChange={(e) => setTargetProject(e.target.value)}
+          onChange={(e) => { setTargetProject(e.target.value); setConfirmOverwrite(false); }}
           className="w-full rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent-soft"
         >
           <option value="">-- Choisir un projet --</option>
@@ -78,39 +142,66 @@ function CopyPanel({ projects, sourceProject, sourceFile, onClose }) {
         <input
           type="text"
           value={targetFile}
-          onChange={(e) => setTargetFile(e.target.value)}
+          onChange={(e) => { setTargetFile(e.target.value); setConfirmOverwrite(false); }}
           placeholder="MonComposant.jsx"
           className="w-full rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-ink placeholder-faint focus:outline-none focus:border-accent-soft"
         />
       </div>
 
+      {/* Bandeau de confirmation écrasement (409) */}
+      {confirmOverwrite && (
+        <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 space-y-2">
+          <p className="text-xs text-yellow-300 font-medium">
+            Le fichier <code className="font-mono">{targetFile.trim()}</code> existe déjà dans {targetProject}/src/components/. Écraser ?
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => doCopy(true)}
+              disabled={copying}
+              className="rounded-md bg-yellow-500/20 border border-yellow-500/40 px-3 py-1 text-xs text-yellow-300 hover:bg-yellow-500/30 transition-colors disabled:opacity-50"
+            >
+              {copying ? "Copie…" : "Oui, écraser"}
+            </button>
+            <button
+              onClick={() => setConfirmOverwrite(false)}
+              className="rounded-md border border-edge px-3 py-1 text-xs text-dim hover:text-ink transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-xs text-red-400">{error}</p>}
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleCopy}
-          disabled={copying}
-          className="flex items-center gap-2 rounded-lg bg-accent-soft px-4 py-2 text-sm font-medium text-bg hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "#9678ff", color: "#0b0d12" }}
-        >
-          {copying ? (
-            <span className="animate-spin inline-block w-3 h-3 border border-current border-t-transparent rounded-full" />
-          ) : (
-            <Copy size={13} />
-          )}
-          {copying ? "Copie…" : "Copier"}
-        </button>
-        <button
-          onClick={() => onClose(false)}
-          className="rounded-lg border border-edge px-4 py-2 text-sm text-dim hover:text-ink transition-colors"
-        >
-          Annuler
-        </button>
-      </div>
+      {!confirmOverwrite && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            disabled={copying}
+            className="flex items-center gap-2 rounded-lg bg-accent-soft px-4 py-2 text-sm font-medium text-bg hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: "#9678ff", color: "#0b0d12" }}
+          >
+            {copying ? (
+              <span className="animate-spin inline-block w-3 h-3 border border-current border-t-transparent rounded-full" />
+            ) : (
+              <Copy size={13} />
+            )}
+            {copying ? "Copie…" : "Copier"}
+          </button>
+          <button
+            onClick={() => onClose(false)}
+            className="rounded-lg border border-edge px-4 py-2 text-sm text-dim hover:text-ink transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
+// --- ComponentRow avec badge catégorie ---
 function ComponentRow({ component, project, allProjects, onCopied }) {
   const [expanded, setExpanded] = useState(false);
   const [showCopy, setShowCopy] = useState(false);
@@ -153,8 +244,11 @@ function ComponentRow({ component, project, allProjects, onCopied }) {
       <div className="flex items-center gap-3 px-4 py-3">
         <FileCode2 size={14} className="text-dim flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-ink font-medium truncate">{fileName}</p>
-          <p className="text-xs text-faint">{sizeKb} ko · {component.file}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-ink font-medium truncate">{fileName}</p>
+            <CategoryBadge category={component.category ?? "other"} />
+          </div>
+          <p className="text-xs text-faint mt-0.5">{sizeKb} ko · {component.file}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -212,8 +306,16 @@ function ComponentRow({ component, project, allProjects, onCopied }) {
   );
 }
 
-function ProjectCard({ project, allProjects, onCopied }) {
+// --- ProjectCard ---
+function ProjectCard({ project, allProjects, onCopied, activeCategories }) {
   const [open, setOpen] = useState(false);
+
+  // Filtrer les composants selon les catégories actives
+  const visibleComponents = activeCategories.size === 0
+    ? project.components
+    : project.components.filter((c) => activeCategories.has(c.category ?? "other"));
+
+  if (visibleComponents.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-edge bg-panel overflow-hidden">
@@ -227,7 +329,8 @@ function ProjectCard({ project, allProjects, onCopied }) {
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-ink truncate">{project.name}</p>
           <p className="text-xs text-dim mt-0.5">
-            {project.componentCount} composant{project.componentCount > 1 ? "s" : ""}
+            {visibleComponents.length} fichier{visibleComponents.length > 1 ? "s" : ""}
+            {activeCategories.size > 0 && ` (filtrés sur ${project.componentCount} total)`}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -235,7 +338,7 @@ function ProjectCard({ project, allProjects, onCopied }) {
             className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
             style={{ background: "rgba(150,120,255,0.15)", color: "#9678ff" }}
           >
-            {project.componentCount}
+            {visibleComponents.length}
           </span>
           {open ? (
             <ChevronDown size={16} className="text-dim" />
@@ -247,7 +350,7 @@ function ProjectCard({ project, allProjects, onCopied }) {
 
       {open && (
         <div className="border-t border-edge px-4 py-4 space-y-3 bg-bg/30">
-          {project.components.map((comp) => (
+          {visibleComponents.map((comp) => (
             <ComponentRow
               key={comp.file}
               component={comp}
@@ -262,12 +365,14 @@ function ProjectCard({ project, allProjects, onCopied }) {
   );
 }
 
+// --- Page principale ---
 export default function MultiProject({ onBack }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
+  const [activeCategories, setActiveCategories] = useState(new Set());
 
   useEffect(() => {
     fetch("/api/multi-project/components")
@@ -285,6 +390,16 @@ export default function MultiProject({ onBack }) {
     setToast(message);
   }
 
+  function toggleCategory(cat) {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
+
+  // Filtrage textuel
   const filtered = search.trim()
     ? projects.filter(
         (p) =>
@@ -294,6 +409,11 @@ export default function MultiProject({ onBack }) {
     : projects;
 
   const totalComponents = projects.reduce((acc, p) => acc + p.componentCount, 0);
+
+  // Compter les catégories présentes dans les projets chargés
+  const presentCategories = new Set(
+    projects.flatMap((p) => p.components.map((c) => c.category ?? "other"))
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-ink">
@@ -310,11 +430,11 @@ export default function MultiProject({ onBack }) {
           <div className="h-5 w-px bg-edge" />
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Layers size={18} style={{ color: "#9678ff" }} />
-            <h1 className="font-bold text-ink truncate">Multi-projets — Bibliothèque de composants</h1>
+            <h1 className="font-bold text-ink truncate">Multi-projets — Bibliothèque de fichiers</h1>
           </div>
           {!loading && (
             <span className="text-xs text-dim flex-shrink-0">
-              {projects.length} projet{projects.length > 1 ? "s" : ""} · {totalComponents} composants
+              {projects.length} projet{projects.length > 1 ? "s" : ""} · {totalComponents} fichiers
             </span>
           )}
         </div>
@@ -323,30 +443,51 @@ export default function MultiProject({ onBack }) {
       {/* Contenu */}
       <main className="flex-1 px-6 py-8">
         <div className="mx-auto max-w-4xl space-y-6">
-          {/* Barre de recherche */}
+          {/* Barre de recherche + filtres catégorie */}
           {!loading && projects.length > 0 && (
-            <div className="relative">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher un projet ou un composant…"
-                className="w-full rounded-xl border border-edge bg-panel px-4 py-3 pl-10 text-sm text-ink placeholder-faint focus:outline-none focus:border-accent-soft transition-colors"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-dim"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
+            <div className="space-y-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Rechercher un projet ou un fichier…"
+                  className="w-full rounded-xl border border-edge bg-panel px-4 py-3 pl-10 text-sm text-ink placeholder-faint focus:outline-none focus:border-accent-soft transition-colors"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-dim"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+
+              {/* Toggles catégories (uniquement si des catégories multiples existent) */}
+              {presentCategories.size > 1 && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xs text-dim">Filtrer :</span>
+                  <CategoryFilters
+                    active={activeCategories}
+                    onChange={toggleCategory}
+                  />
+                  {activeCategories.size > 0 && (
+                    <button
+                      onClick={() => setActiveCategories(new Set())}
+                      className="text-xs text-dim hover:text-ink transition-colors underline underline-offset-2"
+                    >
+                      Tout afficher
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -367,10 +508,11 @@ export default function MultiProject({ onBack }) {
           {!loading && !error && projects.length === 0 && (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
               <Layers size={40} className="text-faint" />
-              <p className="text-ink font-medium">Aucun composant trouvé</p>
+              <p className="text-ink font-medium">Aucun fichier trouvé</p>
               <p className="text-sm text-dim max-w-sm">
                 Génère d'abord des projets dans MangoAI. Les fichiers{" "}
-                <code className="text-faint">.jsx</code> et <code className="text-faint">.tsx</code>{" "}
+                <code className="text-faint">.jsx</code>, <code className="text-faint">.tsx</code>,{" "}
+                <code className="text-faint">.ts</code> et <code className="text-faint">.js</code>{" "}
                 apparaîtront ici automatiquement.
               </p>
             </div>
@@ -391,6 +533,7 @@ export default function MultiProject({ onBack }) {
                   project={project}
                   allProjects={projects}
                   onCopied={handleCopied}
+                  activeCategories={activeCategories}
                 />
               ))}
             </div>

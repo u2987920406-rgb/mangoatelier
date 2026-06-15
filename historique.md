@@ -55,6 +55,8 @@ Le moteur peut un jour être distribué. Ton cerveau, jamais.
 
 ## 🗓️ Journal des sessions
 
+> **🟢 2026-06-15 (session « vague 6 — phases 1 des idées #26 & #40 »)** — Démarrage des deux idées multi-phases les plus ambitieuses restantes, phase 1 chacune, livrées en parallèle (2 agents Sonnet, fichiers disjoints). **#26 Phase 1** (`multi-project.ts` + `MultiProject.jsx`) : scanner élargi à 6 sous-dossiers (`components`, `hooks`, `utils`, `services`, `types`, `lib`) + extensions `.jsx/.tsx/.ts/.js` (exclusions `*.test.*`/`*.spec.*`/`*.d.ts`) ; nouveau champ `category` (component/hook/util/service/type/other) via `inferCategory` ; `POST /api/multi-project/copy` répond HTTP 409 `{ exists: true }` si la cible existe sans `overwrite: true` ; UI = badges catégorie colorés + filtres toggle + confirmation inline « Écraser ? ». **#40 Phase 1** (`super-agent-builder.ts` + `SuperAgentBuilder.jsx`) : étape de recherche web AVANT génération via le **web search tool natif de l'API Anthropic** (`web_search_20260209`, cast `as any`, `max_uses: 3`) — try/catch à fallback gracieux (si le tool est indisponible côté org, `webContext=''` et zéro régression) ; le contexte web est injecté sous balise `<webContext>` dans le prompt de génération ; UI à 2 étapes visuelles (« Recherche du domaine… » → « Génération de l'agent… » après 3,5 s). `tsc` 0 erreur, build UI OK (8.47s, 1943 modules). Restent les phases 2 (intégration agent / export SKILL.md) et 3 (recherche sémantique / détection auto) pour chacune.
+
 > **🟢 2026-06-15 (session « vague 5 — idée #2 Design pair-programming »)** — `design-review.ts` : route POST /api/design-review — collecte jusqu'à 10 fichiers (.jsx/.tsx/.js/.ts/.css/.scss/.html) dans workspace/projectName/src/, résumé 4000 chars, appel claude-sonnet-4-6, JSON parsé {score, summary, palette, typography, layout, components, quickWins} persisté dans server/data/design-reviews.jsonl. Route GET /api/design-review/history?project=X — 5 derniers. `DesignReview.jsx` : ScoreBar colorée (vert/orange/rouge), accordéons Palette + Typo + Layout + Composants, QuickWinChips cliquables (toggle barré), HistoryCards avec temps relatif, select projet dynamique via /api/projects. `tsc` 0, build UI OK (8s, 1938 modules).
 
 > **🟢 2026-06-15 (session « comparaison Élève »)** — Aucun code produit modifié. Comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
@@ -128,8 +130,13 @@ Projets formation à construire avec MangoAI pour comprendre l'écosystème IA p
 ### Idée 25 — MCP Figma 🗑️ RETIRÉ (2026-06-14)
 Supprimés : `figma.ts`, `test-figma.ts`, `FIGMA_RULES`, registre MCP, `FIGMA_TOKEN`. Remplacé par : image jointe 📎 → reproduction (prouvée e2e sur landing Landify, build vert).
 
-### Idée 26 — Multi-projets & composition 💤
+### Idée 26 — Multi-projets & composition 🚧 Phase 1 ✅ (2026-06-15)
 MangoAI gère plusieurs projets liés : l'agent peut lire un composant d'un projet A et le réutiliser dans un projet B. Complémentaire des skills (#10) mais au niveau code.
+
+**Plan en 3 phases** (établi 2026-06-15) :
+- **Phase 1 ✅ — Scope élargi + sécurité copie** (`S · ⚖️`) : `multi-project.ts` scanne désormais 6 sous-dossiers (`components`, `hooks`, `utils`, `services`, `types`, `lib`) et 4 extensions (`.jsx/.tsx/.ts/.js`), avec exclusions `*.test.*`/`*.spec.*`/`*.d.ts` (1 niveau de profondeur). Chaque fichier porte un champ `category` (`inferCategory` : service > type > hook > util > component > other). `POST /api/multi-project/copy` accepte `overwrite` ; si la cible existe sans ce flag → HTTP 409 `{ exists: true }`. `MultiProject.jsx` : `CategoryBadge` coloré, `CategoryFilters` (toggles), bandeau de confirmation inline « Écraser ? » qui re-tente avec `overwrite: true`. Sécurité path-traversal conservée.
+- **Phase 2 — Intégration agent** (`M · ⚖️`) : `multiProjectPromptSection()` injecté dans les 3 scénarios (l'agent sait quels composants existent ailleurs et peut proposer de les réutiliser) + `review.ts` détecte les composants réinventés.
+- **Phase 3 — Recherche sémantique** (`L · 🧠`) : index sémantique des fichiers via Claude Haiku (`POST /api/multi-project/index`), recherche par similarité (`GET /api/multi-project/search`), barre de recherche sémantique + ré-indexation dans l'UI.
 
 ### Idée 27 — Click-to-Segment 💤 à phaser
 SAM + VLM superflus — Claude + le DOM (`elementFromPoint` + tampon Babel `data-mango-src`) font mieux nativement. Voir la note d'analyse complète dans la section Phase Ultime.
@@ -170,8 +177,13 @@ Extension de Mango Plan : avant d'écrire le premier fichier, MangoAI pose des q
 ### Idée 39 — Paiements Stripe 💤 (après #35)
 Paiement en ligne, abonnements récurrents, webhooks de confirmation, remboursements. Nécessite le backend généré (#35) pour les webhooks serveur.
 
-### Idée 40 — Super-agent spécialisé 💤 vision
+### Idée 40 — Super-agent spécialisé 🚧 Phase 1 ✅ (2026-06-15)
 4 phases : (1) Recherche WebSearch+WebFetch ; (2) Synthèse en règles opérationnelles ; (3) Encodage `SKILL.md` + bloc scénario + définition sous-agent nommé ; (4) Validation projet pilote + axiomes. Convoqué automatiquement dès que MangoAI détecte le type de projet.
+
+**Plan en 3 phases** (établi 2026-06-15 — v1 du builder déjà livrée : `POST /api/super-agent/build` génère name+systemPrompt+tools+examples+tags, stockés dans `data/super-agents.json`, UI AgentCard) :
+- **Phase 1 ✅ — Recherche web avant génération** (`S · ⚖️`) : `super-agent-builder.ts` fait un appel préalable avec le **web search tool natif de l'API Anthropic** (`web_search_20260209`, casté `as any` car le type littéral peut manquer dans le SDK — fallback de version antérieure `web_search_20250305` documenté en commentaire ; `max_uses: 3`). Le texte de synthèse (blocs `b.type === 'text'`) alimente `webContext`, injecté sous balise `<webContext>` dans le prompt de génération. **Fallback gracieux** : try/catch — si le web search est indisponible (org sans accès, réseau, type non supporté), `webContext=''` et le endpoint produit exactement le résultat d'avant (zéro régression). `SuperAgentBuilder.jsx` : indicateur 2 étapes (`loadingStep` search→generate, bascule par `setTimeout` 3,5 s, `clearTimeout` au `finally`). NB : le SDK `@anthropic-ai/sdk` (v0.104.1) est une dépendance transitive de `@anthropic-ai/claude-agent-sdk` — déjà le cas avant cette phase.
+- **Phase 2 — Export opérationnel** (`M · ⚖️`) : `POST /api/super-agent/:id/export` génère `workspace/.skills/<slug>/SKILL.md` + `META.json` ; bouton « Exporter en skill » dans l'UI ; `skills.ts` propose le skill exporté au chargement d'un projet.
+- **Phase 3 — Détection auto + injection** (`L · 🧠`) : `matchAgentToProject()` (type de projet via `blueprints.ts` ↔ tags des super-agents), `superAgentPromptSection(projectName)` injecte le systemPrompt de l'expert qui matche, `GET /api/super-agent/match?project=X`, badge « Actif sur ce projet ».
 
 ### Idée 41 — RLHF personnel 👍/👎 ✅ FAIT (2026-06-15)
 `feedback.ts` (Haiku extrait le pattern en arrière-plan). `POST /api/feedback`. Boutons 👍/👎 sous chaque message agent dans `Chat.jsx`. `scoreAxiom` dans `axioms.ts` donne +10 aux axiomes `validé-utilisateur` / `à-éviter`.

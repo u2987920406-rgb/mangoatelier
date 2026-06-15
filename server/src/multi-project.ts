@@ -6,37 +6,69 @@ const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
 
 const EXCLUDED_DIRS = new Set(['node_modules', '.mango', 'dist', '.git', '.cache', '.next', '.nuxt'])
 
+// Sous-dossiers de src/ à scanner (relatifs à src/)
+const SRC_SUBDIRS = ['components', 'hooks', 'utils', 'services', 'types', 'lib']
+
+// Extensions acceptées
+const ACCEPTED_EXT = /\.(jsx|tsx|ts|js)$/
+// Fichiers à exclure
+const EXCLUDED_FILE = /\.(test|spec)\.(jsx|tsx|ts|js)$|\.d\.ts$/
+
+type FileCategory = 'component' | 'hook' | 'util' | 'service' | 'type' | 'other'
+
 function isExcluded(name: string): boolean {
   return EXCLUDED_DIRS.has(name) || name.startsWith('.')
 }
 
-function findComponents(projectPath: string): string[] {
+function inferCategory(relPath: string): FileCategory {
+  const normalized = relPath.replace(/\\/g, '/')
+  const fileName = normalized.split('/').pop() ?? ''
+
+  if (normalized.includes('src/services/')) return 'service'
+  if (normalized.includes('src/types/')) return 'type'
+  if (normalized.includes('src/hooks/') || fileName.startsWith('use')) return 'hook'
+  if (normalized.includes('src/utils/') || normalized.includes('src/lib/')) return 'util'
+  if (normalized.includes('src/components/') || /\.(jsx|tsx)$/.test(fileName)) return 'component'
+  return 'other'
+}
+
+interface SourceFile {
+  file: string
+  size: number
+  preview: string[]
+  category: FileCategory
+}
+
+function findSourceFiles(projectPath: string): string[] {
   const results: string[] = []
 
-  // Chercher src/components/*.jsx|tsx
-  const srcComponents = path.join(projectPath, 'src', 'components')
-  if (fs.existsSync(srcComponents)) {
+  // Scanner chaque sous-dossier connu de src/
+  for (const subdir of SRC_SUBDIRS) {
+    const dirAbs = path.join(projectPath, 'src', subdir)
+    if (!fs.existsSync(dirAbs)) continue
     try {
-      const entries = fs.readdirSync(srcComponents, { withFileTypes: true })
+      const entries = fs.readdirSync(dirAbs, { withFileTypes: true })
       for (const entry of entries) {
-        if (!entry.isDirectory() && /\.(jsx|tsx)$/.test(entry.name)) {
-          results.push(path.join('src', 'components', entry.name))
-        }
+        if (entry.isDirectory()) continue
+        if (!ACCEPTED_EXT.test(entry.name)) continue
+        if (EXCLUDED_FILE.test(entry.name)) continue
+        results.push(path.join('src', subdir, entry.name))
       }
     } catch {
-      // ignorer
+      // ignorer les erreurs de lecture
     }
   }
 
-  // Chercher src/*.jsx (composants à la racine de src)
+  // Scanner src/ lui-même (fichiers à la racine)
   const srcDir = path.join(projectPath, 'src')
   if (fs.existsSync(srcDir)) {
     try {
       const entries = fs.readdirSync(srcDir, { withFileTypes: true })
       for (const entry of entries) {
-        if (!entry.isDirectory() && /\.(jsx|tsx)$/.test(entry.name)) {
-          results.push(path.join('src', entry.name))
-        }
+        if (entry.isDirectory()) continue
+        if (!ACCEPTED_EXT.test(entry.name)) continue
+        if (EXCLUDED_FILE.test(entry.name)) continue
+        results.push(path.join('src', entry.name))
       }
     } catch {
       // ignorer
@@ -75,9 +107,9 @@ export function registerMultiProjectRoutes(app: Express): void {
       .filter((entry) => entry.isDirectory() && !isExcluded(entry.name))
       .map((entry) => {
         const projectPath = path.join(WORKSPACE_DIR, entry.name)
-        const componentRelPaths = findComponents(projectPath)
+        const fileRelPaths = findSourceFiles(projectPath)
 
-        const components = componentRelPaths.map((relPath) => {
+        const components: SourceFile[] = fileRelPaths.map((relPath) => {
           const absPath = path.join(projectPath, relPath)
           let size = 0
           try {
@@ -86,10 +118,12 @@ export function registerMultiProjectRoutes(app: Express): void {
             // ignorer
           }
           const preview = getPreview(absPath)
+          const category = inferCategory(relPath)
           return {
             file: relPath.replace(/\\/g, '/'),
             size,
             preview,
+            category,
           }
         })
 
@@ -143,13 +177,14 @@ export function registerMultiProjectRoutes(app: Express): void {
   })
 
   // POST /api/multi-project/copy
-  // Body: { sourceProject, sourceFile, targetProject, targetFile }
+  // Body: { sourceProject, sourceFile, targetProject, targetFile, overwrite? }
   app.post('/api/multi-project/copy', (req: Request, res: Response) => {
-    const { sourceProject, sourceFile, targetProject, targetFile } = req.body as {
+    const { sourceProject, sourceFile, targetProject, targetFile, overwrite } = req.body as {
       sourceProject?: string
       sourceFile?: string
       targetProject?: string
       targetFile?: string
+      overwrite?: boolean
     }
 
     if (!sourceProject?.trim() || !sourceFile?.trim() || !targetProject?.trim() || !targetFile?.trim()) {
@@ -178,6 +213,12 @@ export function registerMultiProjectRoutes(app: Express): void {
 
     if (!fs.existsSync(srcAbs)) {
       res.status(404).json({ error: 'Fichier source introuvable' })
+      return
+    }
+
+    // Vérifier si la cible existe déjà
+    if (fs.existsSync(tgtAbs) && !overwrite) {
+      res.status(409).json({ exists: true, error: 'Le fichier cible existe déjà.' })
       return
     }
 
