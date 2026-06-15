@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BarChart2, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Lightbulb, Rss, Sliders, ShieldCheck } from "lucide-react";
+import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Palette, Rss, Scissors, Sliders, ShieldCheck } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -17,6 +17,11 @@ import QAPanel from "./components/QAPanel.jsx";
 import Billing from "./components/Billing.jsx";
 import CronManager from "./components/CronManager.jsx";
 import MetricsDashboard from "./components/MetricsDashboard.jsx";
+import NotesRAG from "./components/NotesRAG.jsx";
+import AutoAblation from "./components/AutoAblation.jsx";
+import MultiProject from "./components/MultiProject.jsx";
+import SuperAgentBuilder from "./components/SuperAgentBuilder.jsx";
+import DesignReview from "./components/DesignReview.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -301,6 +306,11 @@ export default function App() {
   if (screen === "billing") return <Billing onBack={() => setScreen("home")} />;
   if (screen === "cron") return <CronManager onBack={() => setScreen("home")} />;
   if (screen === "metrics") return <MetricsDashboard onBack={() => setScreen("home")} />;
+  if (screen === "notes") return <NotesRAG onBack={() => setScreen("home")} />;
+  if (screen === "ablation") return <AutoAblation onBack={() => setScreen("home")} />;
+  if (screen === "multi") return <MultiProject onBack={() => setScreen("home")} />;
+  if (screen === "superagent") return <SuperAgentBuilder onBack={() => setScreen("home")} />;
+  if (screen === "design") return <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
 
   return (
     <>
@@ -370,6 +380,41 @@ export default function App() {
               className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
             >
               <BarChart2 size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("notes")}
+              title="Notes & RAG"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <BookOpen size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("ablation")}
+              title="Auto-Ablation"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Scissors size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("multi")}
+              title="Multi-Projet"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Layers size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("superagent")}
+              title="Super Agent Builder"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Bot size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("design")}
+              title="Design Review"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Palette size={18} className="text-accent" />
             </button>
           </div>
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
