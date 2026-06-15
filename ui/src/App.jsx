@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FlaskConical, Hash, Lightbulb, Rss, Sliders } from "lucide-react";
+import { Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Lightbulb, Rss, Sliders, ShieldCheck } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -11,6 +11,11 @@ import Tokenizer from "./components/Tokenizer.jsx";
 import Ideation from "./components/Ideation.jsx";
 import SidePanel from "./components/SidePanel.jsx";
 import Veille from "./components/Veille.jsx";
+import DocGenerator from "./components/DocGenerator.jsx";
+import VersionGraph from "./components/VersionGraph.jsx";
+import QAPanel from "./components/QAPanel.jsx";
+import Billing from "./components/Billing.jsx";
+import CronManager from "./components/CronManager.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -289,6 +294,11 @@ export default function App() {
   if (screen === "tokenizer") return <Tokenizer onBack={() => setScreen("home")} />;
   if (screen === "ideation") return <Ideation onBack={() => setScreen("home")} onStartCoding={(desc) => { setPendingPrompt(desc); setScreen("chat"); }} />;
   if (screen === "veille") return <Veille onBack={() => setScreen("home")} />;
+  if (screen === "docs") return <DocGenerator onBack={() => setScreen("home")} />;
+  if (screen === "versions") return <VersionGraph projectName={projectName} onBack={() => setScreen("chat")} />;
+  if (screen === "qa") return <QAPanel projectName={projectName} onBack={() => setScreen("chat")} />;
+  if (screen === "billing") return <Billing onBack={() => setScreen("home")} />;
+  if (screen === "cron") return <CronManager onBack={() => setScreen("home")} />;
 
   return (
     <>
@@ -330,6 +340,27 @@ export default function App() {
               className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
             >
               <Rss size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("docs")}
+              title="Générateur de docs"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <FileText size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("billing")}
+              title="Billing / Stripe"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <CreditCard size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("cron")}
+              title="Cron / Tâches planifiées"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Clock size={18} className="text-accent" />
             </button>
           </div>
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
@@ -404,6 +435,22 @@ export default function App() {
               onClearSelection={() => setEditTarget(null)}
               onApplyStyle={(msg) => setSeedInput(msg)}
             />
+          </div>
+          <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+            <button
+              onClick={() => setScreen("versions")}
+              title="Historique des versions"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <GitBranch size={16} className="text-accent-soft" />
+            </button>
+            <button
+              onClick={() => setScreen("qa")}
+              title="Audit QA"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <ShieldCheck size={16} className="text-accent-soft" />
+            </button>
           </div>
         </div>
       )}

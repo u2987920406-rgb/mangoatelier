@@ -39,6 +39,11 @@ import { registerTokenizerRoutes } from "./tokenizer.js";
 import { registerIdeationRoutes } from "./ideation.js";
 import { registerVeilleRoutes } from "./veille.js";
 import { registerModelRouterRoutes } from "./model-router.js";
+import { registerDocGeneratorRoutes } from "./docgenerator.js";
+import { registerVersionGraphRoutes } from "./version-graph.js";
+import { registerQARoutes } from "./qa-temporal.js";
+import { registerStripeRoutes } from "./stripe.js";
+import { registerCronRoutes } from "./cron-scheduler.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -581,6 +586,45 @@ app.delete("/api/components/:name", (req, res) => {
   }
 });
 
+// ── Skills API ───────────────────────────────────────────────────────────────
+
+// List all skills
+app.get("/api/skills", (_req, res) => {
+  res.json({ skills: listSkills().map(({ name, description }) => ({ name, description })) });
+});
+
+// Create a new skill
+app.post("/api/skills", (req, res) => {
+  const { name, description, content } = req.body as { name?: string; description?: string; content?: string };
+  if (!name?.trim() || !content?.trim()) {
+    res.status(400).json({ error: "name et content sont requis" });
+    return;
+  }
+  const slug = name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const dir = path.join(SKILLS_DIR, slug);
+  const file = path.join(dir, "SKILL.md");
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const frontmatter = `---\nname: ${name.trim()}\ndescription: ${(description ?? "").trim()}\n---\n\n${content.trim()}\n`;
+    fs.writeFileSync(file, frontmatter, "utf8");
+    res.json({ ok: true, slug });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Delete a skill
+app.delete("/api/skills/:name", (req, res) => {
+  const slug = req.params.name;
+  const dir = path.join(SKILLS_DIR, slug);
+  try {
+    fs.rmSync(dir, { recursive: true, force: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 // Idée #42 — couches d'identité : lecture / écriture d'une couche
 // (layer ∈ language | thinking | vision). Fichiers cross-projet à la racine du
 // workspace. .vision.md est éditable ici (signal explicite de l'utilisateur),
@@ -883,6 +927,11 @@ registerTokenizerRoutes(app);
 registerIdeationRoutes(app);
 registerVeilleRoutes(app);
 registerModelRouterRoutes(app);
+registerDocGeneratorRoutes(app);
+registerVersionGraphRoutes(app);
+registerQARoutes(app);
+registerStripeRoutes(app);
+registerCronRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);
