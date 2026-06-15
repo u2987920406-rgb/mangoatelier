@@ -1,15 +1,12 @@
 // Idée #40 — Super-agent spécialisé : génère un agent expert complet depuis un domaine.
-import Anthropic from '@anthropic-ai/sdk'
 import type { Express, Request, Response } from 'express'
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { askLLM, resolveProvider, claudeWebResearch } from './llm-engine.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { SKILLS_DIR } from './skills.js'
 import { WORKSPACE_DIR } from './projects.js'
 import { loadMemory } from './memory.js'
 import { detectProjectType } from './blueprints.js'
-
-const client = new Anthropic()
 
 const DATA_DIR = path.join(process.cwd(), '..', 'server', 'data')
 const SUPER_AGENTS_FILE = path.join(DATA_DIR, 'super-agents.json')
@@ -173,35 +170,18 @@ export function registerSuperAgentRoutes(app: Express): void {
       ? `\n\nContexte supplémentaire fourni par l'utilisateur :\n${description.trim()}`
       : ''
 
-    // ── Étape 1 — Recherche web (fallback gracieux si indisponible) ────────────
-    // On utilise le web search tool natif de l'API Anthropic.
-    // Le type 'web_search_20260209' est casté en `any` pour compatibilité TypeScript
-    // avec des SDK ne déclarant pas encore ce type littéral exact.
-    // Version antérieure de secours : 'web_search_20250305'.
+    // ── Étape 1 — Recherche web via l'ABONNEMENT (query + WebSearch) ───────────
+    // $0 crédit, mais plus lent (~1 min : vraie recherche web multi-tours).
+    // Fallback gracieux : si indisponible (réseau, abonnement…), on génère sans
+    // contexte web (webContext reste '').
     let webContext = ''
     try {
-      const researchMessage = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }] as any,
-        messages: [{
-          role: 'user',
-          content: `Recherche les meilleures pratiques, le vocabulaire métier et le mode de raisonnement d'un expert en : ${domain.trim()}. Synthétise en 8-12 puces concrètes et opérationnelles.`,
-        }],
-      })
-      // La réponse contient des blocs interleaved (server_tool_use, web_search_tool_result, text).
-      // On filtre uniquement les blocs text pour la synthèse de Claude.
-      webContext = researchMessage.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { type: 'text'; text: string }).text)
-        .join('')
+      webContext = await claudeWebResearch(
+        `Recherche les meilleures pratiques, le vocabulaire métier et le mode de raisonnement d'un expert en : ${domain.trim()}. Synthétise en 8-12 puces concrètes et opérationnelles.`,
+      )
     } catch {
-      // Fallback gracieux : org sans accès au web search tool, erreur réseau, type non supporté…
-      // webContext reste '' → génération continue sans contexte web (comportement actuel inchangé).
       webContext = ''
     }
-    // TODO: rebrancher la recherche web sur query()+WebSearch (abonnement) plus tard
 
     // ── Étape 2 — Génération de l'agent ──────────────────────────────────────
     const webContextBlock = webContext.trim()

@@ -60,6 +60,36 @@ async function askClaude(system: string, user: string, model: string): Promise<s
   return text.trim()
 }
 
+// ── Recherche web via l'ABONNEMENT (query + outil WebSearch, multi-tours) ────
+// claude-only : WebSearch est un outil Claude Code (ni Ollama ni OpenAI-compat
+// ne l'ont nativement). Renvoie la synthèse texte ("" si rien). Plus lent
+// (~1 min) car c'est une vraie recherche web. Comme askClaude, on neutralise
+// ANTHROPIC_API_KEY pour forcer l'abonnement.
+export async function claudeWebResearch(
+  prompt: string,
+  opts: { model?: string; maxTurns?: number } = {},
+): Promise<string> {
+  const env: Record<string, string | undefined> = { ...process.env }
+  delete env.ANTHROPIC_API_KEY
+  const q = query({
+    prompt,
+    options: {
+      model: opts.model ?? process.env.LLM_CLAUDE_MODEL ?? 'sonnet',
+      allowedTools: ['WebSearch'],
+      maxTurns: opts.maxTurns ?? 6,
+      env,
+    },
+  })
+  let text = ''
+  for await (const m of q) {
+    if (m.type === 'assistant') {
+      const content = (m as { message?: { content?: Array<{ type: string; text?: string }> } }).message?.content ?? []
+      for (const b of content) if (b.type === 'text' && b.text) text += b.text + '\n'
+    }
+  }
+  return text.trim()
+}
+
 // ── Provider openai-compatible (DeepSeek, etc.) ──────────────────────────────
 async function askOpenAI(
   system: string,
