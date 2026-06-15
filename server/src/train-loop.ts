@@ -69,11 +69,13 @@ export const STYLES = [
   "presse quotidienne, colonnes serrées, sérif, filets",
 ];
 
-export type TaskKind = "webapp" | "slides" | "cv" | "doc" | "devis";
-export const TASK_KINDS: TaskKind[] = ["webapp", "slides", "cv", "doc", "devis"];
+export type TaskKind = "webapp" | "slides" | "cv" | "doc" | "devis" | "dashboard" | "multipage" | "wizard";
+export const TASK_KINDS: TaskKind[] = ["webapp", "slides", "cv", "doc", "devis", "dashboard", "multipage", "wizard"];
 
 // Construit la requête envoyée à l'Élève — pure (testable). Le domaine porte le
 // FOND, le style porte la FORME et l'UX → chaque combinaison est unique.
+// Les kinds dashboard/multipage/wizard sont plus difficiles (multi-composants,
+// état complexe, routing) pour stresser l'Élève et déclencher davantage d'escalades.
 export function composeTask(kind: TaskKind, domain: string, style: string): string {
   const ux = `Direction artistique/UX imposée : ${style}.`;
   switch (kind) {
@@ -87,6 +89,12 @@ export function composeTask(kind: TaskKind, domain: string, style: string): stri
       return `Crée un document web imprimable (type PDF, format A4) — une plaquette de présentation de ${domain}. ${ux}`;
     case "devis":
       return `Crée un générateur de devis (tableau type Excel, lignes + total qui se calcule) pour ${domain}. ${ux}`;
+    case "dashboard":
+      return `Crée un dashboard analytics complet pour ${domain} : barre latérale de navigation, au moins 3 sections (vue d'ensemble avec KPIs chiffrés, graphiques en barres et en courbes avec données factices, tableau de données filtrable), états loading et empty gérés. ${ux} Utilise Tailwind v4.`;
+    case "multipage":
+      return `Crée une application React MULTI-PAGES pour ${domain} avec react-router-dom (installe si absent) : page Accueil (hero + features), page À propos (équipe + valeurs), page Contact (formulaire avec validation), page 404. Navigation responsive en header. ${ux} Utilise Tailwind v4.`;
+    case "wizard":
+      return `Crée un formulaire multi-étapes (wizard 4 étapes avec barre de progression) pour ${domain} : étape 1 infos de base, étape 2 détails, étape 3 options/préférences, étape 4 récapitulatif + confirmation. Validation à chaque étape, boutons Précédent/Suivant, état global partagé entre étapes. ${ux} Utilise Tailwind v4.`;
   }
 }
 
