@@ -191,6 +191,7 @@ interface IndexEntry {
   file: string
   category: FileCategory
   summary: string
+  degraded?: boolean
   hash: string
   indexedAt: string
 }
@@ -271,12 +272,12 @@ function scanAllProjects(): ScannedFile[] {
 }
 
 // Demande à Haiku un résumé ≤ 2 phrases en français. Fallback = 1re ligne non vide.
-async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<string> {
+async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<{ summary: string; degraded: boolean }> {
   let content = ''
   try {
     content = fs.readFileSync(f.absPath, 'utf-8')
   } catch {
-    return ''
+    return { summary: '', degraded: true }
   }
   const snippet = content.slice(0, CONTENT_TRUNCATE)
   const firstLine = content.split('\n').map((l) => l.trim()).find(Boolean) ?? ''
@@ -297,10 +298,14 @@ async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<string>
       ],
     })
     const text = msg.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
-    return text || firstLine
+    if (text) {
+      return { summary: text, degraded: false }
+    } else {
+      return { summary: firstLine, degraded: true }
+    }
   } catch {
     // Échec d'un fichier : on retombe sur la 1re ligne, sans interrompre le run.
-    return firstLine
+    return { summary: firstLine, degraded: true }
   }
 }
 
@@ -493,7 +498,7 @@ export function registerMultiProjectRoutes(app: Express): void {
         const key = `${f.project}/${f.file}`
         const hash = fileHash(f.absPath)
         const existing = store.entries[key]
-        if (existing && existing.hash === hash && existing.summary) {
+        if (existing && existing.hash === hash && existing.summary && !existing.degraded) {
           reused++
         } else {
           toIndex.push(f)
@@ -515,17 +520,18 @@ export function registerMultiProjectRoutes(app: Express): void {
         const batch = capped.slice(i, i + HAIKU_BATCH_SIZE)
         const results = await Promise.all(
           batch.map(async (f) => {
-            const summary = await summarizeFile(client, f) // try/catch interne
-            return { f, summary }
+            const result = await summarizeFile(client, f) // try/catch interne
+            return { f, result }
           })
         )
-        for (const { f, summary } of results) {
+        for (const { f, result } of results) {
           const key = `${f.project}/${f.file}`
           store.entries[key] = {
             project: f.project,
             file: f.file,
             category: f.category,
-            summary,
+            summary: result.summary,
+            degraded: result.degraded,
             hash: fileHash(f.absPath),
             indexedAt: new Date().toISOString(),
           }
