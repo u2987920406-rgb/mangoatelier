@@ -1,4 +1,4 @@
-import { BarChart3, Brain, BrainCircuit, Cloud, Download, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Shield, Triangle, Zap } from "lucide-react";
+import { BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Shield, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -48,6 +48,8 @@ export default function Header({
   githubUrl,
   cost,
   context,
+  showThinking,
+  onToggleThinking,
 }) {
   const current = MODELS.find((m) => m.id === model) ?? MODELS[1];
   const currentMode = MODES.find((m) => m.id === mode) ?? MODES[1];
@@ -265,6 +267,14 @@ export default function Header({
             }
           </Dropdown>
         )}
+
+        <button
+          onClick={onToggleThinking}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-edge bg-panel text-dim hover:border-faint hover:text-ink transition-colors"
+          title={showThinking ? "Masquer les blocs Réflexion" : "Afficher les blocs Réflexion"}
+        >
+          {showThinking ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
 
         {context && <ContextGauge tokens={context.tokens} window={context.window} />}
 

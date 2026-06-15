@@ -21,6 +21,7 @@ export default function Chat({
   onSeedConsumed,
   editTarget,
   onEditTargetConsumed,
+  showThinking = true,
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -327,7 +328,7 @@ export default function Chat({
           g.kind === "tools" ? (
             <ToolGroup key={g.key} items={g.items} busy={busy && g.isLast} />
           ) : (
-            <Message key={g.key} m={g.message} />
+            <Message key={g.key} m={g.message} showThinking={showThinking} />
           ),
         )}
         {busy && (
@@ -478,7 +479,7 @@ function groupMessages(messages) {
   return out;
 }
 
-function Message({ m }) {
+function Message({ m, showThinking = true }) {
   switch (m.role) {
     case "user":
       return (
@@ -499,6 +500,7 @@ function Message({ m }) {
         </div>
       );
     case "thinking":
+      if (!showThinking) return null;
       return (
         <details className="animate-fade-up max-w-[95%] self-start">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 px-1 text-xs font-medium text-faint transition-colors hover:text-dim">

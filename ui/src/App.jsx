@@ -19,6 +19,7 @@ export default function App() {
   const [model, setModel] = useState(() => localStorage.getItem("mangoai.model") ?? "sonnet");
   // Effort mode (idea 12), orthogonal to the model — survives reload like it.
   const [mode, setMode] = useState(() => localStorage.getItem("mangoai.mode") ?? "elite");
+
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewKey, setPreviewKey] = useState(0); // bump to force iframe reload
   const [cost, setCost] = useState(0);
@@ -29,6 +30,7 @@ export default function App() {
   const [inspecting, setInspecting] = useState(false); // mode inspection clic→source (#5)
   const [seedInput, setSeedInput] = useState(null); // texte préchargé dans le composer (sélection)
   const [editTarget, setEditTarget] = useState(null); // cible d'édition visuelle (#6) : { src, tag, text }
+  const [showThinking, setShowThinking] = useState(() => localStorage.getItem("mangoai.showThinking") !== "false");
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState(null);
   const [githubEnabled, setGithubEnabled] = useState(false);
@@ -257,6 +259,14 @@ export default function App() {
             githubUrl={githubUrl}
             cost={cost}
             context={context}
+            showThinking={showThinking}
+            onToggleThinking={() => {
+              setShowThinking((v) => {
+                const next = !v;
+                localStorage.setItem("mangoai.showThinking", String(next));
+                return next;
+              });
+            }}
           />
           <div className="flex min-h-0 flex-1">
             <Chat
@@ -279,6 +289,7 @@ export default function App() {
               onSeedConsumed={() => setSeedInput(null)}
               editTarget={editTarget}
               onEditTargetConsumed={() => setEditTarget(null)}
+              showThinking={showThinking}
             />
             <Preview
               url={previewUrl}
