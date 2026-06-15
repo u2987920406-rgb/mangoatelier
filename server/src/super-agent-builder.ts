@@ -1,6 +1,7 @@
 // Idée #40 — Super-agent spécialisé : génère un agent expert complet depuis un domaine.
 import Anthropic from '@anthropic-ai/sdk'
 import type { Express, Request, Response } from 'express'
+import { askLLM, resolveProvider } from './llm-engine.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { SKILLS_DIR } from './skills.js'
@@ -200,6 +201,7 @@ export function registerSuperAgentRoutes(app: Express): void {
       // webContext reste '' → génération continue sans contexte web (comportement actuel inchangé).
       webContext = ''
     }
+    // TODO: rebrancher la recherche web sur query()+WebSearch (abonnement) plus tard
 
     // ── Étape 2 — Génération de l'agent ──────────────────────────────────────
     const webContextBlock = webContext.trim()
@@ -233,17 +235,8 @@ Règles :
 - Les tags décrivent le domaine et les cas d'usage (3 à 5 tags)`
 
     try {
-      const message = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: userPrompt }],
-        system: systemPrompt,
-      })
-
-      const rawText = message.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { type: 'text'; text: string }).text)
-        .join('')
+      const provider = resolveProvider(process.env.SUPERAGENT_PROVIDER, 'claude')
+      const rawText = await askLLM(systemPrompt, userPrompt, { provider, maxTokens: 2048 })
 
       // Extraire le JSON même si Claude entoure d'un code fence
       const jsonMatch = rawText.match(/\{[\s\S]*\}/)

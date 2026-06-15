@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
-import { askOllama } from './ollama.js'
+import { askLLM, resolveProvider } from './llm-engine.js'
 
 const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
 
@@ -288,20 +288,18 @@ async function summarizeFile(f: ScannedFile): Promise<{ summary: string; degrade
   const firstLine = content.split('\n').map((l) => l.trim()).find(Boolean) ?? ''
 
   try {
-    const text = await askOllama(
-      SUMMARY_SYSTEM,
-      `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
-        `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
-        `Fichier : ${f.project}/${f.file}\n\n` +
-        '```\n' + snippet + '\n```',
-    )
+    const provider = resolveProvider(process.env.INDEX_PROVIDER, 'ollama')
+    const text = await askLLM(SUMMARY_SYSTEM, `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
+      `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
+      `Fichier : ${f.project}/${f.file}\n\n` +
+      '```\n' + snippet + '\n```', { provider, timeoutMs: 180_000 })
     if (text) {
       return { summary: text, degraded: false }
     } else {
       return { summary: firstLine, degraded: true }
     }
   } catch {
-    // Ollama injoignable/timeout : on retombe sur la 1re ligne (degraded), sans
+    // Provider injoignable/timeout : on retombe sur la 1re ligne (degraded), sans
     // interrompre le run. Le garde-fou re-tentera ce fichier au prochain run.
     return { summary: firstLine, degraded: true }
   }

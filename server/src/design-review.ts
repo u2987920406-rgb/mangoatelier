@@ -1,6 +1,6 @@
 // Idée #2 — Design Pair-Programming
 // Analyse les fichiers source d'un projet et retourne des recommandations UX/UI structurées.
-import Anthropic from '@anthropic-ai/sdk'
+import { askLLM, resolveProvider } from './llm-engine.js'
 import type { Express, Request, Response } from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -174,29 +174,17 @@ export function registerDesignReviewRoutes(app: Express): void {
 
     const context = buildContext(files)
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const provider = resolveProvider(process.env.DESIGNREVIEW_PROVIDER, 'claude')
 
     let rawJson: string
     try {
-      const msg = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: `Voici le code source du projet "${projectName}" (${files.length} fichiers analysés) :\n${context}\n\nRetourne le JSON de recommandations design.`,
-          },
-        ],
-      })
-
-      rawJson = msg.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { type: 'text'; text: string }).text)
-        .join('')
-        .trim()
+      rawJson = await askLLM(
+        SYSTEM_PROMPT,
+        `Voici le code source du projet "${projectName}" (${files.length} fichiers analysés) :\n${context}\n\nRetourne le JSON de recommandations design.`,
+        { provider, maxTokens: 2048 },
+      )
     } catch (err) {
-      res.status(502).json({ error: `Erreur Claude : ${err instanceof Error ? err.message : String(err)}` })
+      res.status(502).json({ error: `Erreur LLM : ${err instanceof Error ? err.message : String(err)}` })
       return
     }
 

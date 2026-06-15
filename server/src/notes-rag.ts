@@ -2,7 +2,7 @@ import { Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import Anthropic from "@anthropic-ai/sdk";
+import { askLLM, resolveProvider } from "./llm-engine.js";
 
 const DATA_DIR = path.join(process.cwd(), "..", "server", "data");
 const NOTES_FILE = path.join(DATA_DIR, "notes.jsonl");
@@ -99,41 +99,32 @@ export function registerNotesRAGRoutes(app: Express): void {
     }
     const notes = loadNotes();
     const relevant = topByKeyword(notes, question);
+    const provider = resolveProvider(process.env.RAG_PROVIDER, "claude");
 
-    const client = new Anthropic();
+    try {
+      if (relevant.length === 0) {
+        const answer = await askLLM(
+          "",
+          `Tu es un assistant personnel. L'utilisateur n'a pas encore de notes enregistrées (ou aucune note ne correspond à sa question).\n\nQuestion : ${question}\n\nRéponds brièvement en le précisant.`,
+          { provider, maxTokens: 1024 }
+        );
+        res.json({ answer, sources: [] });
+        return;
+      }
 
-    if (relevant.length === 0) {
-      const msg = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        messages: [
-          {
-            role: "user",
-            content: `Tu es un assistant personnel. L'utilisateur n'a pas encore de notes enregistrées (ou aucune note ne correspond à sa question).\n\nQuestion : ${question}\n\nRéponds brièvement en le précisant.`,
-          },
-        ],
-      });
-      const text = msg.content.find((b) => b.type === "text")?.text ?? "";
-      res.json({ answer: text, sources: [] });
-      return;
+      const context = relevant
+        .map((n, i) => `[Note ${i + 1} — ${n.ts.slice(0, 10)}${n.tags.length ? ` | tags: ${n.tags.join(", ")}` : ""}]\n${n.content}`)
+        .join("\n\n");
+
+      const answer = await askLLM(
+        "",
+        `Tu es un assistant personnel qui répond en te basant sur les notes de l'utilisateur.\n\nNotes pertinentes :\n${context}\n\nQuestion : ${question}\n\nRéponds de façon concise et précise en t'appuyant sur les notes ci-dessus.`,
+        { provider, maxTokens: 1024 }
+      );
+      res.json({ answer, sources: relevant.map((n) => n.id) });
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error });
     }
-
-    const context = relevant
-      .map((n, i) => `[Note ${i + 1} — ${n.ts.slice(0, 10)}${n.tags.length ? ` | tags: ${n.tags.join(", ")}` : ""}]\n${n.content}`)
-      .join("\n\n");
-
-    const msg = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `Tu es un assistant personnel qui répond en te basant sur les notes de l'utilisateur.\n\nNotes pertinentes :\n${context}\n\nQuestion : ${question}\n\nRéponds de façon concise et précise en t'appuyant sur les notes ci-dessus.`,
-        },
-      ],
-    });
-
-    const answer = msg.content.find((b) => b.type === "text")?.text ?? "";
-    res.json({ answer, sources: relevant.map((n) => n.id) });
   });
 }
