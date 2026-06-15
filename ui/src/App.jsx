@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Lightbulb, Rss, Sliders, ShieldCheck } from "lucide-react";
+import { BarChart2, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Lightbulb, Rss, Sliders, ShieldCheck } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -16,6 +16,7 @@ import VersionGraph from "./components/VersionGraph.jsx";
 import QAPanel from "./components/QAPanel.jsx";
 import Billing from "./components/Billing.jsx";
 import CronManager from "./components/CronManager.jsx";
+import MetricsDashboard from "./components/MetricsDashboard.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -299,6 +300,7 @@ export default function App() {
   if (screen === "qa") return <QAPanel projectName={projectName} onBack={() => setScreen("chat")} />;
   if (screen === "billing") return <Billing onBack={() => setScreen("home")} />;
   if (screen === "cron") return <CronManager onBack={() => setScreen("home")} />;
+  if (screen === "metrics") return <MetricsDashboard onBack={() => setScreen("home")} />;
 
   return (
     <>
@@ -361,6 +363,13 @@ export default function App() {
               className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
             >
               <Clock size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("metrics")}
+              title="Dashboard d'évolution"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <BarChart2 size={18} className="text-accent" />
             </button>
           </div>
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />

@@ -1,8 +1,8 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 — Vague 2 : docs autonomes (#1), généalogie visuelle (#3), documentation multimodale (#4), Stripe (#39), skills panel (#2), agents cron (#C), + micro (#4), menu mode (#5), sélecteur contexte (#7).*
+*Dernière mise à jour : 2026-06-15 — Vague 3 : #14 Dashboard d'évolution ✅ (métriques JSONL → visualisation complète).*
 
-> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés. Session du 2026-06-15 (vague 2) : #1 Agent QA temporel, #3 Généalogie visuelle, #4 Documentation multimodale, #39 Paiements Stripe, roadmap #2 Skills panel, #C Agents cron, #4 Bouton micro, #5 Menu mode, #7 Sélecteur contexte — tous ✅ livrés, `tsc` 0, build UI OK (8s, 1937 modules).
+> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés. Session du 2026-06-15 (vague 2) : #1 Agent QA temporel, #3 Généalogie visuelle, #4 Documentation multimodale, #39 Paiements Stripe, roadmap #2 Skills panel, #C Agents cron, #4 Bouton micro, #5 Menu mode, #7 Sélecteur contexte — tous ✅ livrés. Session du 2026-06-15 (vague 3) : #14 Dashboard d'évolution ✅ — KPI cards + graphique 21j + Élève vs Maître + distribution modèles + top projets + modes. `tsc` 0, build UI OK (8s, 1938 modules).
 >
 > **📅 Date fixe** : audit coûts (idée 13) le **2026-06-22** · veille mensuelle le **13 de chaque mois**
 
@@ -46,7 +46,7 @@
 | 11 | Moodboard visuel automatisé | ✅ FAIT (v1) | — | — |
 | 12 | Sélecteur MVP / Élite | ✅ FAIT | — | — |
 | 13 | Audit & optimisation des coûts | 📅 2026-06-22 | 🧠 Opus 4.8 | M |
-| 14 | Tableau de bord d'évolution (collecte) | 🔨 collecte active | ⚖️ Sonnet 4.6 | S |
+| 14 | Tableau de bord d'évolution | ✅ FAIT | — | — |
 | 15 | Veille & jouvence mensuelle | 📅 rappel actif | ⚖️ Sonnet 4.6 | M |
 | 16 | Intégration GitHub native | ✅ FAIT | — | — |
 | 17 | Intégration Supabase | ✅ FAIT | — | — |

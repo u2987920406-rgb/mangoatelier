@@ -99,8 +99,8 @@ MVP : pas de rituel analytique, budget vision 3, pas de web. Élite : arsenal co
 ### Idée 13 — Audit des coûts 📅 2026-06-22
 Dégraissage prompt (~33k, 15-25 % à gagner), réglage thinking par classe de tâche. Date = fin de disponibilité Fable.
 
-### Idée 14 — Tableau de bord d'évolution 🔨 collecte active
-Volet 1 ✅ : chaque tour ajoute une ligne JSON à `workspace/.metrics.jsonl` (date, projet, modèle, coût, tours, tokens, snapshots, durée, erreur). Volet 2 (visualisation) → plus tard, nourrit l'audit du 22/06.
+### Idée 14 — Tableau de bord d'évolution ✅ FAIT (2026-06-15)
+Volet 1 ✅ : chaque tour ajoute une ligne JSON à `workspace/.metrics.jsonl`. Volet 2 ✅ (2026-06-15) : `server/src/metrics-dashboard.ts` → `GET /api/metrics/summary` agrège 1 463 entrées (coût total, taux erreur, durée moy, distribution modèle/jour/projet/mode + Élève vs Maître). `ui/src/components/MetricsDashboard.jsx` : 4 KPI cards + graphique 21j barres CSS + barre Élève/Maître + horizontal bars modèles + top 10 projets + compteurs mode. Bouton BarChart2 dans barre flottante accueil.
 
 ### Idée 15 — Veille mensuelle 📅 rappel actif (le 13 de chaque mois)
 Vérifier SDK Agent, modèles, React/Vite/Tailwind, MCP. Appliquer les mises à jour, relancer les tests e2e.
