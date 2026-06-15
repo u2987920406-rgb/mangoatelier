@@ -208,6 +208,35 @@ Paiement en ligne, abonnements récurrents, webhooks de confirmation, remboursem
 ### Idée 43 — Escalade UX/UI par signal humain ✅ FAIT (2026-06-15)
 `dislikeStreaks` in-memory par projet (seuil 2) dans `feedback.ts`. `processEscalationReference` (Haiku → axiome `[validé-utilisateur]`). `/api/feedback` répond `{ ok, escalate }`. `POST /api/escalation-reference`. `EscalationCard` dans `Chat.jsx` (carte ambre, input référence + bouton "Ancrer").
 
+### Idée 44 — Orchestration « conseil d'experts » 💡 IDÉE (actée 2026-06-16) · `M · 🧠 Opus`
+Orchestration multi-agents **en lecture seule**, pensée pour le **rattrapage d'un projet dévié** (mauvaises infos/prompt au départ), pas pour la génération initiale. N super-agents (#40) lisent le projet **chacun sous leur seul angle** → diagnostics fusionnés en un **plan de reprise priorisé** validable → le builder applique **séquentiellement** (un seul writer). Recommandé vs la variante « 5 codeurs parallèles » qui tombe dans le *merge hell* (gain incertain, risque élevé). Léger en archi : 1 fichier `orchestrator.ts` sur le routeur `askLLM` existant ; la fusion de **diagnostics** (texte) est facile, contrairement à une fusion de **code**. Non implémentée — décision utilisateur en attente.
+
+### Idée 45 — Contrat de langage du projet 💡 IDÉE (actée 2026-06-16) · `M · 🧠 Opus`
+**Concept** : avant de coder, Mango établit un **lexique commun verrouillé** (= *Ubiquitous Language* du Domain-Driven Design) qui impose le même vocabulaire du premier au dernier fichier → tue le spaghetti à la racine (un concept = un nom = un composant) et **résout les retours flous** (« la barre de vie est trop petite » → `HealthBar` dans `HUD/`). C'est la **fondation** posée juste après la question d'intention, **avant** le moodboard (#37) et le plan (#9). Renforce #5 (clic→source), #38 (carte d'archi vivante), #43 (escalade UX).
+
+**Structure du tableau** (artefact projet, à côté de `memory.md`/`design.md`) :
+
+| Terme naturel (humain) | Terme technique (domaine) | Composant / fichier | Description |
+|---|---|---|---|
+| « la barre de vie » | HUD health bar | `HealthBar.jsx` (`HUD/`) | Jauge de PV, coin haut-gauche |
+| « la liste des tâches » | TaskList | `TaskList.tsx` | Conteneur scrollable des items |
+
+La colonne **Composant/fichier** verrouille la structure et branche le lexique sur le clic→source.
+
+**Deux portes d'entrée** (comme chat vs atelier) :
+- **Porte A — background naturel** : l'utilisateur parle normalement à Mango ; le contrat se construit **tout seul en arrière-plan** à partir de la phrase d'intention. Si Mango ne maîtrise pas le champ lexical du domaine → **recherche web approfondie** (`claudeWebResearch`) car c'est la base de tout le projet. Plus fluide, zéro friction.
+- **Porte B — questionnaire rigoureux** : une fenêtre dédiée (esprit PromptLab) où l'utilisateur **prépare son prompt** via un questionnaire très ficelé. Plus long, mais idéal pour qui **ne sait pas encore précisément ce qu'il veut** mais a des idées vagues — Mango en dérive un contrat solide avant le vrai prompt.
+
+**Garde-fous** : (1) **auto-généré, pas un formulaire** à remplir à la main (validation 30 s) ; (2) **vivant** — nouveau composant créé → ligne ajoutée auto (via #38) sinon doc morte ; (3) **ancré sur le réel** (domaine + composants réellement créés), pas un champ lexical halluciné.
+
+**Plan en 3 phases** :
+
+| Phase | Contenu | Modèle | Effort |
+|-------|---------|--------|--------|
+| **1 — Fondation background** | Génération auto du contrat depuis l'intention + **recherche web** si domaine inconnu (`claudeWebResearch`) ; persistance en artefact projet (`lexique.md` ou section dédiée) ; affichage simple. La Porte A fonctionnelle. | ⚖️ Sonnet 4.6 | M |
+| **2 — Contrat vivant + injecté** | Injection du contrat dans les 3 scénarios (`scenario.ts`, bloc « Contrat de langage ») → l'agent verrouille le vocabulaire ; **maintien vivant** (nouveau composant → ligne auto, via #38) ; résolution *terme naturel → composant* exploitée par les retours flous (#5/#43). | 🧠 Opus 4.8 | M |
+| **3 — Porte B + édition UI** | Panneau « Contrat de langage » (voir/éditer le tableau, réutilise le pattern d'édition des super-agents) **+ questionnaire rigoureux guidé** pour l'utilisateur au but vague. | ⚖️ Sonnet 4.6 | L |
+
 ---
 
 ## 🎯 Roadmap haute couture — détail des chantiers
