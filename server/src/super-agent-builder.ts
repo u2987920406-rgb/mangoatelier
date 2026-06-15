@@ -376,6 +376,79 @@ Règles :
     }
   })
 
+  // PUT /api/super-agent/:id — mise à jour partielle d'un agent existant
+  app.put('/api/super-agent/:id', (req: Request, res: Response) => {
+    const { id } = req.params
+    const agents = loadAgents()
+    const agent = agents.find((a) => a.id === id)
+    if (!agent) {
+      res.status(404).json({ error: `Agent "${id}" introuvable.` })
+      return
+    }
+
+    const { name, domain, systemPrompt, tools, examples, tags } = req.body as {
+      name?: unknown
+      domain?: unknown
+      systemPrompt?: unknown
+      tools?: unknown
+      examples?: unknown
+      tags?: unknown
+    }
+
+    // Mise à jour partielle : seuls les champs fournis et valides sont appliqués.
+    // id et createdAt sont immuables.
+    if (name !== undefined) {
+      if (typeof name !== 'string' || !name.trim()) {
+        res.status(400).json({ error: '"name" doit être une chaîne non vide.' })
+        return
+      }
+      agent.name = name.trim()
+    }
+
+    if (domain !== undefined) {
+      if (typeof domain !== 'string' || !domain.trim()) {
+        res.status(400).json({ error: '"domain" doit être une chaîne non vide.' })
+        return
+      }
+      agent.domain = domain.trim()
+    }
+
+    if (systemPrompt !== undefined) {
+      if (typeof systemPrompt !== 'string' || !systemPrompt.trim()) {
+        res.status(400).json({ error: '"systemPrompt" doit être une chaîne non vide.' })
+        return
+      }
+      agent.systemPrompt = systemPrompt.trim()
+    }
+
+    if (tools !== undefined) {
+      if (!Array.isArray(tools)) {
+        res.status(400).json({ error: '"tools" doit être un tableau.' })
+        return
+      }
+      agent.tools = tools as SuperAgentTool[]
+    }
+
+    if (examples !== undefined) {
+      if (!Array.isArray(examples)) {
+        res.status(400).json({ error: '"examples" doit être un tableau.' })
+        return
+      }
+      agent.examples = examples as string[]
+    }
+
+    if (tags !== undefined) {
+      if (!Array.isArray(tags)) {
+        res.status(400).json({ error: '"tags" doit être un tableau.' })
+        return
+      }
+      agent.tags = tags as string[]
+    }
+
+    saveAgents(agents)
+    res.json({ agent })
+  })
+
   // DELETE /api/super-agent/:id
   app.delete('/api/super-agent/:id', (req: Request, res: Response) => {
     const { id } = req.params

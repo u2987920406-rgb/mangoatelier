@@ -5,3 +5,9 @@ workspace/
 *.log
 server/sessions.json
 .credentials/
+
+# Données runtime générées par l'app — jamais versionnées (cron-tasks.json reste suivi)
+server/data/super-agents.json
+server/data/notes.jsonl
+server/data/design-reviews.jsonl
+server/data/multi-project-index.json
