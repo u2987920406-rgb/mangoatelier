@@ -2,9 +2,11 @@ import { useState } from "react";
 import {
   ArrowUp,
   BarChart3,
+  Clock,
   FileText,
   FolderOpen,
   Package,
+  Search,
   ShoppingCart,
   Store,
 } from "lucide-react";
@@ -23,7 +25,6 @@ const SUGGESTIONS = [
   "Un dashboard de suivi de dépenses",
 ];
 
-// Derive a project slug from the prompt until the user edits the name field.
 function slugify(text) {
   return text
     .toLowerCase()
@@ -37,14 +38,24 @@ function slugify(text) {
     .slice(0, 40);
 }
 
+const PROJECTS_VISIBLE = 6;
+
 export default function Home({ projects, templates, onOpen }) {
   const [prompt, setPrompt] = useState("");
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
   const [tpl, setTpl] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   const available = TEMPLATES.filter((t) => t.id === "" || templates.includes(t.id));
   const effectiveName = (nameTouched ? name : slugify(prompt)) || "mon-app";
+
+  const lastProject = projects[0] ?? null;
+  const filtered = search.trim()
+    ? projects.filter((p) => p.toLowerCase().includes(search.toLowerCase()))
+    : projects;
+  const visible = showAll ? filtered : filtered.slice(0, PROJECTS_VISIBLE);
 
   function submit() {
     if (!prompt.trim()) return;
@@ -54,6 +65,8 @@ export default function Home({ projects, templates, onOpen }) {
   return (
     <div className="hero-glow flex min-h-screen flex-col items-center overflow-y-auto nice-scroll px-6 py-16">
       <div className="flex w-full max-w-2xl flex-col items-center">
+
+        {/* Hero */}
         <div className="animate-fade-up text-6xl">🥭</div>
         <h1 className="animate-fade-up mt-4 text-4xl font-extrabold tracking-tight">
           Mango<span className="text-accent-soft">AI</span>
@@ -62,8 +75,25 @@ export default function Home({ projects, templates, onOpen }) {
           Décris ton idée, on la construit.
         </p>
 
+        {/* Accès rapide — dernier projet */}
+        {lastProject && (
+          <div className="animate-fade-up mt-6 w-full">
+            <button
+              onClick={() => onOpen(lastProject, {})}
+              className="flex w-full items-center gap-3 rounded-2xl border border-accent/30 bg-accent/[0.04] px-4 py-3 text-left hover:border-accent/60 hover:bg-accent/[0.07] transition-colors"
+            >
+              <Clock size={15} className="shrink-0 text-accent-soft" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Reprendre</p>
+                <p className="truncate font-mono text-sm text-ink">{lastProject}</p>
+              </div>
+              <ArrowUp size={14} className="ml-auto shrink-0 rotate-90 text-accent-soft" />
+            </button>
+          </div>
+        )}
+
         {/* Prompt card */}
-        <div className="animate-fade-up mt-8 w-full rounded-2xl border border-edge bg-panel/80 p-3 shadow-2xl shadow-black/30 backdrop-blur focus-within:border-accent/60 transition-colors">
+        <div className="animate-fade-up mt-5 w-full rounded-2xl border border-edge bg-panel/80 p-3 shadow-2xl shadow-black/30 backdrop-blur focus-within:border-accent/60 transition-colors">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -100,7 +130,7 @@ export default function Home({ projects, templates, onOpen }) {
           </div>
         </div>
 
-        {/* Template cards */}
+        {/* Templates */}
         <div className="animate-fade-up mt-5 flex w-full flex-wrap justify-center gap-2">
           {available.map((t) => {
             const active = tpl === t.id;
@@ -135,14 +165,28 @@ export default function Home({ projects, templates, onOpen }) {
           ))}
         </div>
 
-        {/* Recent projects */}
+        {/* Projets */}
         {projects.length > 0 && (
           <div className="animate-fade-up mt-12 w-full">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-faint">
-              Projets récents
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-faint">
+                Projets{projects.length > 1 ? ` · ${projects.length}` : ""}
+              </h2>
+              {projects.length > 3 && (
+                <div className="relative">
+                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+                  <input
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setShowAll(true); }}
+                    placeholder="Filtrer…"
+                    className="h-7 w-36 rounded-lg border border-edge bg-panel pl-7 pr-2.5 text-xs text-dim placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {projects.map((p) => (
+              {visible.map((p) => (
                 <button
                   key={p}
                   onClick={() => onOpen(p, {})}
@@ -153,6 +197,21 @@ export default function Home({ projects, templates, onOpen }) {
                 </button>
               ))}
             </div>
+
+            {filtered.length > PROJECTS_VISIBLE && (
+              <button
+                onClick={() => setShowAll((v) => !v)}
+                className="mt-3 w-full rounded-xl border border-edge py-2 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
+              >
+                {showAll
+                  ? "Voir moins"
+                  : `Voir les ${filtered.length - PROJECTS_VISIBLE} autres projets`}
+              </button>
+            )}
+
+            {search.trim() && filtered.length === 0 && (
+              <p className="mt-4 text-center text-xs text-faint">Aucun projet ne correspond à « {search} »</p>
+            )}
           </div>
         )}
       </div>

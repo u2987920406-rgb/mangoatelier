@@ -9,7 +9,7 @@ import { ALLOWED_MODELS, ALLOWED_MODES, interruptAgent, runAgent, type AgentEven
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 import { loadMemory, loadUserProfile } from "./memory.js";
-import { listSkills } from "./skills.js";
+import { listSkills, SKILLS_DIR } from "./skills.js";
 import { axiomStats, loadAxioms } from "./axioms.js";
 import { computeInsights } from "./metrics-insights.js";
 import { inferProjectType } from "./blueprints.js";
@@ -459,6 +459,35 @@ app.post("/api/github/:name", async (req, res) => {
 app.get("/api/metrics", (_req, res) => {
   const rows = readMetrics();
   res.json({ rows, insights: computeInsights(rows, axiomStats(WORKSPACE_DIR)) });
+});
+
+// Manual skill creation endpoint
+app.post("/api/skill", (req, res) => {
+  const { name, description, body } = req.body as { name?: string; description?: string; body?: string };
+  const rawName = (name ?? "").trim();
+  const rawDesc = (description ?? "").trim();
+  const rawBody = (body ?? "").trim();
+  if (!rawName || !rawBody) {
+    res.status(400).json({ error: "name et body requis" });
+    return;
+  }
+  const slug = rawName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40) || "skill";
+  const skillDir = path.join(SKILLS_DIR, slug);
+  const skillFile = path.join(skillDir, "SKILL.md");
+  try {
+    fs.mkdirSync(skillDir, { recursive: true });
+    const content = `---\nname: ${rawName}\ndescription: ${rawDesc}\n---\n\n${rawBody}`;
+    fs.writeFileSync(skillFile, content, "utf8");
+    res.json({ ok: true, slug });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 // What the agent has learned: project memory, user profile, skill library
