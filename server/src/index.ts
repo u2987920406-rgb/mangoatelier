@@ -511,6 +511,47 @@ app.get("/api/history/:name", (req, res) => {
   res.json({ messages: loadHistory(projectDir(name)) });
 });
 
+// List all project files (relative paths, sorted, excluding heavy/useless dirs)
+app.get("/api/files/:name", (req, res) => {
+  const name = req.params.name as string;
+  let dir: string;
+  try {
+    dir = projectDir(name);
+  } catch {
+    res.status(400).json({ error: "Nom invalide" });
+    return;
+  }
+  if (!fs.existsSync(dir)) {
+    res.json({ files: [] });
+    return;
+  }
+
+  const IGNORE = new Set(["node_modules", ".git", "dist", ".vite", ".cache", ".assets", ".snapshots"]);
+  const files: string[] = [];
+
+  function walk(current: string, rel: string) {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (IGNORE.has(e.name) || e.name.startsWith(".")) continue;
+      const relPath = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) {
+        walk(path.join(current, e.name), relPath);
+      } else {
+        files.push(relPath);
+      }
+    }
+  }
+
+  walk(dir, "");
+  files.sort();
+  res.json({ files });
+});
+
 // Download a generated project as a zip (sources only, no node_modules)
 app.get("/api/export/:name", (req, res) => {
   const name = req.params.name;

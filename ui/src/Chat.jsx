@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Bookmark, BrainCircuit, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Bookmark, BrainCircuit, FileCode, FolderOpen, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 
 let nextId = 1;
@@ -40,6 +40,28 @@ export default function Chat({
   const fileRef = useRef(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
+  const [contextFile, setContextFile] = useState(null);   // string | null
+  const [filePicker, setFilePicker] = useState(false);    // popover ouvert ?
+  const [fileList, setFileList] = useState([]);            // fichiers du projet
+  const [fileSearch, setFileSearch] = useState("");
+  const pickerRef = useRef(null);
+
+  useEffect(() => {
+    if (!filePicker) return;
+    fetch(`/api/files/${encodeURIComponent(projectName)}`)
+      .then((r) => r.ok ? r.json() : { files: [] })
+      .then((d) => setFileList(d.files ?? []))
+      .catch(() => {});
+  }, [filePicker, projectName]);
+
+  useEffect(() => {
+    if (!filePicker) return;
+    function onOutside(e) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) setFilePicker(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [filePicker]);
 
   const ACCEPTED = /\.(png|jpe?g|webp|gif|pdf)$/i;
   const addFiles = (files) => {
@@ -190,6 +212,10 @@ export default function Chat({
       // Upload attachments first; their paths are prepended to the prompt so
       // the agent Reads them (Read handles PNG/JPEG/PDF natively).
       let prompt = typed || "Analyse les fichiers joints et dis-moi ce que tu en comprends.";
+      if (contextFile) {
+        prompt = `[Contexte fichier : ${contextFile}]\n\n${prompt}`;
+        setContextFile(null);
+      }
       if (files.length > 0) {
         const paths = [];
         for (const f of files) {
@@ -379,6 +405,17 @@ export default function Chat({
             addFiles(e.dataTransfer.files);
           }}
         >
+          {contextFile && (
+            <div className="flex flex-wrap gap-1.5 px-1.5 pb-2">
+              <span className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent">
+                <FileCode size={10} className="shrink-0" />
+                <span className="max-w-52 truncate font-mono">{contextFile}</span>
+                <button onClick={() => setContextFile(null)} className="text-accent/60 hover:text-accent transition-colors">
+                  <X size={11} />
+                </button>
+              </span>
+            </div>
+          )}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 px-1.5 pb-2">
               {attachments.map((f, i) => (
@@ -457,6 +494,53 @@ export default function Chat({
           >
             {listening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
+          <div className="relative" ref={pickerRef}>
+            <button
+              onClick={() => { setFilePicker((v) => !v); setFileSearch(""); }}
+              disabled={busy}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+                contextFile ? "text-accent" : "text-faint hover:text-ink"
+              }`}
+              title="Cibler un fichier du projet comme contexte"
+            >
+              <FolderOpen size={16} />
+            </button>
+            {filePicker && (
+              <div className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border border-edge bg-panel shadow-xl shadow-black/30 z-50">
+                <div className="p-2 border-b border-edge">
+                  <input
+                    autoFocus
+                    value={fileSearch}
+                    onChange={(e) => setFileSearch(e.target.value)}
+                    placeholder="Rechercher un fichier…"
+                    className="w-full rounded-lg border border-edge bg-bg px-2.5 py-1.5 text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                  />
+                </div>
+                <ul className="nice-scroll max-h-52 overflow-y-auto p-1">
+                  {fileList
+                    .filter((f) => !fileSearch || f.toLowerCase().includes(fileSearch.toLowerCase()))
+                    .map((f) => (
+                      <li key={f}>
+                        <button
+                          onClick={() => { setContextFile(f); setFilePicker(false); }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
+                            contextFile === f
+                              ? "bg-accent/15 text-accent"
+                              : "text-dim hover:bg-edge-soft hover:text-ink"
+                          }`}
+                        >
+                          <FileCode size={12} className="shrink-0 text-faint" />
+                          <span className="truncate font-mono">{f}</span>
+                        </button>
+                      </li>
+                    ))}
+                  {fileList.length === 0 && (
+                    <li className="px-2.5 py-3 text-center text-xs text-faint">Aucun fichier trouvé</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
           <textarea
             ref={inputRef}
             value={input}
