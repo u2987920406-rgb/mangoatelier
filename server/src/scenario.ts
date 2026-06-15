@@ -16,6 +16,7 @@ import { BLUEPRINTS_RULES } from "./blueprints.js";
 import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
+import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -137,6 +138,10 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // project switches (palette, typo, components). Always injected so new
   // projects inherit the user's established visual style without prompting.
   designSystem: () => DESIGN_SYSTEM_RULES + designSystemPromptSection(WORKSPACE_DIR),
+  // Chantier #38 — living architecture map: per-project technical structure
+  // (components, pages, API, data, stack, decisions). Injected only when the
+  // file exists (non-empty), so it never pollutes brand-new projects.
+  architecture: (ctx) => ARCHITECTURE_RULES + architecturePromptSection(ctx.projectDir),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -144,11 +149,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "memory", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "designSystem", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "designSystem", "architecture", "memory", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "designSystem", "memory", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

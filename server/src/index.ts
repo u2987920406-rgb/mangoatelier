@@ -27,6 +27,7 @@ import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
+import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -494,13 +495,33 @@ app.post("/api/skill", (req, res) => {
 // What the agent has learned: project memory, user profile, skill library
 app.get("/api/knowledge/:name", (req, res) => {
   const name = req.params.name;
+  const dir = projectExists(name) ? projectDir(name) : null;
   res.json({
-    memory: projectExists(name) ? loadMemory(projectDir(name)) : "",
+    memory: dir ? loadMemory(dir) : "",
     profile: loadUserProfile(WORKSPACE_DIR),
     skills: listSkills().map(({ name: skill, description }) => ({ name: skill, description })),
     axioms: loadAxioms(WORKSPACE_DIR),
     designSystem: loadDesignSystem(WORKSPACE_DIR),
+    architecture: dir ? loadArchitecture(dir) : "",
   });
+});
+
+// Chantier #38 — Architecture vivante : écriture manuelle depuis l'UI
+app.put("/api/architecture/:name", (req, res) => {
+  const name = req.params.name;
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    const dir = projectDir(name);
+    const file = `${dir}/${ARCHITECTURE_FILE_NAME}`;
+    fs.writeFileSync(file, content, "utf8");
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Chantier A — Design system persistant : lecture / écriture du fichier cross-projet
