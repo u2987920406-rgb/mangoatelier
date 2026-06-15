@@ -34,6 +34,11 @@ import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
 import { processFeedback, checkAndUpdateStreak, resetStreak, processEscalationReference, type FeedbackRating } from "./feedback.js";
 import { listComponents, loadComponent, saveComponent, deleteComponent, type ComponentEntry } from "./components.js";
+import { registerPromptLabRoutes } from "./promptlab.js";
+import { registerTokenizerRoutes } from "./tokenizer.js";
+import { registerIdeationRoutes } from "./ideation.js";
+import { registerVeilleRoutes } from "./veille.js";
+import { registerModelRouterRoutes } from "./model-router.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -872,6 +877,12 @@ app.post("/api/stop", async (_req, res) => {
   agentBusy = false;
   res.json({ stopped });
 });
+
+registerPromptLabRoutes(app);
+registerTokenizerRoutes(app);
+registerIdeationRoutes(app);
+registerVeilleRoutes(app);
+registerModelRouterRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);

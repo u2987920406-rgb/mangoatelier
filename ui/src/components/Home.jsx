@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowUp,
   BarChart3,
@@ -25,6 +25,24 @@ const SUGGESTIONS = [
   "Un dashboard de suivi de dépenses",
 ];
 
+const HERO_TAGLINES = [
+  "Landing page en 30s",
+  "Backend Express inclus",
+  "Déploie en 1 clic",
+];
+
+const INSPIRATIONS = [
+  "Un outil de gestion de factures",
+  "Un chat en temps réel",
+  "Un clone de Trello minimaliste",
+  "Un générateur de CV moderne",
+  "Un suivi de budget personnel",
+  "Un agenda de rendez-vous",
+  "Une galerie photo avec filtres",
+  "Un convertisseur d'unités avancé",
+  "Un outil de notes collaboratif",
+];
+
 function slugify(text) {
   return text
     .toLowerCase()
@@ -47,6 +65,8 @@ export default function Home({ projects, templates, onOpen }) {
   const [tpl, setTpl] = useState("");
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [taglineIndex, setTaglineIndex] = useState(0);
+  const [taglineVisible, setTaglineVisible] = useState(true);
 
   const available = TEMPLATES.filter((t) => t.id === "" || templates.includes(t.id));
   const effectiveName = (nameTouched ? name : slugify(prompt)) || "mon-app";
@@ -56,6 +76,22 @@ export default function Home({ projects, templates, onOpen }) {
     ? projects.filter((p) => p.toLowerCase().includes(search.toLowerCase()))
     : projects;
   const visible = showAll ? filtered : filtered.slice(0, PROJECTS_VISIBLE);
+
+  // Hero tagline rotation with opacity transition
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaglineVisible(false);
+      setTimeout(() => {
+        setTaglineIndex((i) => (i + 1) % HERO_TAGLINES.length);
+        setTaglineVisible(true);
+      }, 300);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Inspirations — 3 parmi 9 choisies par heure % 3
+  const hourSlot = new Date().getHours() % 3;
+  const inspirations = INSPIRATIONS.slice(hourSlot * 3, hourSlot * 3 + 3);
 
   function submit() {
     if (!prompt.trim()) return;
@@ -73,6 +109,17 @@ export default function Home({ projects, templates, onOpen }) {
         </h1>
         <p className="animate-fade-up mt-3 text-lg text-dim">
           Décris ton idée, on la construit.
+        </p>
+
+        {/* Hero animated tagline */}
+        <p
+          className="animate-fade-up mt-1 text-sm text-accent-soft"
+          style={{
+            opacity: taglineVisible ? 1 : 0,
+            transition: "opacity 0.3s ease",
+          }}
+        >
+          {HERO_TAGLINES[taglineIndex]}
         </p>
 
         {/* Accès rapide — dernier projet */}
@@ -165,55 +212,91 @@ export default function Home({ projects, templates, onOpen }) {
           ))}
         </div>
 
+        {/* Inspirations du moment */}
+        <div className="animate-fade-up mt-3 flex flex-wrap justify-center gap-2">
+          {inspirations.map((s) => (
+            <button
+              key={s}
+              onClick={() => setPrompt(s)}
+              className="rounded-full border border-edge-soft px-3 py-1.5 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
         {/* Projets */}
-        {projects.length > 0 && (
-          <div className="animate-fade-up mt-12 w-full">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-faint">
-                Projets{projects.length > 1 ? ` · ${projects.length}` : ""}
-              </h2>
-              {projects.length > 3 && (
-                <div className="relative">
-                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
-                  <input
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setShowAll(true); }}
-                    placeholder="Filtrer…"
-                    className="h-7 w-36 rounded-lg border border-edge bg-panel pl-7 pr-2.5 text-xs text-dim placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {visible.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onOpen(p, {})}
-                  className="group flex items-center gap-2.5 rounded-xl border border-edge bg-panel/60 px-3.5 py-3 text-left hover:border-accent/50 transition-colors"
-                >
-                  <FolderOpen size={16} className="shrink-0 text-dim group-hover:text-accent-soft transition-colors" />
-                  <span className="truncate font-mono text-[13px]">{p}</span>
-                </button>
-              ))}
-            </div>
-
-            {filtered.length > PROJECTS_VISIBLE && (
-              <button
-                onClick={() => setShowAll((v) => !v)}
-                className="mt-3 w-full rounded-xl border border-edge py-2 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
-              >
-                {showAll
-                  ? "Voir moins"
-                  : `Voir les ${filtered.length - PROJECTS_VISIBLE} autres projets`}
-              </button>
-            )}
-
-            {search.trim() && filtered.length === 0 && (
-              <p className="mt-4 text-center text-xs text-faint">Aucun projet ne correspond à « {search} »</p>
+        <div className="animate-fade-up mt-12 w-full">
+          {/* Stats rapides */}
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex items-center gap-1.5 rounded-full border border-edge bg-panel/60 px-3 py-1 text-xs text-dim">
+              <FolderOpen size={12} className="text-accent-soft" />
+              {projects.length} projet{projects.length !== 1 ? "s" : ""}
+            </span>
+            {projects.length === 0 && (
+              <span className="text-xs text-faint">
+                Premier projet ? Décris ton idée ci-dessus
+              </span>
             )}
           </div>
-        )}
+
+          {projects.length > 0 && (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-faint">
+                  Projets récents
+                </h2>
+                {projects.length > 3 && (
+                  <div className="relative">
+                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+                    <input
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setShowAll(true); }}
+                      placeholder="Filtrer…"
+                      className="h-7 w-36 rounded-lg border border-edge bg-panel pl-7 pr-2.5 text-xs text-dim placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Grille 2 colonnes */}
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {visible.map((p) => (
+                  <div
+                    key={p}
+                    className="group flex flex-col gap-2 rounded-xl border border-edge bg-panel/60 px-3.5 py-3 hover:border-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FolderOpen size={15} className="shrink-0 text-dim group-hover:text-accent-soft transition-colors" />
+                      <span className="truncate font-mono text-[13px] text-ink">{p}</span>
+                    </div>
+                    <button
+                      onClick={() => onOpen(p, {})}
+                      className="self-start rounded-lg border border-accent/30 bg-accent/[0.06] px-2.5 py-1 text-[11px] text-accent-soft hover:border-accent/60 hover:bg-accent/[0.12] transition-colors"
+                    >
+                      Ouvrir →
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {filtered.length > PROJECTS_VISIBLE && (
+                <button
+                  onClick={() => setShowAll((v) => !v)}
+                  className="mt-3 w-full rounded-xl border border-edge py-2 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
+                >
+                  {showAll
+                    ? "Voir moins"
+                    : `Voir les ${filtered.length - PROJECTS_VISIBLE} autres projets`}
+                </button>
+              )}
+
+              {search.trim() && filtered.length === 0 && (
+                <p className="mt-4 text-center text-xs text-faint">Aucun projet ne correspond à « {search} »</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FlaskConical, Hash, Lightbulb, Rss, Sliders } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
 import Header from "./components/Header.jsx";
 import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
+import PromptLab from "./components/PromptLab.jsx";
+import Tokenizer from "./components/Tokenizer.jsx";
+import Ideation from "./components/Ideation.jsx";
+import SidePanel from "./components/SidePanel.jsx";
+import Veille from "./components/Veille.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -46,6 +52,7 @@ export default function App() {
   const [backendStatus, setBackendStatus] = useState(null); // { scaffolded, running, url, port }
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const toastId = useRef(1);
 
   const pushToast = useCallback((kind, text, linkUrl) => {
@@ -278,10 +285,55 @@ export default function App() {
     setPreviewErrors([]);
   }
 
+  if (screen === "promptlab") return <PromptLab onBack={() => setScreen("home")} />;
+  if (screen === "tokenizer") return <Tokenizer onBack={() => setScreen("home")} />;
+  if (screen === "ideation") return <Ideation onBack={() => setScreen("home")} onStartCoding={(desc) => { setPendingPrompt(desc); setScreen("chat"); }} />;
+  if (screen === "veille") return <Veille onBack={() => setScreen("home")} />;
+
   return (
     <>
       {screen === "home" ? (
-        <Home projects={projects} templates={templates} onOpen={openProject} />
+        <>
+          <Home projects={projects} templates={templates} onOpen={openProject} />
+          <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+            <button
+              onClick={() => setSidePanelOpen(true)}
+              title="Editeur visuel"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Sliders size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("promptlab")}
+              title="Lab de prompts"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <FlaskConical size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("tokenizer")}
+              title="Tokeniseur"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Hash size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("ideation")}
+              title="Mode Ideation"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Lightbulb size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("veille")}
+              title="Veille IA"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Rss size={18} className="text-accent" />
+            </button>
+          </div>
+          <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
+        </>
       ) : (
         <div className="flex h-screen flex-col">
           <Header

@@ -1,8 +1,8 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 — Élève upgradé `qwen2.5-coder:14b` 🥇, idées 35/36/38/41/42/43/A/8 livrées.*
+*Dernière mise à jour : 2026-06-15 — 7 features livrées en parallèle : SidePanel (#1/#1a/#1b/#1c), Home repensée (#6), Routing modèle (#B), PromptLab (#19), Tokenizer (#20), Veille IA (#23), Idéation (#37).*
 
-> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session précédente : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅ livrés, `tsc` 0, build UI OK.
+> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session du 2026-06-15 (matinée) : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅. Session du 2026-06-15 (validation finale) : #1 SidePanel + #1a police + #1b couleur + #1c sélecteur, #6 Home repensée, #B Routing modèle auto, #19 PromptLab, #20 Tokenizer, #23 Veille IA dashboard, #37 Idéation visuelle — tous ✅ livrés, `tsc` 0, build UI OK (8s, 1932 modules).
 >
 > **📅 Date fixe** : audit coûts (idée 13) le **2026-06-22** · veille mensuelle le **13 de chaque mois**
 
@@ -51,11 +51,11 @@
 | 16 | Intégration GitHub native | ✅ FAIT | — | — |
 | 17 | Intégration Supabase | ✅ FAIT | — | — |
 | 18 | Déploiement étendu (Vercel + Netlify) | ✅ FAIT | — | — |
-| 19 | Lab de prompts interactif | 💤 | ⚖️ Sonnet 4.6 | M |
-| 20 | Visualiseur de tokenisation | 💤 | ⚖️ Sonnet 4.6 | S |
+| 19 | Lab de prompts interactif | ✅ FAIT | — | — |
+| 20 | Visualiseur de tokenisation | ✅ FAIT | — | — |
 | 21 | Panneau de métriques avancé | ✅ FAIT | — | — |
 | 22 | Agent de notes & RAG personnel | 💤 | 🧠 Opus 4.8 | L |
-| 23 | Dashboard de veille IA automatisé | 💤 | ⚖️ Sonnet 4.6 | M |
+| 23 | Dashboard de veille IA automatisé | ✅ FAIT | — | — |
 | 24 | Générateur de tests automatiques | ✅ FAIT | — | — |
 | 25 | MCP Figma intégré | 🗑️ RETIRÉ | — | — |
 | 26 | Mode multi-projets & composition | 💤 | 🧠 Opus 4.8 | XL |
@@ -69,7 +69,7 @@
 | 34 | Phase Finition + agent QA | ✅ FAIT | — | — |
 | 35 | Backend généré (Express/Fastify) | ✅ FAIT | — | — |
 | 36 | Bibliothèque de composants inter-projets | ✅ FAIT | — | — |
-| 37 | Mode idéation visuelle (avant le code) | 💤 | ⚖️ Sonnet 4.6 | M |
+| 37 | Mode idéation visuelle (avant le code) | ✅ FAIT | — | — |
 | 38 | Carte d'architecture vivante | ✅ FAIT | — | — |
 | 39 | Paiements Stripe | 💤 après #35 | 🧠 Opus 4.8 | L |
 | 40 | Invocation super-agent spécialisé | 💤 vision | 🧠 Opus 4.8 | XL |
@@ -82,17 +82,17 @@
 | # | Fonction | Statut | Modèle optimal | Effort |
 |---|----------|--------|----------------|--------|
 | A | Design system persistant | ✅ FAIT | — | — |
-| B | Routing modèle automatique | 💤 | 🧠 Opus 4.8 | L |
+| B | Routing modèle automatique | ✅ FAIT | — | — |
 | C | Agents autonomes (cron) | 💤 | 🧠 Opus 4.8 | XL |
-| 1 | Panel latéral pop-up (éditeur visuel) | 💤 | ⚖️ Sonnet 4.6 | M |
-| 1a | ↳ Modificateur de police | 💤 | ⚡ Haiku 4.5 | S |
-| 1b | ↳ Modificateur de couleur | 💤 | ⚡ Haiku 4.5 | S |
-| 1c | ↳ Sélecteur d'éléments | 💤 | ⚖️ Sonnet 4.6 | S |
+| 1 | Panel latéral pop-up (éditeur visuel) | ✅ FAIT | — | — |
+| 1a | ↳ Modificateur de police | ✅ FAIT | — | — |
+| 1b | ↳ Modificateur de couleur | ✅ FAIT | — | — |
+| 1c | ↳ Sélecteur d'éléments | ✅ FAIT | — | — |
 | 2 | Créateur de skills dans le panel | 💤 | ⚖️ Sonnet 4.6 | M |
 | 3 | Mode discret | ✅ DÉJÀ FAIT | — | — |
 | 4 | Bouton micro (entrée vocale) | 💤 | ⚡ Haiku 4.5 | S |
 | 5 | Menu de mode dans le chat | 💤 | ⚖️ Sonnet 4.6 | S |
-| 6 | Menu d'accueil repensé | 💤 | ⚖️ Sonnet 4.6 | M |
+| 6 | Menu d'accueil repensé | ✅ FAIT | — | — |
 | 7 | Sélecteur de contexte fichier | 💤 | ⚖️ Sonnet 4.6 | M |
 | 8 | URL Analyser — Sharingan | ✅ FAIT | — | — |
 
