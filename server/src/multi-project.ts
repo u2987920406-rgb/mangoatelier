@@ -1,11 +1,11 @@
 import type { Express, Request, Response } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
-import Anthropic from '@anthropic-ai/sdk'
+import { askOllama } from './ollama.js'
 
 const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
 
-// Phase 3 idée #26 — index sémantique (résumés Claude Haiku)
+// Phase 3 idée #26 — index sémantique (résumés via l'Élève local Qwen/Ollama — $0, hors crédits API)
 const DATA_DIR = path.join(process.cwd(), '..', 'server', 'data')
 const INDEX_FILE = path.join(DATA_DIR, 'multi-project-index.json')
 
@@ -200,9 +200,10 @@ interface IndexStore {
   entries: Record<string, IndexEntry>
 }
 
-// Bornage du coût/temps par run d'indexation
-const MAX_FILES_PER_RUN = 60
-const HAIKU_BATCH_SIZE = 5
+// Bornage du temps par run d'indexation (configurable via .env)
+const MAX_FILES_PER_RUN = Number(process.env.INDEX_MAX_FILES ?? 60)
+// Ollama sérialise sur un modèle → un petit lot parallèle suffit (évite de le saturer).
+const OLLAMA_BATCH_SIZE = Number(process.env.INDEX_BATCH_SIZE ?? 3)
 const CONTENT_TRUNCATE = 2500
 
 function ensureDataDir(): void {
@@ -271,8 +272,12 @@ function scanAllProjects(): ScannedFile[] {
   return all
 }
 
-// Demande à Haiku un résumé ≤ 2 phrases en français. Fallback = 1re ligne non vide.
-async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<{ summary: string; degraded: boolean }> {
+// Demande à l'Élève local (Qwen via Ollama) un résumé ≤ 2 phrases en français.
+// $0, souverain, hors crédits API. Fallback = 1re ligne non vide (degraded).
+const SUMMARY_SYSTEM =
+  'Tu résumes des fichiers de code en français, de façon concise et factuelle. Pas de markdown, pas de code, 2 phrases maximum.'
+
+async function summarizeFile(f: ScannedFile): Promise<{ summary: string; degraded: boolean }> {
   let content = ''
   try {
     content = fs.readFileSync(f.absPath, 'utf-8')
@@ -283,28 +288,21 @@ async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<{ summa
   const firstLine = content.split('\n').map((l) => l.trim()).find(Boolean) ?? ''
 
   try {
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 160,
-      messages: [
-        {
-          role: 'user',
-          content:
-            `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
-            `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
-            `Fichier : ${f.project}/${f.file}\n\n` +
-            '```\n' + snippet + '\n```',
-        },
-      ],
-    })
-    const text = msg.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
+    const text = await askOllama(
+      SUMMARY_SYSTEM,
+      `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
+        `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
+        `Fichier : ${f.project}/${f.file}\n\n` +
+        '```\n' + snippet + '\n```',
+    )
     if (text) {
       return { summary: text, degraded: false }
     } else {
       return { summary: firstLine, degraded: true }
     }
   } catch {
-    // Échec d'un fichier : on retombe sur la 1re ligne, sans interrompre le run.
+    // Ollama injoignable/timeout : on retombe sur la 1re ligne (degraded), sans
+    // interrompre le run. Le garde-fou re-tentera ce fichier au prochain run.
     return { summary: firstLine, degraded: true }
   }
 }
@@ -513,14 +511,13 @@ export function registerMultiProjectRoutes(app: Express): void {
       })
       const capped = toIndex.slice(0, MAX_FILES_PER_RUN)
 
-      // 4) Appels Haiku par petits lots parallèles
-      const client = new Anthropic()
+      // 4) Résumés via l'Élève local (Qwen/Ollama) par petits lots
       let indexed = 0
-      for (let i = 0; i < capped.length; i += HAIKU_BATCH_SIZE) {
-        const batch = capped.slice(i, i + HAIKU_BATCH_SIZE)
+      for (let i = 0; i < capped.length; i += OLLAMA_BATCH_SIZE) {
+        const batch = capped.slice(i, i + OLLAMA_BATCH_SIZE)
         const results = await Promise.all(
           batch.map(async (f) => {
-            const result = await summarizeFile(client, f) // try/catch interne
+            const result = await summarizeFile(f) // try/catch interne
             return { f, result }
           })
         )
