@@ -309,7 +309,7 @@ export default function App() {
   if (screen === "notes") return <NotesRAG onBack={() => setScreen("home")} />;
   if (screen === "ablation") return <AutoAblation onBack={() => setScreen("home")} />;
   if (screen === "multi") return <MultiProject onBack={() => setScreen("home")} />;
-  if (screen === "superagent") return <SuperAgentBuilder onBack={() => setScreen("home")} />;
+  if (screen === "superagent") return <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
   if (screen === "design") return <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
 
   return (

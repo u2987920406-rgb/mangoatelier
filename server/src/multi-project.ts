@@ -1,8 +1,13 @@
 import type { Express, Request, Response } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
+import Anthropic from '@anthropic-ai/sdk'
 
 const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
+
+// Phase 3 idée #26 — index sémantique (résumés Claude Haiku)
+const DATA_DIR = path.join(process.cwd(), '..', 'server', 'data')
+const INDEX_FILE = path.join(DATA_DIR, 'multi-project-index.json')
 
 const EXCLUDED_DIRS = new Set(['node_modules', '.mango', 'dist', '.git', '.cache', '.next', '.nuxt'])
 
@@ -179,6 +184,141 @@ export function multiProjectPromptSection(workspaceDir: string, currentProject?:
   );
 }
 
+// ── Phase 3 idée #26 — indexation sémantique + recherche ────────────────────
+
+interface IndexEntry {
+  project: string
+  file: string
+  category: FileCategory
+  summary: string
+  hash: string
+  indexedAt: string
+}
+
+interface IndexStore {
+  entries: Record<string, IndexEntry>
+}
+
+// Bornage du coût/temps par run d'indexation
+const MAX_FILES_PER_RUN = 60
+const HAIKU_BATCH_SIZE = 5
+const CONTENT_TRUNCATE = 2500
+
+function ensureDataDir(): void {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+function loadIndex(): IndexStore {
+  ensureDataDir()
+  if (!fs.existsSync(INDEX_FILE)) return { entries: {} }
+  try {
+    const raw = fs.readFileSync(INDEX_FILE, 'utf-8')
+    const parsed = JSON.parse(raw) as IndexStore
+    return parsed && typeof parsed === 'object' && parsed.entries ? parsed : { entries: {} }
+  } catch {
+    return { entries: {} }
+  }
+}
+
+function saveIndex(store: IndexStore): void {
+  ensureDataDir()
+  fs.writeFileSync(INDEX_FILE, JSON.stringify(store, null, 2), 'utf-8')
+}
+
+// Empreinte légère du contenu : taille + mtime (ms). Suffit pour détecter
+// une modification et déclencher une ré-indexation incrémentale.
+function fileHash(absPath: string): string {
+  try {
+    const st = fs.statSync(absPath)
+    return `${st.size}-${Math.floor(st.mtimeMs)}`
+  } catch {
+    return ''
+  }
+}
+
+// Liste tous les fichiers source de tous les projets (mêmes exclusions que /components).
+interface ScannedFile {
+  project: string
+  file: string // relatif au projet, forward slash
+  absPath: string
+  category: FileCategory
+}
+
+function scanAllProjects(): ScannedFile[] {
+  if (!fs.existsSync(WORKSPACE_DIR)) return []
+  let projectDirs: fs.Dirent[]
+  try {
+    projectDirs = fs.readdirSync(WORKSPACE_DIR, { withFileTypes: true })
+  } catch {
+    return []
+  }
+
+  const all: ScannedFile[] = []
+  for (const entry of projectDirs) {
+    if (!entry.isDirectory() || isExcluded(entry.name)) continue
+    const projectPath = path.join(WORKSPACE_DIR, entry.name)
+    for (const relPath of findSourceFiles(projectPath)) {
+      const fwd = relPath.replace(/\\/g, '/')
+      all.push({
+        project: entry.name,
+        file: fwd,
+        absPath: path.join(projectPath, relPath),
+        category: inferCategory(relPath),
+      })
+    }
+  }
+  return all
+}
+
+// Demande à Haiku un résumé ≤ 2 phrases en français. Fallback = 1re ligne non vide.
+async function summarizeFile(client: Anthropic, f: ScannedFile): Promise<string> {
+  let content = ''
+  try {
+    content = fs.readFileSync(f.absPath, 'utf-8')
+  } catch {
+    return ''
+  }
+  const snippet = content.slice(0, CONTENT_TRUNCATE)
+  const firstLine = content.split('\n').map((l) => l.trim()).find(Boolean) ?? ''
+
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 160,
+      messages: [
+        {
+          role: 'user',
+          content:
+            `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
+            `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
+            `Fichier : ${f.project}/${f.file}\n\n` +
+            '```\n' + snippet + '\n```',
+        },
+      ],
+    })
+    const text = msg.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
+    return text || firstLine
+  } catch {
+    // Échec d'un fichier : on retombe sur la 1re ligne, sans interrompre le run.
+    return firstLine
+  }
+}
+
+// Scoring mots-clés (style topByKeyword) sur summary + file + project + category.
+function topByKeyword(entries: IndexEntry[], query: string, limit = 15): Array<IndexEntry & { score: number }> {
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2)
+  if (words.length === 0) return []
+  const scored = entries.map((e) => {
+    const text = `${e.summary} ${e.file} ${e.project} ${e.category}`.toLowerCase()
+    const score = words.reduce((acc, w) => acc + (text.includes(w) ? 1 : 0), 0)
+    return { ...e, score }
+  })
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+}
+
 export function registerMultiProjectRoutes(app: Express): void {
   // GET /api/multi-project/components
   app.get('/api/multi-project/components', (_req: Request, res: Response) => {
@@ -326,5 +466,111 @@ export function registerMultiProjectRoutes(app: Express): void {
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
     }
+  })
+
+  // POST /api/multi-project/index — (ré)indexation sémantique incrémentale
+  app.post('/api/multi-project/index', async (_req: Request, res: Response) => {
+    try {
+      const store = loadIndex()
+      const scanned = scanAllProjects()
+
+      // Clés actuellement présentes sur disque
+      const liveKeys = new Set(scanned.map((f) => `${f.project}/${f.file}`))
+
+      // 1) Purge : retirer de l'index les fichiers qui n'existent plus
+      let removed = 0
+      for (const key of Object.keys(store.entries)) {
+        if (!liveKeys.has(key)) {
+          delete store.entries[key]
+          removed++
+        }
+      }
+
+      // 2) Déterminer ce qui doit être (ré)indexé (nouveau ou hash changé)
+      const toIndex: ScannedFile[] = []
+      let reused = 0
+      for (const f of scanned) {
+        const key = `${f.project}/${f.file}`
+        const hash = fileHash(f.absPath)
+        const existing = store.entries[key]
+        if (existing && existing.hash === hash && existing.summary) {
+          reused++
+        } else {
+          toIndex.push(f)
+        }
+      }
+
+      // 3) Cap du run : prioriser les composants, puis le reste
+      toIndex.sort((a, b) => {
+        const ca = a.category === 'component' ? 0 : 1
+        const cb = b.category === 'component' ? 0 : 1
+        return ca - cb
+      })
+      const capped = toIndex.slice(0, MAX_FILES_PER_RUN)
+
+      // 4) Appels Haiku par petits lots parallèles
+      const client = new Anthropic()
+      let indexed = 0
+      for (let i = 0; i < capped.length; i += HAIKU_BATCH_SIZE) {
+        const batch = capped.slice(i, i + HAIKU_BATCH_SIZE)
+        const results = await Promise.all(
+          batch.map(async (f) => {
+            const summary = await summarizeFile(client, f) // try/catch interne
+            return { f, summary }
+          })
+        )
+        for (const { f, summary } of results) {
+          const key = `${f.project}/${f.file}`
+          store.entries[key] = {
+            project: f.project,
+            file: f.file,
+            category: f.category,
+            summary,
+            hash: fileHash(f.absPath),
+            indexedAt: new Date().toISOString(),
+          }
+          indexed++
+        }
+      }
+
+      saveIndex(store)
+
+      res.json({
+        ok: true,
+        indexed,
+        reused,
+        total: Object.keys(store.entries).length,
+        removed,
+      })
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+    }
+  })
+
+  // GET /api/multi-project/search?q=... — recherche par mots-clés sur l'index
+  app.get('/api/multi-project/search', (req: Request, res: Response) => {
+    const q = (req.query.q as string | undefined)?.trim() ?? ''
+    const store = loadIndex()
+    const entries = Object.values(store.entries)
+
+    if (entries.length === 0) {
+      res.json({ results: [], needsIndex: true })
+      return
+    }
+
+    if (!q) {
+      res.json({ results: [] })
+      return
+    }
+
+    const results = topByKeyword(entries, q).map((e) => ({
+      project: e.project,
+      file: e.file,
+      category: e.category,
+      summary: e.summary,
+      score: e.score,
+    }))
+
+    res.json({ results })
   })
 }

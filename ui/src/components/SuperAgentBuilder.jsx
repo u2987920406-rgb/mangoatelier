@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ArrowLeft, Sparkles, Loader2, Copy, Check, Trash2, Tag, Wrench, MessageSquare, ChevronDown, ChevronUp, Bot, FileDown } from 'lucide-react'
 
-export default function SuperAgentBuilder({ onBack }) {
+export default function SuperAgentBuilder({ onBack, projectName }) {
   const [domain, setDomain] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,6 +13,8 @@ export default function SuperAgentBuilder({ onBack }) {
   const [expandedPrompt, setExpandedPrompt] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [exportingId, setExportingId] = useState(null)
+  // Idée #40 Phase 3 — id de l'agent métier matché au projet courant (badge "Actif").
+  const [matchedAgentId, setMatchedAgentId] = useState(null)
 
   const showToast = useCallback((msg) => {
     setToast(msg)
@@ -41,6 +43,27 @@ export default function SuperAgentBuilder({ onBack }) {
   useEffect(() => {
     fetchAgents()
   }, [fetchAgents])
+
+  // Au montage (si un projet est ouvert) : quel expert métier correspond à ce
+  // projet ? Le badge "Actif sur <projet>" est posé sur sa carte.
+  useEffect(() => {
+    if (!projectName?.trim()) {
+      setMatchedAgentId(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/super-agent/match?project=${encodeURIComponent(projectName)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setMatchedAgentId(data.match?.id ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setMatchedAgentId(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectName])
 
   const handleBuild = async () => {
     if (!domain.trim()) return
@@ -220,6 +243,8 @@ export default function SuperAgentBuilder({ onBack }) {
                   deletingId={deletingId}
                   onExport={handleExport}
                   exportingId={exportingId}
+                  isMatched={agent.id === matchedAgentId}
+                  projectName={projectName}
                 />
               ))}
             </div>
@@ -232,7 +257,7 @@ export default function SuperAgentBuilder({ onBack }) {
 
 // ── Composant AgentCard ──────────────────────────────────────────────────────
 
-function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete, deletingId, onExport, exportingId, highlight = false }) {
+function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete, deletingId, onExport, exportingId, highlight = false, isMatched = false, projectName }) {
   const [copiedExample, setCopiedExample] = useState(null)
   const isExpanded = expandedPrompt === agent.id
 
@@ -243,13 +268,19 @@ function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete,
   }
 
   return (
-    <div className={`bg-panel border rounded-xl overflow-hidden transition-all ${highlight ? 'border-accent-soft shadow-lg shadow-accent-soft/10' : 'border-edge'}`}>
+    <div className={`bg-panel border rounded-xl overflow-hidden transition-all ${highlight || isMatched ? 'border-accent-soft shadow-lg shadow-accent-soft/10' : 'border-edge'}`}>
       {/* En-tête de la card */}
       <div className="px-5 py-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-semibold text-ink">{agent.name}</h3>
             {highlight && <span className="text-xs bg-accent-soft/20 text-accent-soft px-2 py-0.5 rounded-full">Nouveau</span>}
+            {isMatched && (
+              <span className="inline-flex items-center gap-1 text-xs bg-accent-soft/20 text-accent-soft px-2 py-0.5 rounded-full font-medium">
+                <Sparkles size={9} />
+                Actif sur {projectName}
+              </span>
+            )}
           </div>
           <p className="text-xs text-faint mt-0.5">{agent.domain}</p>
           {agent.tags?.length > 0 && (

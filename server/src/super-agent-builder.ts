@@ -4,6 +4,9 @@ import type { Express, Request, Response } from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
 import { SKILLS_DIR } from './skills.js'
+import { WORKSPACE_DIR } from './projects.js'
+import { loadMemory } from './memory.js'
+import { detectProjectType } from './blueprints.js'
 
 const client = new Anthropic()
 
@@ -63,6 +66,95 @@ function slugify(name: string): string {
 /** Aplatis une valeur multi-ligne sur une seule ligne pour le frontmatter YAML. */
 function flatLine(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
+}
+
+// ── Phase 3 — Matching automatique agent ↔ projet ──────────────────────────
+// Un super-agent est l'expert d'un DOMAINE MÉTIER (avocat, SEO, nutritionniste…).
+// Le matching pertinent se fait sur le SUJET du projet — son nom + sa mémoire
+// .memory.md — pas sur son type technique. On score chaque agent par recouvrement
+// de mots-clés entre { name + domain + tags } et { nom projet + mémoire projet },
+// à la manière de topByKeyword (notes-rag.ts) : mots > 2 chars, score par
+// occurrence, mots vides ignorés. Bonus léger si detectProjectType correspond à
+// un tag de l'agent. On ne retourne le meilleur agent que s'il dépasse un seuil
+// minimal, pour éviter les faux positifs sur des projets sans expert dédié.
+
+// Mots vides FR+EN courants : ignorés au scoring pour ne pas matcher sur du bruit.
+const STOP_WORDS = new Set([
+  'les', 'des', 'une', 'pour', 'avec', 'dans', 'sur', 'par', 'aux', 'que', 'qui',
+  'est', 'son', 'ses', 'mes', 'tes', 'nos', 'vos', 'leur', 'leurs', 'ont', 'pas',
+  'plus', 'mais', 'donc', 'car', 'comme', 'tout', 'tous', 'cette', 'ces', 'the',
+  'and', 'for', 'with', 'this', 'that', 'are', 'from', 'you', 'your', 'app',
+  'projet', 'project', 'site', 'page', 'web',
+])
+
+/** Découpe un texte en mots-clés significatifs (> 2 chars, sans accents, hors stop-words). */
+function keywords(text: string): string[] {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w))
+}
+
+// Seuil minimal de recouvrement : en deçà, on considère qu'aucun expert ne
+// correspond vraiment (≥ 2 mots-clés communs requis avant tout bonus).
+const MATCH_THRESHOLD = 2
+
+/**
+ * Trouve le super-agent expert le plus pertinent pour un projet, ou `null`.
+ * Score = nb de mots-clés de l'agent ({name + domain + tags}) présents dans le
+ * texte du projet ({nom + mémoire .memory.md}), +1 si un tag de l'agent égale
+ * le type de projet détecté. Retourne le meilleur strictement au-dessus du seuil.
+ */
+export function matchAgentToProject(
+  projectName: string,
+): { agent: SuperAgent; score: number } | null {
+  const name = (projectName ?? '').trim()
+  if (!name) return null
+
+  const projectDir = path.join(WORKSPACE_DIR, path.basename(name))
+  const memory = loadMemory(projectDir) // '' si absente
+  const projectText = `${name} ${memory}`
+  const projectWords = new Set(keywords(projectText))
+  if (projectWords.size === 0) return null
+
+  const detectedType = detectProjectType(name, memory) // 'dashboard' | 'jeu' | …
+
+  let best: { agent: SuperAgent; score: number } | null = null
+  for (const agent of loadAgents()) {
+    const agentWords = keywords(`${agent.name} ${agent.domain} ${agent.tags.join(' ')}`)
+    let score = agentWords.reduce((acc, w) => acc + (projectWords.has(w) ? 1 : 0), 0)
+    // Bonus léger : un tag de l'agent recoupe le type technique détecté du projet.
+    if (detectedType !== 'autre' && agent.tags.some((t) => keywords(t).includes(detectedType))) {
+      score += 1
+    }
+    if (score >= MATCH_THRESHOLD && (!best || score > best.score)) {
+      best = { agent, score }
+    }
+  }
+  return best
+}
+
+/**
+ * Section de system prompt injectant l'expertise du super-agent matché.
+ * Retourne '' si aucun agent ne correspond (aucune pollution du prompt).
+ * Le systemPrompt de l'agent est tronqué à ~1500 chars pour rester économe.
+ */
+export function superAgentPromptSection(projectName: string): string {
+  const match = matchAgentToProject(projectName)
+  if (!match) return ''
+
+  const { agent } = match
+  const MAX = 1500
+  const expertise =
+    agent.systemPrompt.length > MAX
+      ? `${agent.systemPrompt.slice(0, MAX)}…`
+      : agent.systemPrompt
+
+  return `\n\n## Expert spécialisé actif (${agent.name})
+Pour ce projet, adopte aussi l'expertise et les priorités de cet expert métier en ${agent.domain}. Applique son angle d'analyse, son vocabulaire et ses standards lorsque c'est pertinent pour la tâche — sans jamais sortir de ton rôle d'ingénieur qui construit l'app :
+${expertise}`
 }
 
 export function registerSuperAgentRoutes(app: Express): void {
@@ -199,6 +291,18 @@ Règles :
   app.get('/api/super-agent/list', (_req: Request, res: Response) => {
     const agents = loadAgents()
     res.json({ agents })
+  })
+
+  // GET /api/super-agent/match?project=X — quel expert correspond au projet ?
+  // Ne renvoie PAS le systemPrompt à l'UI : juste de quoi afficher le badge.
+  app.get('/api/super-agent/match', (req: Request, res: Response) => {
+    const project = (req.query.project as string | undefined)?.trim() ?? ''
+    const match = matchAgentToProject(project)
+    res.json({
+      match: match
+        ? { id: match.agent.id, name: match.agent.name, domain: match.agent.domain, score: match.score }
+        : null,
+    })
   })
 
   // POST /api/super-agent/:id/export — exporte l'agent en SKILL.md dans workspace/.skills/

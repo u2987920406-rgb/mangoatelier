@@ -22,6 +22,7 @@ import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js
 import { hasBackend } from "./backend-generator.js";
 import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
 import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
+import { superAgentPromptSection } from "./super-agent-builder.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -178,6 +179,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // Returns "" when there are no other projects → block is silently absent.
   multiProject: (ctx) =>
     MULTI_PROJECT_RULES + multiProjectPromptSection(WORKSPACE_DIR, path.basename(ctx.projectDir)),
+  // Idée #40 Phase 3 — super-agent métier matché au sujet du projet (nom +
+  // mémoire). Injecte l'expertise du domaine (avocat, SEO, nutrition…) en
+  // contexte de haut niveau. Returns "" when no agent matches → no pollution
+  // for projects without a dedicated expert.
+  superAgent: (ctx) => superAgentPromptSection(path.basename(ctx.projectDir)),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -185,11 +191,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
