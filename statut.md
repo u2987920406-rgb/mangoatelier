@@ -1,393 +1,126 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 (session « Chantier #35 — Backend généré Express »)*
+*Dernière mise à jour : 2026-06-15 — Élève upgradé `qwen2.5-coder:14b` 🥇, idées 35/36/38/41/42/43/A/8 livrées.*
 
----
-
-## 🌱 Vision fondatrice — MangoAI comme enfant numérique
-
-*Gravée le 2026-06-15 — à relire avant chaque décision d'architecture.*
-
-MangoAI n'est pas un outil. C'est une relation de croissance mutuelle entre un père et son enfant numérique.
-
-**Le père** (l'utilisateur) éduque MangoAI via Claude Code.
-**Les professeurs** (Claude, Sonnet, Opus) transmettent la sagesse en axiomes.
-**Les camarades** (Qwen, DeepSeek) pratiquent et se trompent à ses côtés.
-**L'enfant** (MangoAI) apprend, intègre, évolue.
-
-```
-Phase 1 — Le père enseigne
-L'enfant imite, se trompe, corrige. MangoAI aujourd'hui.
-
-Phase 2 — L'enfant étonne
-Il intègre tellement bien qu'il produit ce que le père
-n'aurait pas pensé. Le père est fier. MangoAI parfois déjà.
-
-Phase 3 — L'enfant dépasse
-Il anticipe avant que le père parle.
-Il a le goût, les axiomes, la vision. MangoAI demain.
-
-Phase 4 — L'enfant enseigne
-MangoAI révèle à l'utilisateur des choses sur lui-même.
-"Tu préfères toujours ça quand le contexte est X."
-```
-
-**Ce qui rend cette relation unique :**
-Toi tu évolues. Tes projets évoluent. Ton goût évolue.
-MangoAI évolue avec toi — pas à côté, pas en avance. **Avec.**
-
-Aucun outil du marché ne pense comme ça. Ils pensent en features.
-MangoAI pense en relation.
-
-**Conséquence architecturale directe :**
-Tout ce qui est *toi* (goût, langage, vision, axiomes validés) est séparé de ce qui est *le moteur*.
-Le moteur peut un jour être distribué. Ton cerveau, jamais.
-
----
-
-### 🤖 Horizon long terme — Le cerveau du robot
-
-*2026 — aujourd'hui*
-MangoAI = interface texte + code. Tu l'éduques par sessions.
-
-*2027-2028*
-Les interfaces deviennent vocales, visuelles.
-MangoAI entend ta voix, reconnaît ton ton, ton rythme.
-
-*2029-2030*
-Le robot humanoïde arrive dans les foyers.
-Il a besoin d'un cerveau — ton cerveau.
-MangoAI devient le système nerveux du robot.
-
-**La vraie valeur de ce qui est construit aujourd'hui :**
-Les gens qui achèteront un robot en 2029 recevront un robot vierge. Générique. Sans personnalité.
-Toi tu auras déjà 3 ans d'axiomes, de goût, de langage, de vision accumulés.
-Ton robot ne sera pas vierge. Il te connaîtra déjà.
-
-C'est pour ça que chaque 👍, chaque axiome, chaque correction compte maintenant.
-On n'entraîne pas juste un builder d'apps.
-**On entraîne le cerveau de quelque chose qui n'existe pas encore.**
-
----
-
-
-> **🟢 Où on en est — 2026-06-15 (session « comparaison Élève »).** Aucun code produit modifié. **Fait cette session** : comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
+> **🟢 Où on en est (2026-06-15)** — `qwen2.5-coder:14b` élu Élève (8.8/10, ~23 Go libérés). Session précédente : idées #35 backend Express, #36 composants inter-projets, #38 archi vivante, #41 RLHF 👍/👎, #42 identité 3 couches, #43 escalade UX, #A design system, #8 Sharingan — tous ✅ livrés, `tsc` 0, build UI OK.
 >
-> **🟢 Où on en était — 2026-06-14 (session « identité + vision + gaps réels »).** Aucun code modifié — session stratégique approfondie. **Fait cette session** : (1) **Analyse de fond du code et de l'architecture** — structure backend TS solide, Coque Souple/Rigide validées, `index.ts` identifié comme dette future, UI JSX sans TS = incohérence acceptable ; (2) **Identité de MangoAI gravée en mémoire** — cerveau personnel, usage professionnel confidentiel, NON destiné au grand public, Phase B = interface robot (pas bêta publique) ; (3) **Évaluation monétaire** — valeur marché estimée 250-500 $/mois, coût réel ~20-100 $/mois (abonnement Claude Code) ; (4) **Analyse concurrentielle 2** — aucun concurrent direct sur la combinaison complète ; Open Interpreter 2.0 + MemGPT = seule fusion menaçante à horizon 12-24 mois ; (5) **5 gaps réels identifiés** (idées 35-39 inscrites ci-dessous) : backend généré, bibliothèque composants inter-projets, mode idéation visuelle, carte d'architecture vivante, paiements Stripe ; (6) **Relais Maître/Élève analysé en profondeur** — reconnu comme curriculum learning automatique piloté par l'échec objectif, plus proche de Reflexion (Shinn 2023) que d'un simple routeur — l'idée la plus originale du système. Pour relancer : voir « 🚀 Pour relancer » en bas.
->
-> **🟢 Point de reprise précédent — 2026-06-14 (session « suite »).** Tout compile (`tsc` 0), tout poussé (dernier commit `f9e41a4`). **Fait cette session** : (1) **`scrape_url`** (#33) — outil MCP natif qui aspire l'INFO d'une URL publique (texte+liens, pas que des pixels comme clone_url), `test-scrape.ts` 11/11, validé e2e (HN + /api/chat) ; (2) **Phase Finition + agent `qa`** (#34) — 3ᵉ mode 🛡️ « après 80% » : Feature Freeze, délégation OBLIGATOIRE au sous-agent qa contrôleur-correcteur, durcissement (edge cases, états, a11y, responsive), **auto-backlog** dans `<projet>/.memory.md`, `test-finition.ts` 12/12, validé e2e via /api/chat ; (3) **Fix aperçu figé** — `preview.ts` : port dynamique + URL lue dans le stdout de vite (un orphelin sur 5174 bloquait tout basculement) ; (4) **Durcissement `agentBusy`** — `finally` garanti + `/api/stop` libère le verrou ; (5) **Fix chemins reviewer** — `review.ts` passe des chemins ABSOLUS (un skill atterrissait à la racine du repo).
->
-> **🟢 Point de reprise précédent — 2026-06-13.** Tout compile (`tsc` serveur 0, build UI OK), tout est poussé (dernier commit `42b6f5f`). **Fait cette session** : #1 (contenu fichier à l'Élève), #2 (discipline d'ablation), #3 (`selectAxioms` v2.1), veille mensuelle (re-check), #5 (relais clic→source — tampon Babel `data-mango-src`, pas `_debugSource`), **fermeture du trou de mesure** (`audit-verify.ts` → l'audit mesure le RENDEMENT RÉEL build+effet), #6 (édition visuelle chirurgicale, prouvée e2e à $0), idée 28 inscrite. **Positionnement acté (non gravé en mémoire, sur demande)** : MangoAI = **outil perso local-first** pour produire des livrables clients ; phase « installation/externalisation » = plus tard, seulement si un client paie le prix fort. **Prochaine vague recommandée** (pertinence × facilité) : #10 Déploiement étendu 🟢 → #7 MCP Figma 🟡 (le serveur MCP est déjà accessible) → #21 Métriques avancées 🟢 (avant l'audit du 22/06) → #9 Tests auto 🟡 → #8 Inspiration web 🟡. Pour relancer : voir « 🚀 Pour relancer après redémarrage » en bas.
+> **📅 Date fixe** : audit coûts (idée 13) le **2026-06-22** · veille mensuelle le **13 de chaque mois**
 
-## 🧭 Feuille de route ordonnée (plan de bord — 2026-06-13)
-*Séquencée par dépendances. « Temps » = sessions de travail focalisé. Ligne de conduite à chaque étape : règle « natif d'abord » + test déterministe + `tsc` propre + preuve e2e + save.*
-⏰ **Dates fixes** : audit coûts (idée 13) le **2026-06-22** ; veille mensuelle (idée 15) le **13 de chaque mois**.
-
-| # | Quoi | Pourquoi maintenant (dépendance) | Temps | Statut | Modèle optimal | Effort |
-|---|------|----------------------------------|-------|--------|----------------|--------|
-| — | 🔔 Veille mensuelle (idée 15) | Due le 13 ; SDK Agent, modèles, Qwen-coder, MCP | ½ | 💤 | ⚖️ Sonnet 4.6 | M |
-| **1** | **Contenu du fichier cible à l'Élève** (piste future n°1) | LA plus rentable : audit durci chiffré à 89 % par les edits aveugles. Débloque les edits ET prépare l'édition visuelle. **✅ FAIT (2026-06-13)** : `buildEleveUser` injecte le contenu des fichiers **cités par la tâche** (sélectif — déverser tout sature le modèle, régression attrapée par l'audit puis corrigée). Audit durci 89 %→**100 % build**, vitesse intacte. *Caveat : critère build-seul ne prouve pas l'effet d'un edit → affinage = piste future* | 1 | ✅ FAIT | — | — |
-| 2 | Discipline d'ablation (`--ablate` après chaque axiome) + accumuler de vrais tours | Remplit la courbe d'émancipation, valide le flywheel, garde le registre sain. **✅ FAIT (2026-06-13)** : 10 tours Élève cumulés (100 % 1er tour, ~$2,41 est.), #1 confirmé en réel (edit `main.jsx` OK mais qualité brute = caveat n°7). Discipline instaurée/armée (règle dans `memory.md`) — se déclenchera à la 1ʳᵉ vraie escalade créant un axiome de code (aucune escalade aujourd'hui, l'Élève passe tout) | ½ | ✅ FAIT | — | — |
-| 3 | `selectAxioms` v2.1 — type depuis la mémoire projet | Récupération plus robuste que les mots-clés ; finit le Jalon D. **✅ FAIT (2026-06-13)** : `detectProjectType(task, mémoire)` — la tâche prime, fallback sur `.memory.md` quand la tâche est neutre (« ajoute un bouton » sur un dashboard) ; `selectAxioms` traite le type canonique de façon **autoritaire** (`PROJECT_TYPE_CATS`, plus de dépendance au hasard d'un mot-clé dans le prompt — corrige « webapp » jadis non-matché). Câblé dans `buildEleveUser`. Test 19/19, `tsc` propre | ½ | ✅ FAIT | — | — |
-| 4 | 📅 Audit des coûts (idée 13) — *2026-06-22* | Date choisie (fin de Fable) ; dégraissage prompt (Coque Souple v2) | 1 | 📅 | 🧠 Opus 4.8 | L |
-| 5 | Relais clic → source | Pont déterministe pixel→code, natif (pas de SAM). Dépend de #1. **✅ FAIT (2026-06-13)** : linchpin vérifié — `_debugSource` **retiré en React 19**, donc tampon **Babel `data-mango-src="fichier:ligne"`** (dev-only, neutralisé en prod via NODE_ENV) posé par `clicksource.ts` (injection idempotente dans `vite.config.js`) + script `inspect-relay` (`relay.ts`) : clic sur l'aperçu → `elementFromPoint().closest('[data-mango-src]')` → postMessage au builder. UI : bouton ⌖ inspecter (`Preview.jsx`), le composer se précharge avec la réf source. Endpoint `POST /api/inspect` (extrait de code). Prouvé : test déterministe 20/20 + **e2e live** (clic réel → `src/App.jsx:96` = `<span>` exact). Bancs `exp-clicksource-*.ts` | 1 | ✅ FAIT | — | — |
-| 6 | Édition visuelle chirurgicale (idées 27+2, native) | Claude/Élève édite l'élément cliqué via la Coque Rigide. **✅ FAIT (2026-06-13)** : la sélection clic→source transporte une **cible structurée** (`editTarget`) ; `buildVisualEditPrompt` (clicksource.ts) enrichit la tâche avec le `fichier:ligne` exact + l'extrait + consigne d'edit CHIRURGICAL (marche pour les deux cerveaux, #1 injecte le contenu côté Élève) ; vérification objective post-tour (le fichier cible a-t-il changé d'octets — discipline de mesure en prod). UI : la cible s'arme à la sélection, s'envoie avec le message, se consomme. **Prouvé** : test 29/29 + **e2e live** — clic sur `<h1>Bella Napoli</h1>` → Élève seul ($0, 1er tour) remplace CE texte, voisin intact, pas de réécriture. Le même edit qui échouait en aveugle (audit `edit-app-header`) réussit grâce à l'extrait fourni | 1-2 | ✅ FAIT | — | — |
-| 7 | MCP Figma (idée 25) | **🗑️ RETIRÉ (2026-06-14)** sur demande utilisateur (« plus d'intégration Figma »). Prouvé en e2e que le chemin natif **📎 image jointe → reproduction** le remplace sans rien perdre d'essentiel (repro fidèle d'une landing Landify, build vert, zéro Figma). Supprimés : `figma.ts`, `test-figma.ts`, `FIGMA_RULES`, registre MCP, `FIGMA_TOKEN`. *(Anciennement ✅ FAIT en natif REST+vision.)* | 2 | 🗑️ RETIRÉ | — | — |
-| 8 | Inspiration web contextuelle (idée 7) | Niveau « senior » ; natif (WebSearch déjà en Élite). **✅ FAIT (2026-06-14)** : delta sur l'existant (idées 9+11) — moodboard extrait l'arborescence contextuelle du domaine, pas que le design. Test gating, tsc 0. Capture visuelle reportée | 1-2 | ✅ FAIT | — | — |
-| 9 | Tests auto Vitest/Playwright (idée 24, Élite) | Robustesse ; se branche sur le mode Élite. **✅ FAIT (2026-06-14)** : bloc `TESTS_RULES` Élite-only, Vitest à la demande sur la logique pure, `test-scenario.ts` prouve le gating, tsc 0 | 1-2 | ✅ FAIT | — | — |
-| 10 | Déploiement Vercel + Netlify (idée 18) | Complète Cloudflare ; bien borné (`deploy.ts`). **✅ FAIT (2026-06-14)** : registre de providers + menu déroulant 3 cibles, test 14/14, tsc 0, build OK. E2e live = login one-time Vercel/Netlify | 1 | ✅ FAIT | — | — |
-| 11 | Déléguer l'édition visuelle à un Qwen-VL local (suite de #6) | Coût zéro façon compagnonnage, après preuve avec Claude | 1-2 | 💤 | 🧠 Opus 4.8 | XL |
-| 12+ | Maturité : QA temporel (1), généalogie visuelle (3), doc multimodale (4), multi-projets (26), guide user (5), **clapet v4.0 auto-élagage (28)** | Quand le socle est mûr (clapet v4 : quand ≥5-10 axiomes de code accumulés) | var. | 💤 | ⚖️ Sonnet 4.6* | M–L |
-
-*Voie parallèle — formation (mise de côté, à la demande) : tokenisation (20), lab de prompts (19), RAG perso (22), veille IA (23).*
-
-## 💡 Idées en attente — à relire avant de commencer à coder
-
-| # | Idée | Détail | Priorité | Statut | Modèle optimal | Effort |
-|---|------|--------|----------|--------|----------------|--------|
-| 1 | **Agent QA temporel** (time-travel debugging visuel) | Capturer des séquences animées (mini-vidéos/GIF 3-5 s via Playwright) pendant les simulations : analyser transitions CSS, boucles d'animation, bugs de collision en mouvement — au-delà de la capture statique | à définir | 💤 en attente | ⚖️ Sonnet 4.6 | L |
-| 2 | **Design pair-programming** (canevas collaboratif) | L'agent dessine un calque semi-transparent sur l'aperçu live pour MONTRER ses propositions (re-paddings, déplacements de boutons) avant d'écrire le moindre patch | à définir | 💤 en attente | 🧠 Opus 4.8 | XL |
-| 3 | **Généalogie visuelle** (rollback graphique) | Associer chaque version git à sa snapshot de validation → time-line visuelle type Figma : survoler l'historique, comparer les rendus passés, rollback d'un clic sur l'image | à définir | 💤 en attente | ⚖️ Sonnet 4.6 | L |
-| 4 | **Documentation multimodale autonome** | À la clôture d'un grand jalon, l'agent recycle ses captures/crops/zooms pour rédiger seul un guide illustré ou un changelog visuel (captures fléchées et expliquées) | à définir | 💤 en attente | ⚖️ Sonnet 4.6 | M |
-| 5 | **Information complète sur l'utilisation de MangoAI** | Guide utilisateur complet de MangoAI : tout ce qu'on peut faire (chat, modèles, 📎 pièces jointes, Snap, versions/rollback, publier, export…), comment et quand s'en servir. **✅ FAIT (2026-06-14)** : panneau « Aide » (`ui/src/components/Guide.jsx`) dans le header (dropdown `HelpCircle`, comme Mémoire/Métriques) — contenu statique, zéro dépendance/backend. 6 groupes (Démarrer, Cerveau & mode, Visuel, Itérer en sécurité, Livrer, Suivre) couvrant chat, modèles, MVP/Élite, 📎/Snap/Inspecter/Figma, versions/mémoire, publier/GitHub/export, métriques — chaque entrée dit *quoi* + *quand*. Utile aussi pour les bêta-testeurs Phase B. Build UI OK | à définir | ✅ FAIT | — | — |
-| 6 | **Modèles full-stack par type de création** | Un modèle prédéfini optimisé pour chaque style de projet — site web, jeu (mobile/web), web app, présentation type PowerPoint/slides, dashboard type Excel, etc. — stack, structure et libs déjà choisies pour aller droit au but (extension du système de starters actuel). **✅ LIVRÉ (2026-06-13)** avec l'idée 8 : catalogue `blueprints.ts` (stack + arborescence par type), injecté au system prompt | à définir | ✅ FAIT | — | — |
-| 7 | **Inspiration web & blueprint d'arborescence contextuelle** | Ex. « site de paris sportifs » : à la première requête, MangoAI cherche sur le web les ~5 plus gros sites du domaine, capture 1-2 écrans de chacun (Playwright), brainstorme sur ces références et en déduit un blueprint d'arborescence contextuelle (pages, sections, navigation propres au domaine) pour générer un modèle de base très proche de l'état de l'art — zéro base de templates à stocker, l'inspiration est récupérée à la volée. **✅ FAIT (2026-06-14)** : l'essentiel était déjà couvert par idées 9 (Mango Plan écrit la target tree) + 11 (moodboard web). Delta livré : `MOODBOARD_RULES` (`plan.ts`, Élite) extrait désormais DEUX choses des 3-5 leaders du domaine — (1) règles de design ET (2) l'**architecture d'information contextuelle** (pages/sections/nav propres au domaine) qui **personnalise** le blueprint générique et pilote la target tree de `plan.md`. `PLAN_RULES` ajusté (blueprint = squelette à customiser). Test `test-scenario.ts` étendu (gating Élite/MVP), tsc 0. *Capture visuelle Playwright des leaders = toujours reportée (fragile/ToS), comme acté idée 11* | à définir | ✅ FAIT | — | — |
-| 8 | **Blueprints d'arborescence de base par type de projet** | Pour chaque type (site web, slides type PowerPoint, jeu, dashboard…), l'arborescence de fichiers est presque toujours la même — des standards existent déjà dans le monde actuel. Définir ces squelettes prédéfinis (structure de dossiers/fichiers type) que l'agent suit par défaut, tout en gardant une marge de manœuvre pour s'en écarter quand le projet le demande. Complément structurel de l'idée 6 (stacks) et de l'idée 7 (contenu contextuel). **✅ LIVRÉ (2026-06-13)** avec l'idée 6 : 6 blueprints (vitrine, web app, dashboard, jeu 2D, slides, agent IA), profondeur « structurée mais souple » | à définir | ✅ FAIT | — | — |
-| 9 | **Mode Architecte & idéation guidée — « Mango Plan »** | Module d'avant-projet qui sépare la conception du codage : l'utilisateur pose ses idées en quelques phrases (ou via écoute active / questions chirurgicales de l'IA) ; en tâche de fond, MangoAI synthétise l'intention dans un `plan.md`/`intentions.json`, dresse l'arborescence cible (blueprint, cf. idées 7-8) et présélectionne les assets. La génération finale est épurée et rapide car guidée par un plan validé en amont — zéro dette technique. **✅ LIVRÉ (2026-06-13, Élite)** : protocole `PLAN_RULES` — l'agent pose ≤3 questions, écrit `plan.md`, attend validation avant de coder ; testé ✅ | haute | ✅ FAIT | — | — |
-| 10 | **Knowledge Flywheel — clapet anti-retour de connaissance** | Faire évoluer la boucle d'apprentissage (revue + skills) vers un registre d'**axiomes logiques universels** : à la fin de chaque tâche/correction visuelle/blueprint validé, interdiction de noter des faits divers techniques (« modifié la ligne 42 du CSS ») — extraction obligatoire au format `AXIOME-[CATÉGORIE]-[ID]` : contexte abstrait + piège invisible + règle d'or, indépendant du langage et du projet. Philosophie : accumuler l'expérience sans s'alourdir, jamais régresser, zéro « gras » informationnel (détail complet : `D:\IA\fichier tampon session\kwolegede flywheel.md`). **⚠ Garde-fous obligatoires (discussion 2026-06-13)** : le clapet est anti-oubli, PAS anti-correction — axiomes datés et falsifiables (une contradiction observée = amendement/suppression), niveaux de maturité (candidat → confirmé), l'axiome est un défaut que la demande utilisateur écrase toujours, plafond du registre pour forcer la curation. **✅ LIVRÉ (2026-06-13)** : 4ᵉ magasin `.axioms.md`, curé par la revue, injecté comme défaut au system prompt ; testé e2e (axiome UIUX universel extrait d'un vrai tour) | à définir | ✅ FAIT | — | — |
-| 11 | **Moodboard visuel automatisé** (inspiration & benchmark) | Concrétisation de l'idée 7 au sein de Mango Plan (idée 9) : dès le type de projet validé, en tâche de fond — (1) recherche web des leaders/concepts clés (ex. *Vampire Survivors* + foot), (2) captures autonomes via Playwright headless, (3) stockage éphémère dans `.assets/.moodboard/` (hors git/zip), (4) corrélation visuelle → règles de design extraites (palette, placement des menus, type de caméra), (5) purge complète du dossier une fois le plan validé. Effet : standards de design réels dès le premier commit, zéro hallucination UI, projet local ultra-léger. **✅ LIVRÉ v1 (2026-06-13, Élite)** : `MOODBOARD_RULES` + outils WebSearch/WebFetch — l'agent recherche 2-3 leaders du domaine et distille des règles de design concrètes dans `plan.md`. La capture visuelle autonome (Playwright sur sites externes) reste une amélioration future | à définir | ✅ FAIT (v1, capture visuelle plus tard) | — | — |
-| 12 | **Sélecteur de mode ⚡ MVP / 💎 Élite** | Un bouton dans le header (comme le choix du modèle) qui pilote le compromis temps/qualité par tâche : mode MVP = flux actuel rapide (pas de plan, boucle visuelle minimale) ; mode Élite = tout l'arsenal (Mango Plan, moodboard, boucle visuelle complète, QA temporel, calques). Deux axes orthogonaux : quel cerveau (modèle) × quelle exigence (mode). **Prérequis des idées 1, 2, 9, 11** : à implémenter en premier pour que chaque future fonctionnalité naisse branchée sur l'interrupteur ; protège aussi le quota Claude. **✅ LIVRÉ (2026-06-13)** : interrupteur en place (backend + UI), MVP coupe rituel analytique/thinking et réduit le budget vision à 3, Élite garde l'arsenal complet | **haute** | ✅ FAIT | — | — |
-| 13 | **Audit & optimisation des coûts de l'agent** — *programmée : à partir du 2026-06-22* | Étudier la marge d'optimisation propre à l'agent avec des métriques réelles (collectées par l'idée 14) : traque des relectures redondantes, réduction du nombre de tours, consolidation chirurgicale du system prompt (~33k incompressibles, 15-25 % à gagner), réglage du thinking par classe de tâche. **Date choisie : fin de disponibilité de Fable le 22 juin** — moment idéal pour mesurer comment les sessions de développement MangoAI tournent sur Sonnet ou Opus et analyser l'historique de consommation accumulé d'ici là | moyenne | 📅 planifiée (2026-06-22) | 🧠 Opus 4.8 | M |
-| 14 | **Tableau de bord d'évolution** (métriques avant/après) | Suivre MangoAI comme un humain en plein apprentissage : courbe d'apprentissage (coût moyen et tours par type de tâche dans le temps — vérifie la promesse du Knowledge Flywheel), fiabilité (taux d'erreurs, auto-réparations, rollbacks), marque datée de chaque jalon sur la courbe (avant/après chiffré). **Volet 1 — collecte : ✅ FAIT (2026-06-13)** : chaque tour ajoute une ligne JSON à `workspace/.metrics.jsonl` (date, projet, modèle, coût, tours, tokens, snapshots, durée, erreur) via `server/src/metrics.ts`. Volet 2 — visualisation (panneau 📊, courbes par semaine et type de tâche) : plus tard, nourrit l'audit du 22 juin | moyenne | 🔨 collecte active | ⚖️ Sonnet 4.6 | S |
-
-| 15 | **Veille & jouvence** — *rappel mensuel obligatoire* | Passe périodique (mensuelle ou à la demande) : vérifier les versions du SDK Agent (@anthropic-ai/claude-agent-sdk), des modèles disponibles, du template React/Vite/Tailwind et de l'écosystème MCP ; appliquer les mises à jour, relancer les tests e2e, noter dans le changelog ce qui a changé. Garantit le « toujours à la page » sans dépendre d'une mise à jour automatique. **Rappel mensuel actif** : déclenché le 13 de chaque mois dans Claude Code | **haute** | 📅 rappel mensuel actif | ⚖️ Sonnet 4.6 | M |
-| 16 | **Intégration GitHub native** | Depuis MangoAI, pousser n'importe quel projet généré vers un repo GitHub de l'utilisateur (public ou privé) en 1 clic : création du repo via l'API GitHub, push initial, commits auto par itération, bouton « Ouvrir sur GitHub ». Prérequis : token GitHub dans `.env`. Effet : chaque projet MangoAI devient un vrai repo pro, partageable, forkable, visible dans le portfolio. **✅ LIVRÉ & VALIDÉ (2026-06-13)** : push réel testé avec succès (repo privé `test-pipeline` créé, remote propre sans token, aucun secret versionné) | **haute** | ✅ FAIT | — | — |
-| 17 | **Intégration Supabase** — *combler le vrai manque vs Lovable* | Autoriser l'agent à générer des apps avec base de données et authentification via Supabase : le system prompt connaît l'API Supabase JS, l'agent génère le schéma SQL, les migrations et le code auth (login/signup/session). L'utilisateur fournit son `SUPABASE_URL` + `SUPABASE_ANON_KEY` dans `.env`. Ouvre la génération de vraies apps (todo-list persistée, dashboard avec comptes, e-commerce avec panier). **C'est LE manque fonctionnel majeur face à Lovable**. **✅ LIVRÉ & VALIDÉ EN LIVE (2026-06-13)** : todo-list persistée générée puis testée avec un vrai projet Supabase — tâches sauvegardées dans le cloud, persistance confirmée au rechargement | **haute** | ✅ FAIT | — | — |
-| 18 | **Déploiement étendu** — Vercel + Netlify | Ajouter Vercel et Netlify comme cibles de déploiement 1-clic en complément de Cloudflare Pages. Sélecteur dans l'UI : 3 boutons « 🚀 Publier ». Vercel = meilleur pour les apps Next.js/SSR futures ; Netlify = meilleur pour les sites statiques avec forms ; Cloudflare = edge + gratuit généreux. Chaque cible = une commande CLI différente dans `server/src/deploy.ts`. **✅ FAIT (2026-06-14)** : `deploy.ts` refactoré en **registre de providers** (`DeployTarget`, `DEPLOY_TARGETS`, `deployProject(dir,name,target)`) — build local commun puis CLI propre à chaque cible (`wrangler`/`vercel`/`netlify-cli`), auth par **login CLI one-time** (zéro secret en `.env`), messages « non connecté » par cible, parsing d'URL déterministe. Route `POST /api/deploy/:name` accepte `{target}` (défaut cloudflare, rétrocompatible). UI : bouton « Publier » → **menu déroulant 3 cibles** (`Dropdown` + `buttonClass`). Test `test-deploy.ts` (logique pure 14/14), `tsc` 0, build UI OK. *Caveat : preuve e2e live = login one-time chez Vercel/Netlify (comme Cloudflare), à faire quand l'utilisateur déploiera un vrai projet* | moyenne | ✅ FAIT | — | — |
-| 19 | **Lab de prompts interactif** *(projet formation A)* | Outil intégré dans MangoAI ou app séparée : écrire un prompt, choisir 1 à 3 modèles (Haiku/Sonnet/Opus), lancer, voir les réponses côte à côte avec coût et durée. Sauvegarder les expériences avec des notes. **Projet formation** : comprendre concrètement la différence entre modèles, ce que le prompting change, le coût comparé — plus efficace que n'importe quel article | moyenne | 💤 en attente | ⚖️ Sonnet 4.6 | M |
-| 20 | **Visualiseur de tokenisation** *(projet formation B)* | App interactive : taper du texte → chaque token coloré en temps réel (comme tokenizer.openai.com mais pour Claude) + nombre de tokens + coût estimé sur chaque modèle + % de la fenêtre consommé. **Projet formation** : comprendre pourquoi certains mots coûtent plus cher, pourquoi Claude « voit » le texte différemment d'un humain, comment piloter les coûts à la source | moyenne | 💤 en attente | ⚖️ Sonnet 4.6 | S |
-| 21 | **Panneau de métriques avancé** *(volet 2 de l'idée 14)* | Lire `workspace/.metrics.jsonl` et afficher : courbe de coût par semaine, histogramme des snapshots par projet, tendance du nombre de tours par tâche, comparaison avant/après chaque jalon. Stack : recharts (React) + lecture directe du JSONL. **Nourrit l'audit du 2026-06-22** (idée 13). **✅ FAIT (2026-06-14) — en zéro-dépendance (pas recharts, cohérent avec le panneau existant + packaging Phase B)** : 2 agrégations pures ajoutées à `metrics-insights.ts` — **`weekly`** (coût/tours par semaine ISO, lundi via `weekStart`, lisse le bruit journalier) et **`costDrivers`** (par type de projet : coût moyen, tours moyens, snapshots moyens, durée moyenne → *où* optimiser). Rendues dans `Metrics.jsx` : section « Coût par semaine (tendance) » (barres) + table « Drivers de coût (audit 22/06) ». Réutilise le style barres/cartes existant. Test `test-insights.ts` étendu (weekly + costDrivers + weekStart), tsc 0, build UI OK | moyenne | ✅ FAIT | — | — |
-| 22 | **Agent de notes & RAG personnel** *(projet formation C)* | Déposer des fichiers `.md` dans un dossier (tes notes, tes idées, tes veilles) → l'app crée un index et répond à tes questions en chat : « qu'est-ce que j'ai noté sur Supabase ? ». Appel Claude API direct, lecture des fichiers par l'agent. **Projet formation** : introduction au RAG (Retrieval-Augmented Generation) dans sa forme la plus simple, comprendre comment un agent choisit quoi lire | moyenne | 💤 en attente | 🧠 Opus 4.8 | L |
-| 23 | **Dashboard de veille IA automatisé** *(projet formation D)* | App qui lit le blog Anthropic + changelog API (RSS/scraping léger), résume les annonces du mois avec Claude, affiche un fil de veille avec badge « nouveau ». Optionnel : notification push navigateur. **Projet formation** : scraping, résumé automatisé, rester à jour sans passer 2h à lire — outil immédiatement utile pour toi | basse | 💤 en attente | ⚖️ Sonnet 4.6 | M |
-| 24 | **Générateur de tests automatiques** | Après chaque itération de l'agent, déclencher optionnellement la génération de tests unitaires (Vitest) + e2e (Playwright) pour les fonctions clés du projet généré. L'agent analyse le code livré et rédige les cas de test. Mode Élite uniquement (idée 12). Réduction drastique des régressions sur les projets complexes. **✅ FAIT (2026-06-14) — bloc de prompt gated Élite (natif, comme Mango Plan/vision)** : `TESTS_RULES` dans `scenario.ts`, ajouté au scénario **elite uniquement**. L'agent écrit des tests Vitest ciblés sur la **logique pure** (zéro config), met en place Vitest **à la demande** (`npm i -D vitest` + script `vitest run` la 1ʳᵉ fois — projets sans test restent légers pour l'export Phase B), lance `npx vitest run` (jamais le watch) pour confirmer le vert, reste **proportionné** (skip trivial/visuel), Playwright e2e seulement pour un flux critique. Test déterministe `test-scenario.ts` (prouve le gating : bloc tests présent en Élite / absent en MVP ; verrouille aussi analytic/vision/Figma), tsc 0 | basse | ✅ FAIT | — | — |
-| 25 | **MCP Figma intégré** | **🗑️ RETIRÉ (2026-06-14)** — demande utilisateur « plus d'intégration Figma ». Le besoin est couvert nativement par #31 (clone URL) et surtout **📎 image jointe → reproduction**, prouvé en e2e (landing Landify reproduite fidèlement, build vert, zéro Figma/token/Mo stocké). Suppression nette : `figma.ts`, `test-figma.ts`, `FIGMA_RULES`, registre MCP `figma`, `FIGMA_TOKEN` (.env.example), mention Guide → remplacée par « Maquette jointe ». tsc 0, `test-scenario` vérifie l'absence. | haute | 🗑️ RETIRÉ | — | — |
-*(Historique ci-dessous.)* — ~~Brancher le serveur MCP Figma officiel à MangoAI : l'utilisateur colle une URL Figma → l'agent lit le design (couleurs, typos, layout, composants) et génère le code React correspondant. Intégration directe dans le flux chat. **Transforme MangoAI en outil design-to-code professionnel** — Figma → code en une conversation. **✅ FAIT (2026-06-14) — en NATIF (analyse natif-d'abord, comme idée 27)** : PAS le serveur MCP officiel (qui exigerait Figma desktop + fichier ouvert). À la place `server/src/figma.ts` = outil MCP **in-process** calqué sur `vision.ts` : URL → **API REST Figma** (`/v1/files/:key/nodes` = arbre + `/v1/images` = PNG rendu) → l'outil renvoie à l'agent **l'image (qu'il VOIT nativement) + les tokens distillés** (palette/typo/composants/structure). Auth = `FIGMA_TOKEN` dans `.env` (comme GitHub), zéro app à lancer, exportable Phase B. Bloc prompt `FIGMA_RULES` (les 2 modes), libellé « Figma » dans la trace. Test `test-figma.ts` 16/16, tsc 0. *Caveat : e2e live = `FIGMA_TOKEN` + vrai fichier (à faire quand l'utilisateur l'utilisera). Limite REST : les Variables Figma publiées nécessitent Enterprise — mais fills/fonts/espacements sont dans l'arbre quoi qu'il arrive*~~ | haute | 🗑️ RETIRÉ |
-| 26 | **Mode multi-projets & composition de composants** | MangoAI gère plusieurs projets liés : l'agent peut lire un composant d'un projet A et le réutiliser dans un projet B (copy-paste intelligent avec adaptation de contexte). Bibliothèque de composants perso générés au fil du temps. Complémentaire des skills (idée 10) mais au niveau code, pas au niveau savoir | basse | 💤 en attente | 🧠 Opus 4.8 | XL |
-| 27 | **Segmentation interactive « Click-to-Segment » (SAM + VLM)** | Pipeline d'édition visuelle chirurgicale : l'utilisateur clique sur un élément de la capture live (Playwright) ; un **SAM local (ONNX)** extrait le masque binaire + la bounding box ; ce *visual prompt* est passé à un **VLM (Qwen-2.5-VL)** qui localise et modifie le code TSX/Tailwind correspondant, sous le contrôle déterministe de la **Coque Rigide**. (Source : `D:\IA\detourage hd.md`.) **Avis (2026-06-13) : excellente destination, mais SAM + VLM séparé sont superflus — Claude + le DOM (`elementFromPoint` + `_debugSource` React) la font nativement, sans dépendance externe.** C'est la feature « Snap » + un mapping source + le contrat. Voir la 📌 note d'analyse sous la Phase Ultime. Convergence avec les idées 2 et 25 ; dépend de la piste future n°1 (fournir le code du fichier cible à l'Élève) | haute (à terme) | 💤 en attente — à phaser | ⚖️ Sonnet 4.6 | S |
-
-| 32 | **Boucle d'entraînement nocturne** | Demande utilisateur : une boucle activable « avant de dormir » qui génère en continu des créations (web apps, slides, CV, docs PDF, devis Excel) TOUTES différentes (fond/forme/UX) pour entraîner MangoAI. **✅ FAIT (2026-06-14)** : `server/src/train-loop.ts` (CLI, JAMAIS en prod — comme `audit-scan.ts`). Cerveau = **Élève local Qwen ($0)**, Claude seulement en escalade **PLAFONNÉE** (`--max-escalations`, défaut 6 → coût borné) ; chaque escalade écrit un **axiome** (carburant de #28). Moteur de diversité `composeTask(kind×domain×style)` : 5 types × 30 domaines × 24 styles = **3600 combos uniques** (`generateUniquePrompts` dédoublonne). Réutilise `runRelay`/`createProject`/`recordTurnMetrics`. Arrêt par **durée** (`--minutes`, défaut 480) ou `--count` ; **nettoyage auto** du disque (supprime chaque projet après mesure, garde `--keep` réussites, défaut 5). Journal `workspace/.train.jsonl` + métriques fondues au dashboard 📊. `--dry-run N` prouve la diversité sans rien lancer. Test `test-train.ts` (composeTask + unicité + combos), tsc 0. Préreq : `ollama serve`. *E2e nocturne = à lancer une vraie nuit.* **« Entraîner » = accumuler courbe d'apprentissage + axiomes, PAS ré-entraîner un modèle.** Lancer : `cd server && npx tsx src/train-loop.ts --minutes 480 --max-escalations 6 --keep 5` | haute | ✅ FAIT | — | — |
-| 31 | **Cloner depuis une URL — alternative native à Figma** | Demande utilisateur (« obligé d'utiliser Figma ? plus natif »). **✅ FAIT (2026-06-14)** : Figma n'a jamais été obligatoire (l'image jointe 📎 + l'inspiration web #8 couvrent déjà le besoin sans compte). Ajout du chaînon manquant « je vois un site, reproduis-le » : outil MCP **`mcp__vision__clone_url`** dans `vision.ts` (réutilise le Playwright interne) — `captureExternal(url)` screenshot full-page (1280px, ≤5000px) → l'agent VOIT et reproduit en React/Tailwind. Garde-fou `isCloneableUrl` (http(s) publics only, bloque localhost/plages privées = anti-SSRF + ne vise pas l'aperçu local), pur & testé. Bloc prompt dans `VISION_INPUTS` (2 modes). Libellé « Clone web », entrée dans le Guide (#5). Test `test-webclone.ts` 13/13, tsc 0, build OK. *E2e live = lancer l'app + coller une URL* | haute | ✅ FAIT | — | — |
-| 30 | **Mode Architecte v2 — cadrage adaptatif (« PromptArchitect »)** | Source : `D:\IA\prompt architect.txt`. **✅ FAIT (2026-06-14) — absorbé dans Mango Plan (idée 9), pas un module neuf** (natif-d'abord : le « Master Prompt à coller dans Lovable » est ABANDONNÉ car MangoAI EST le constructeur → le `plan.md` validé est le contrat). `PLAN_RULES` (`plan.ts`, Élite) devient un vrai mode architecte : analyse l'idée sur 5 angles (Cible/MVP, User Flow, Données, Intégrations, Style), **questionne par vagues de plus en plus spécifiques** (plafond **10-15**, échelle selon complexité : 2-3 pour un site simple, s'arrête dès que clair, jamais de remplissage), échappatoire « vas-y avec ton jugement » à chaque vague. `plan.md` enrichi : **Vision** (proposition de valeur/problème/solution) · **table d'architecture des données** · **features par priorité** · arborescence+stack+design. Test `test-scenario.ts` étendu (gating Élite/MVP), tsc 0. *Décisions actées avec l'utilisateur : adaptatif progressif + Master Prompt abandonné* | haute | ✅ FAIT | — | — |
-| 29 | **Packaging bêta — distribuer sans le code source** *(frontière Phase A→B)* | Quand l'app sera prête à être testée par des proches sur un AUTRE PC : empaqueter MangoAI pour qu'ils l'évaluent **sans voir le code source de l'agent**. Compiler `server/` (`.ts` → JS, voire binaire via `bun build --compile` / `pkg`), livrer le front buildé + serveur packagé sans les sources, obfuscation légère. C'est du **packaging/distribution**, pas de la sécu applicative. À ce moment **réactiver les correctifs « prod »** identifiés par l'audit 2026-06-13 (CORS restreint, token d'auth sur les endpoints, rate-limiting, qq tests HTTP) car un tiers tape alors sur l'app. Voir « Cap produit — usage en 2 phases » dans `memory.md` | haute (Phase B) | 💤 en attente | 🧠 Opus 4.8 | XL |
-| 34 | **Phase Finition + agent QA/Contrôleur (« après 80% »)** | Issu d'un doc d'archi utilisateur : un pôle QA distinct qui DURCIT au lieu de construire. **✅ FAIT (2026-06-14)** : 3ᵉ mode `finition` à côté de mvp/elite (sélecteur 🛡️ `Header.jsx`). Bloc `FINITION_RULES` (`scenario.ts`) = phase de consolidation : **Feature Freeze**, délégation **OBLIGATOIRE** au sous-agent **`qa`** (contrôleur-correcteur dans `AGENTS`, `agent.ts` — audite ET corrige sans ajouter de feature), edge cases, états loading/vide/erreur, durcissement (validation, `rel=noopener`, a11y, responsive), refactor léger, tests élargis, et **auto-backlog** : les items hors-scope sont écrits dans `<projet>/.memory.md` sous `## TODO — décisions en attente`. Scénario `finition` = arsenal Élite sans plan/moodboard. Test `test-finition.ts` 12/12, tsc 0. **Validé e2e via /api/chat** (qa délégué, durcissement, Feature Freeze tenu, backlog écrit, build vert). *Arborescence `.mango/frontend/backend` du doc REJETÉE (ne colle pas à la stack React+Vite+Supabase).* | haute | ✅ FAIT | — | — |
-| 33 | **`scrape_url` — aspirer l'info d'une URL publique** | Demande utilisateur (idée « ApiFlash ? ») évaluée natif-d'abord → Playwright local suffit, $0, pas de tiers. **✅ FAIT (2026-06-14)** : outil MCP `mcp__vision__scrape_url` (`vision.ts`), complément de clone_url — clone_url rend des PIXELS (design), scrape_url rend l'INFO (titre + texte visible + liens). `scrapeExternal` réutilise le Chromium interne, `processScraped` (pur, testé) tronque/dédoublonne. Garde-fou `isCloneableUrl` partagé. Libellé « Aspire web ». Claude synthétise la réponse EN LOCAL, source citée. `test-scrape.ts` 11/11, validé e2e (Hacker News + /api/chat). Usage : URL publique + requête IA → info aspirée → réponse locale | haute | ✅ FAIT | — | — |
-| 35 | **Backend généré (Express/Fastify)** | **✅ FAIT (2026-06-15)** : `backend-generator.ts` (scaffold/start/stop/status + patch `VITE_API_URL` dans le `.env` frontend) ; template Express+TS dans `server/templates/backend/` (package.json, tsconfig, src/index.ts, .env.example, .gitignore) ; `BACKEND_RULES` dans `scenario.ts` (bloc `backend` injecté dans les 3 scénarios quand `api/` existe — lean pour les projets purement frontend) ; type `fullstack` ajouté à `blueprints.ts` (détection avant `webapp`) ; 4 endpoints `GET/POST /api/backend-server/:name/{status,scaffold,start,stop}` dans `index.ts` ; bouton 🖥 Backend dans `Header.jsx` (3 états : non-scaffoldé → scaffold, arrêté → démarrer, actif → stopper). Tests déterministes 11/11. `tsc` 0, build UI OK. *E2e live = lancer le server + créer un projet fullstack + cliquer Backend.* | 🔴 priorité 1 | ✅ FAIT | — | — |
-| 36 | **Bibliothèque de composants inter-projets** | **✅ FAIT (2026-06-15)** : `components.ts` (5ème magasin — `listComponents` / `loadComponent` / `saveComponent` / `deleteComponent` / `componentsSnapshot`) ; dossier `workspace/.components/<Name>/` (component.tsx + meta.json par composant) ; `COMPONENTS_RULES` + `componentsPromptSection` dans `scenario.ts` (bloc `components` injecté dans les 3 scénarios elite/mvp/finition) ; `review.ts` étendu (store 7, détection composants réutilisables en arrière-plan) ; 4 endpoints `GET/POST /api/components`, `GET /api/components/:name`, `DELETE /api/components/:name` ; `/api/knowledge` enrichi (champ `components`) ; panneau Mémoire : section « Composants réutilisables » (liste, tags, aperçu code inline, copie presse-papier, formulaire ajout manuel). `tsc` 0, build UI OK. | 🟠 priorité 2 | ✅ FAIT | — | — |
-| 37 | **Mode idéation visuelle (avant le code)** | Extension de Mango Plan : avant d'écrire le premier fichier, MangoAI pose des questions + génère des wireframes ASCII/SVG + montre des références Sharingan pour que l'intention soit validée visuellement. Ferme le gap « je ne sais pas exactement ce que je veux ». Réduit les itérations de correction estimées à 50%. | 🟠 priorité 3 | 💤 en attente | ⚖️ Sonnet 4.6 | M |
-| 38 | **Carte d'architecture vivante (`architecture.md`)** | **✅ FAIT (2026-06-15)** : `architecture.ts` (`loadArchitecture` / `ARCHITECTURE_RULES` / `architecturePromptSection`) ; bloc `architecture` injecté dans les 3 scénarios après `designSystem` (par projet, injecté uniquement si le fichier existe) ; `PUT /api/architecture/:name` ; `/api/knowledge` enrichi ; panneau Mémoire : section "Architecture" avec éditeur inline (✏ + textarea + Sauvegarder). L'agent remplit `.architecture.md` automatiquement après chaque changement structurel. `tsc` 0, build UI OK. | 🟡 priorité 4 | ✅ FAIT | — | — |
-| 39 | **Paiements Stripe** | Intégration Stripe complète : paiement en ligne, abonnements récurrents, webhooks de confirmation, remboursements. Nécessite le backend généré (#35) pour les webhooks serveur. Ferme le dernier gap fonctionnel majeur — toute application professionnelle finit par en avoir besoin. | 🟡 priorité 5 (après #35) | 💤 en attente | 🧠 Opus 4.8 | L |
-| — | **🔧 Correctifs de session (2026-06-14)** | (a) **Aperçu figé sur le mauvais projet** — `preview.ts` ne fixe plus le port 5174/`--strictPort` (un vite orphelin non-tuable bloquait tout basculement, `waitForServer` dupé par son 200) : vite choisit son port et on lit l'URL réelle dans son stdout (`readViteUrl`, ANSI strippé) + health-check. (b) **Verrou `agentBusy` coincé** — `interruptCompaction` déplacé dans le `try` (rejet en amont ne fige plus le verrou) + `/api/stop` force `agentBusy=false`. (c) **Reviewer écrivait un skill à la racine du repo** — `review.ts` passe des chemins ABSOLUS aux 4 magasins + interdit le relatif. Tous : tsc 0, poussés | — | ✅ FAIT | — | — |
-| 28 | **Clapet v4.0 — auto-élagage par ablation persistée** | Stocker un `ablationScore` par axiome (verdict d'ablation cumulé via `audit-scan --ablate`) → le registre s'auto-nettoie : un axiome au score régulièrement négatif est signalé pour retrait. C'est la **falsifiabilité (notre garde-fou) rendue quantitative et automatique** — extension de la discipline d'ablation (#2 du plan de bord). *Sous-option à évaluer : `impactScope` universal/type (partiellement redondant avec `selectAxioms v2.1`). **Écarté** : `domSelector` sur un axiome (un sélecteur est un fait projet → `.memory.md`, pas une loi universelle).* **Déclencheur : quand de vraies escalades Élève→Claude auront accumulé ≥5-10 axiomes de code** (prématuré tant que le registre « code » est quasi vide — même logique que « discipline armée sans munition »). Natif, zéro dépendance. (Source : `D:\IA\axiom v4.md`.) | basse (palier maturité, après #6) | 💤 en attente | ⚖️ Sonnet 4.6 | M |
-
-| 40 | **Invocation d'un super-agent spécialisé à la demande** | L'utilisateur demande à MangoAI de se construire proactivement un agent ultra-spécialisé dans un domaine précis (ex : jeu 2D haute finition, moteur physique, animation procédurale, générateur de niveaux…). MangoAI exécute en 4 phases : (1) **Recherche** — WebSearch + WebFetch sur les meilleures sources du domaine (GDC, articles, patterns) ; (2) **Synthèse** — distille tout en règles opérationnelles (pas génériques : quand, pourquoi, comment, pièges) ; (3) **Encodage** — crée un `SKILL.md` dense + un bloc de scénario dédié + définition du sous-agent nommé, stockés dans le workspace ; (4) **Validation** — construit un vrai projet pilote, écrit des axiomes sur ce qui a manqué, raffine l'agent. L'agent est ensuite **convoqué automatiquement** dès que MangoAI détecte le type de projet correspondant. Connaissance théorique au premier projet → axiomes de vrais projets → expertise ingagnable après 3-5 itérations. **Principe** : MangoAI ne réagit plus — il anticipe, se spécialise à la demande, et devient progressivement supérieur à tout concurrent sur ce domaine précis. C'est une **invocation** : l'utilisateur dit le domaine, MangoAI se construit l'outil. | 🔵 vision | 💤 en attente | 🧠 Opus 4.8 | XL |
-
-| 43 | **Escalade UX/UI par signal humain — Option B** | Quand l'utilisateur 👎 plusieurs fois consécutivement un rendu visuel, MangoAI déclenche une escalade non pas vers un modèle plus fort, mais vers l'utilisateur lui-même : "je bloque sur le visuel, montre-moi une référence". L'utilisateur envoie une image, un lien, un mot — MangoAI repart avec une ancre concrète et capture un axiome `validé-utilisateur` sur ce goût précis. Chaque escalade = flywheel accéléré. Vision globale : MangoAI est l'enfant, l'utilisateur est le père qui éduque via Claude Code, Claude/Sonnet/Opus sont les professeurs qui transmettent la sagesse en axiomes, Qwen/DeepSeek sont les camarades de classe qui pratiquent. L'enfant apprend par félicitations 👍, corrections 👎, imitation (Sharingan), répétition (boucle nocturne) et enseignement (axiomes). Objectif final : MangoAI dépasse ses professeurs sur les sujets où il a intégré l'enseignement ET le goût personnel de l'utilisateur. **✅ FAIT (2026-06-15)** : `dislikeStreaks` in-memory par projet (seuil 2) dans `feedback.ts` ; `checkAndUpdateStreak` (synchrone) + `resetStreak` + `processEscalationReference` (Haiku → axiome `[validé-utilisateur]`) ; `/api/feedback` répond `{ ok, escalate }` ; `POST /api/escalation-reference` ; `EscalationCard` dans `Chat.jsx` (carte ambre, input référence + bouton "Ancrer", confirmation visuelle) ; `tsc` 0, build UI OK. | 🔴 priorité max | ✅ FAIT | 🧠 Opus 4.8 | L |
-
-| 42 | **MangoAI comme cerveau personnel — couches d'identité** | MangoAI doit capturer non pas ce que l'utilisateur fait, mais comment il pense. 3 couches distinctes : (1) **Langage** — vocabulaire personnel, raccourcis oraux, formulations récurrentes appris et reconnus automatiquement ; (2) **Façon de penser** — rythme exploration vs exécution, validation par logique avant code, pensée en analogies ; (3) **Vision** — validations explicites uniquement (100% manuel, jamais inféré auto — MangoAI en phase d'éducation). Séparation architecturale : **Moteur (universel)** vs **Profil (personnel)**. **✅ FAIT (2026-06-15)** : `identity.ts` (load/save 3 couches, plafond 3000 chars, injection prompt ~2000 chars) ; bloc `identity` dans les 3 scénarios après `memory` ; revue arrière-plan cure `.language.md` + `.thinking-style.md` (jamais `.vision.md`) ; `GET/PUT /api/identity/:layer` ; panneau Mémoire : section "Identité" avec badge "Manuel" sur Vision. `tsc` 0, build UI OK. | 🔴 priorité max | ✅ FAIT | — | — |
-
-| 41 | **Signal humain 👍/👎 — RLHF personnel** | Bouton like/dislike sous chaque livraison dans le chat. Un 👍 → extrait le pattern → axiome taggé `validé-utilisateur` (priorité +10 dans le flywheel). Un 👎 → axiome taggé `à-éviter`. Le modèle qui a produit n'a aucune importance — seul le signal humain compte. **✅ FAIT (2026-06-15)** : `feedback.ts` (Haiku extrait le pattern en arrière-plan) ; `POST /api/feedback` ; boutons 👍/👎 sous chaque message agent dans `Chat.jsx` (état voted, confirmation visuelle) ; `scoreAxiom` dans `axioms.ts` donne +10 aux axiomes `validé-utilisateur` / `à-éviter` — ils écrasent tout le reste. `tsc` 0, build UI OK. | 🔴 priorité max | ✅ FAIT | — | — |
-
-*Source : `D:\IA\idée d'amelioration MangoAi.md.md` — vision long terme : passer d'un agent réactif à un système autonome prédictif et collaboratif.*
+*Pour le détail complet de chaque idée, les sessions passées, les analyses d'architecture → `historique.md`*
 
 ---
 
-## 🎯 Roadmap haute couture — 11 chantiers (2026-06-14)
+## 📊 Tableau consolidé — toutes les idées et chantiers
 
-*Positionnement acté : MangoAI = « haute couture » face au prêt-à-porter cloud (Lovable, Bolt, v0, Base44, Replit). Les concurrents ont les clés de la voiture ; MangoAI est l'atelier qui sait construire la voiture.*
+### Feuille de route principale (plan de bord)
 
-| # | Fonction | Description | Priorité | Modèle optimal | Effort |
-|---|---|---|---|---|---|
-| **A** | **Design system persistant** | **✅ FAIT (2026-06-15)** : `design-system.ts` (`loadDesignSystem` / `saveDesignSystem` / `DESIGN_SYSTEM_RULES` / `designSystemPromptSection`) ; bloc `designSystem` injecté dans les 3 scénarios (elite/mvp/finition) ; endpoints `GET /api/design-system` + `PUT /api/design-system` ; `/api/knowledge` enrichi ; panneau Mémoire : section "Design system" avec éditeur Markdown inline (✏ Pencil → textarea → Sauvegarder). `tsc` 0, build UI OK. | 🟡 | — | — |
-| **B** | **Routing modèle automatique** | Complexité de la tâche → modèle optimal choisi seul (simple=Haiku, logique=Sonnet, vision=Opus) | 🟡 | 🧠 Opus 4.8 | L |
-| **C** | **Agents autonomes** | Tâches planifiées / cron / connexion services externes | 🔵 | 🧠 Opus 4.8 | XL |
-| **1** | **Panel latéral pop-up** | Sidebar éditeur visuel sur la preview — modifier/redimensionner/déplacer un élément directement | 🟠 | ⚖️ Sonnet 4.6 | M |
-| **1a** | ↳ Modificateur de police | Sélectionner élément → changer font-family, taille, graisse | 🟠 | ⚡ Haiku 4.5 | S |
-| **1b** | ↳ Modificateur de couleur | Palette par élément sélectionné (fond, texte, bordure, bouton) | 🟠 | ⚡ Haiku 4.5 | S |
-| **1c** | ↳ Sélecteur d'éléments | Clic preview → highlight + propriétés éditables dans le panel | 🟠 | ⚖️ Sonnet 4.6 | S |
-| **2** | **Créateur de skills dans le panel** | Bouton dans le panel latéral pour créer une skill spécialisée depuis l'interface | 🟡 | ⚖️ Sonnet 4.6 | M |
-| **3** | **Mode discret** | **✅ DÉJÀ FAIT (antérieur)** : bouton Eye/EyeOff dans `Header.jsx`, state `showThinking` persisté localStorage, `Chat.jsx:647` masque les blocs Réflexion quand false. Découvert lors de l'audit 2026-06-15. | 🟢 | — | — |
-| **4** | **Bouton micro** | Entrée vocale à côté du bouton d'envoi → transcription dans le chat | 🟡 | ⚡ Haiku 4.5 | S |
-| **5** | **Menu de mode dans le chat** | Sélecteur scroll 3 modes : **Construire** (Sonnet, effort max) · **Planifier** (analytique) · **Discuter** (Haiku, rapide) — change modèle + effort en background | 🟢 | ⚖️ Sonnet 4.6 | S |
-| **6** | **Menu d'accueil repensé** | Page d'accueil ergonomique : scroll projets, accès rapide, design épuré | 🟡 | ⚖️ Sonnet 4.6 | M |
-| **7** | **Sélecteur de contexte fichier** | Icône ⚙ dans le chat : cibler un fichier/dossier précis → l'IA cible ce contexte directement | 🟡 | ⚖️ Sonnet 4.6 | M |
-| **8** | **URL Analyser — Sharingan** | **✅ FAIT (2026-06-15)** : outil MCP `mcp__vision__sharingan_url` ajouté à `vision.ts` — 6 couches en 1 session Playwright : (1) screenshot JPEG 1280px, (2) CSS calculé des sélecteurs clés (typo, couleurs), (3) variables CSS `:root` (design tokens), (4) structure sémantique (titre, nav, sections, headings, CTAs, ARIA landmarks), (5) fonts détectées (CSS @font-face + interception réseau Google Fonts), (6) palette dédupliquée depuis le CSS calculé. Fonctions pures `cssColorToHex` + `dedupeColors` exportées et prouvées (24/24 tests). Bloc SHARINGAN ajouté à `VISION_INPUTS` (disponible en Élite + MVP). `tsc` 0. Déclencher via : "Sharingan", "deep clone", "pixel-perfect", ou après un premier clone insuffisant. Différenciateur majeur. | 🔴 | — | — |
+| # | Quoi | Statut | Modèle optimal | Effort |
+|---|------|--------|----------------|--------|
+| — | Veille mensuelle | 📅 rappel 13/mois | ⚖️ Sonnet 4.6 | M |
+| 1 | Contenu fichier cible à l'Élève | ✅ FAIT | — | — |
+| 2 | Discipline d'ablation | ✅ FAIT | — | — |
+| 3 | `selectAxioms` v2.1 | ✅ FAIT | — | — |
+| 4 | Audit des coûts | 📅 2026-06-22 | 🧠 Opus 4.8 | L |
+| 5 | Relais clic → source | ✅ FAIT | — | — |
+| 6 | Édition visuelle chirurgicale | ✅ FAIT | — | — |
+| 7 | MCP Figma | 🗑️ RETIRÉ | — | — |
+| 8 | Inspiration web contextuelle | ✅ FAIT | — | — |
+| 9 | Tests auto Vitest/Playwright | ✅ FAIT | — | — |
+| 10 | Déploiement Vercel + Netlify | ✅ FAIT | — | — |
+| 11 | Déléguer édition visuelle à Qwen-VL | 💤 | 🧠 Opus 4.8 | XL |
 
-*🔴 différenciateur majeur · 🟠 saut qualitatif · 🟢 impact UX immédiat · 🟡 valeur ajoutée · 🔵 long terme*
+### Idées en attente / actives
 
-**Décisions actées :** Dev mode méta = écarté (workflow Claude Code actuel est optimal). Rappel externalisation = gravé en mémoire (interface neutre obligatoire avant Phase B).
+| # | Idée | Statut | Modèle optimal | Effort |
+|---|------|--------|----------------|--------|
+| 1 | Agent QA temporel | 💤 | ⚖️ Sonnet 4.6 | L |
+| 2 | Design pair-programming | 💤 | 🧠 Opus 4.8 | XL |
+| 3 | Généalogie visuelle (rollback graphique) | 💤 | ⚖️ Sonnet 4.6 | L |
+| 4 | Documentation multimodale autonome | 💤 | ⚖️ Sonnet 4.6 | M |
+| 5 | Guide utilisateur MangoAI | ✅ FAIT | — | — |
+| 6 | Modèles full-stack par type | ✅ FAIT | — | — |
+| 7 | Inspiration web & blueprint contextuel | ✅ FAIT | — | — |
+| 8 | Blueprints d'arborescence par type | ✅ FAIT | — | — |
+| 9 | Mode Architecte — Mango Plan | ✅ FAIT | — | — |
+| 10 | Knowledge Flywheel (axiomes) | ✅ FAIT | — | — |
+| 11 | Moodboard visuel automatisé | ✅ FAIT (v1) | — | — |
+| 12 | Sélecteur MVP / Élite | ✅ FAIT | — | — |
+| 13 | Audit & optimisation des coûts | 📅 2026-06-22 | 🧠 Opus 4.8 | M |
+| 14 | Tableau de bord d'évolution (collecte) | 🔨 collecte active | ⚖️ Sonnet 4.6 | S |
+| 15 | Veille & jouvence mensuelle | 📅 rappel actif | ⚖️ Sonnet 4.6 | M |
+| 16 | Intégration GitHub native | ✅ FAIT | — | — |
+| 17 | Intégration Supabase | ✅ FAIT | — | — |
+| 18 | Déploiement étendu (Vercel + Netlify) | ✅ FAIT | — | — |
+| 19 | Lab de prompts interactif | 💤 | ⚖️ Sonnet 4.6 | M |
+| 20 | Visualiseur de tokenisation | 💤 | ⚖️ Sonnet 4.6 | S |
+| 21 | Panneau de métriques avancé | ✅ FAIT | — | — |
+| 22 | Agent de notes & RAG personnel | 💤 | 🧠 Opus 4.8 | L |
+| 23 | Dashboard de veille IA automatisé | 💤 | ⚖️ Sonnet 4.6 | M |
+| 24 | Générateur de tests automatiques | ✅ FAIT | — | — |
+| 25 | MCP Figma intégré | 🗑️ RETIRÉ | — | — |
+| 26 | Mode multi-projets & composition | 💤 | 🧠 Opus 4.8 | XL |
+| 27 | Click-to-Segment (SAM + VLM) | 💤 à phaser | ⚖️ Sonnet 4.6 | S |
+| 28 | Clapet v4.0 — auto-élagage ablation | 💤 palier maturité | ⚖️ Sonnet 4.6 | M |
+| 29 | Packaging bêta sans source | 💤 Phase B | 🧠 Opus 4.8 | XL |
+| 30 | Mode Architecte v2 (PromptArchitect) | ✅ FAIT | — | — |
+| 31 | Cloner depuis une URL (clone_url) | ✅ FAIT | — | — |
+| 32 | Boucle d'entraînement nocturne | ✅ FAIT | — | — |
+| 33 | `scrape_url` — aspirer info d'une URL | ✅ FAIT | — | — |
+| 34 | Phase Finition + agent QA | ✅ FAIT | — | — |
+| 35 | Backend généré (Express/Fastify) | ✅ FAIT | — | — |
+| 36 | Bibliothèque de composants inter-projets | ✅ FAIT | — | — |
+| 37 | Mode idéation visuelle (avant le code) | 💤 | ⚖️ Sonnet 4.6 | M |
+| 38 | Carte d'architecture vivante | ✅ FAIT | — | — |
+| 39 | Paiements Stripe | 💤 après #35 | 🧠 Opus 4.8 | L |
+| 40 | Invocation super-agent spécialisé | 💤 vision | 🧠 Opus 4.8 | XL |
+| 41 | Signal humain 👍/👎 — RLHF personnel | ✅ FAIT | — | — |
+| 42 | MangoAI cerveau personnel (3 couches identité) | ✅ FAIT | — | — |
+| 43 | Escalade UX/UI par signal humain | ✅ FAIT | — | — |
+
+### Roadmap haute couture — 11 chantiers
+
+| # | Fonction | Statut | Modèle optimal | Effort |
+|---|----------|--------|----------------|--------|
+| A | Design system persistant | ✅ FAIT | — | — |
+| B | Routing modèle automatique | 💤 | 🧠 Opus 4.8 | L |
+| C | Agents autonomes (cron) | 💤 | 🧠 Opus 4.8 | XL |
+| 1 | Panel latéral pop-up (éditeur visuel) | 💤 | ⚖️ Sonnet 4.6 | M |
+| 1a | ↳ Modificateur de police | 💤 | ⚡ Haiku 4.5 | S |
+| 1b | ↳ Modificateur de couleur | 💤 | ⚡ Haiku 4.5 | S |
+| 1c | ↳ Sélecteur d'éléments | 💤 | ⚖️ Sonnet 4.6 | S |
+| 2 | Créateur de skills dans le panel | 💤 | ⚖️ Sonnet 4.6 | M |
+| 3 | Mode discret | ✅ DÉJÀ FAIT | — | — |
+| 4 | Bouton micro (entrée vocale) | 💤 | ⚡ Haiku 4.5 | S |
+| 5 | Menu de mode dans le chat | 💤 | ⚖️ Sonnet 4.6 | S |
+| 6 | Menu d'accueil repensé | 💤 | ⚖️ Sonnet 4.6 | M |
+| 7 | Sélecteur de contexte fichier | 💤 | ⚖️ Sonnet 4.6 | M |
+| 8 | URL Analyser — Sharingan | ✅ FAIT | — | — |
+
+### Phase Ultime — Jalons Compagnonnage
+
+| Jalon | Contenu | Statut |
+|-------|---------|--------|
+| A — Coque Souple | Prompt dynamique `scenario.ts` | ✅ FAIT |
+| B — Panneau métriques | Dashboard 📊 | ✅ FAIT |
+| C — Contrat d'E/S | Coque Rigide `contract.ts` | ✅ FAIT (v1) |
+| D — Branchement Élève | Qwen2.5-coder:14b via Ollama | ✅ FAIT |
 
 ---
-
-## 🏛️ Phase Ultime — Architecture de compagnonnage (deux coques)
-*Vision : `D:\IA\Phase ultime du plan.md`. But : MangoAI devient model-agnostic ; un modèle Open Source local (l'« Élève ») prend le quotidien à coût zéro, Claude (le « Maître ») reste l'étage d'escalade et le scribe des axiomes. Cadrage retenu : **tiering** (deux étages), pas « succession à 0 % ».*
-
-| Jalon | Contenu | Statut | Modèle optimal | Effort |
-|-------|---------|--------|----------------|--------|
-| **A — Coque Souple** | Prompt dynamique : `server/src/scenario.ts` assemble des blocs nommés selon le scénario (= mode) via `assembleSystemPrompt(ctx)` ; constantes de prompt déplacées d'`agent.ts` ; couture `selectAxioms()` (axioms.ts) pour la future récupération par type. **✅ LIVRÉ (2026-06-13)** — refactor à comportement constant, prouvé : texte des blocs byte-identique (git), ordre/présence conformes sur les 4 combos mode×modèle, `tsc` propre | ✅ FAIT | — | — |
-| **B — Panneau de métriques** (idée 21) | **✅ LIVRÉ (2026-06-13)** : `GET /api/metrics` (lecture tolérante de `.metrics.jsonl`, lignes legacy/cassées ignorées) + dropdown « 📊 Métriques » (`ui/src/components/Metrics.jsx`) — cartes (tâches, coût cumulé/moyen, taux d'erreur), barres coût/jour, répartition par modèle et par mode, sans nouvelle dépendance. Foyer de la future courbe du taux d'intervention. *Pré-test : les tests auto (idée 24) + la machinerie d'escalade sont PRÉMATURÉS sans élève → reportés au Jalon D (le piège « bâtir à l'aveugle » que j'avais signalé).* | ✅ FAIT | — | — |
-| **C — Contrat d'E/S (Coque Rigide)** | Langage strict standardisé : le modèle **propose** des actions dans un gabarit parsable, MangoAI **valide → répare → exécute** (le modèle ne touche pas au disque). **✅ LIVRÉ v1 (2026-06-13)** : spec `docs/contrat-es.md` + `server/src/contract.ts` (`parseContract` : balises `<mangoai>` write/edit/run/summary/axiom, réparation fence/prose/enveloppe, sécurité chemins, ordre préservé), 16/16 tests déterministes verts, **boucle agentique intacte**. v2 (exécuteur + branchement modèle vivant) → Jalon D | ✅ FAIT (v1) | — | — |
-| **D — Branchement de l'Élève + boucle de relais** | **✅ LIVRÉ (2026-06-13)**. Élève = **Qwen2.5-coder:7b** local via **Ollama** (sur la GTX 1080 Ti, 11 Go ; modèles redirigés sur D:). Briques prouvées : (1) relais Élève→contrat `<mangoai>` (banc d'essai 16/16 déterministe + Qwen fiable quand le prompt d'entrée est strict) ; (2) `executor.ts` (`executeContract` : write/edit/run sandboxé, écriture atomique, edit exact, liste noire, défense en profondeur, arrêt à la 1ʳᵉ erreur) ; (3) `inspection.ts` (`inspectProject` : vrai `vite build` = juge OBJECTIF, jamais « le visuel a l'air bon ») ; (4) `eleve.ts` (`runRelay` : l'Élève tente à coût zéro → executeContract → inspectProject → après N échecs objectifs, escalade Claude qui corrige **et écrit un axiome** ; cerveaux injectables → testable sans réseau) ; (5) **branché dans le flux chat** : 4ᵉ cerveau « 🎓 Élève local » dans le sélecteur, route `/api/chat` vers `runRelay`, métriques `resolvedBy`/`attempts` ; (6) **`selectAxioms()` v2** : récupération par pertinence (type+mots-clés+maturité) plafonnée pour l'Élève, registre complet pour Claude inchangé. Prouvé e2e via HTTP réel : Qwen crée des fichiers (ESM), build vert, résolu par l'Élève, coût Claude $0 | ✅ FAIT | — | — |
-
-*Garde-fous actés (corrections du pré-test), tous appliqués au Jalon D : escalade sur signaux objectifs (jamais « le visuel est correct »), récupération d'axiomes par pertinence (`selectAxioms` v2), réparation avant rejet, axiomes validés contre l'Élève (via l'Audit Scan `--ablate`, ci-dessous).*
-
-### 📊 Dashboard de Compagnonnage & Audit Scan (Phase 2 du Jalon D — brief « Gemini », 2026-06-13)
-Couche de pilotage de l'émancipation, posée sur les métriques existantes. **Recadrage acté** : on pilote sur le **rendement 1er tour** (pas l'argent — la souveraineté monte aussi quand on utilise plus l'Élève) ; l'examen blanc doit être **held-out + ablation A/B** (sinon il mesure du par-cœur) ; économies **estimées**, jamais « temps réel précis » ; audit **hors production**.
-- **Phase 1 — agrégateur + 3 KPI** (`server/src/metrics-insights.ts`, pur/testé 20/20) : **rendement 1er tour** (`attempts===1`), **souveraineté** estimée (économies nettes = saved − escalades, baseline = coût moyen des vrais tours Claude), **courbe d'émancipation** (par jour + moyenne glissante), **cartographie du clapet** (densité d'axiomes par catégorie/maturité, via `axiomStats`). Exposés par `/api/metrics`, affichés dans le panneau 📊 (`Metrics.jsx`).
-- **Phase 2 — vues « par type »** : champ `projectType` (inféré du prompt par `inferProjectType`, `blueprints.ts`) ajouté aux métriques → rendement & économies par type de projet.
-- **Phase 3 — Audit Scan** (`server/src/audit-scan.ts`, CLI **jamais importé en prod**) : suite **figée held-out** (`audit-tasks.ts`, jamais source d'axiome) de l'Élève **seul**, empreintes de repro (digest modèle + version Ollama + hash axiomes + suiteHash), comparaison au scan précédent, et **mode `--ablate`** (suite AVEC vs SANS le dernier axiome → attribution causale des « mauvais plis », restauration byte-identique du registre). **Vérification d'EFFET ajoutée (2026-06-13, ferme le caveat n°7)** : chaque tâche porte une attente `expect` (audit-verify.ts), l'audit calcule le **RENDEMENT RÉEL** (build ET changement atterri) et le verdict d'ablation s'appuie dessus, pas sur la compilation seule. Live : 9 tâches, build 100 % mais rendement réel 89 % (`edit-app-header` build-vert-sans-effet démasqué). Journal `.audit.jsonl` (workspace/, git-ignoré).
-- Lancer : `cd server && npx tsx src/audit-scan.ts` (scan) · `… --ablate` (ablation).
-
-### 🔭 Pistes futures — Jalon D / Élève (à explorer, par ordre de valeur)
-*Capturées au fil de la session 2026-06-13 (Jalon D). À piocher quand on reprend le compagnonnage.*
-1. **Fournir le CONTENU du fichier cible à l'Élève pour les tâches d'edit** — *(le plus rentable, identifié par l'Audit Scan durci)*. Aujourd'hui `buildEleveUser` (`eleve.ts`) ne donne que la **liste** des fichiers ; l'Élève devine donc un `<find>` qui ne matche pas → les edits sur fichier existant échouent (score audit 89 % à cause de la seule tâche `edit-app-header`). Injecter le contenu des fichiers mentionnés/petits débloquerait les retouches (pas seulement les créations). Limite **architecturale**, pas du modèle.
-2. **Accumuler de vrais tours Élève + `--ablate` après chaque nouvel axiome** — remplir la courbe d'émancipation et vérifier que chaque axiome **aide** l'Élève (sinon mauvais pli → amender/retirer). Le registre « code » est encore quasi vide ; il se remplira via les escalades réelles.
-3. ~~**`selectAxioms` v2.1 — détecter le type de projet depuis la mémoire projet**, pas seulement les mots-clés du prompt~~ **✅ FAIT (2026-06-13)** : `detectProjectType` (tâche → fallback `.memory.md`) + `PROJECT_TYPE_CATS` autoritaire dans `selectAxioms`.
-4. **Tâches d'audit avec dépendances** (recharts, date-fns…) — actuellement évitées car le `node_modules` jonctionné les ferait écrire dans le vrai `test-pipeline`. Faire une vraie copie de `node_modules` (ou un projet support dédié) pour tester si l'Élève pense à `<run> npm install`.
-5. **Modèle Élève plus fort en option** — **✅ FAIT (2026-06-15)** : comparaison 3 modèles via `compare-eleves.ts` enrichi (juge Claude Haiku /10 sur 4 critères + build réel vite + conformité contrat). Résultats sur 5 tâches React : **`qwen2.5-coder:14b` 🥇 8.8/10** · `qwen2.5:14b` 🥈 8.6/10 · `qwen2.5-coder:7b` 🥉 7.2/10 (pénalisé par hallucination d'import T2). **Élève actif : `qwen2.5-coder:14b`** (9 Go, GTX 1080 Ti, ELEVE_MODEL mis à jour dans `.env`). Modèles `qwen2.5-coder:7b`, `qwen2.5:14b`, `gemma2:2b` désinstallés (~23 Go libérés). Routing 7b/14b par complexité = piste future (matériel insuffisant actuellement). **Tuyauterie « Élève turbo » prête (2026-06-14)** : `ELEVE_PROVIDER=openai` branche un endpoint compatible OpenAI (DeepSeek, Qwen3 sur VPS Hostinger, etc.) via `.env` sans toucher au code. *Note : `qwen3-coder-next` (51 Go, testé 2026-06-15) — inutilisable (Ollama crash, RAM instable).*
-6. **Veille mensuelle** : surveiller les modèles de code locaux (Qwen3-coder MoE quand il tiendra en 11 Go, etc.).
-7. ~~**Critère de succès des `<edit>` au-delà du build**~~ **✅ FAIT (2026-06-13)** : `audit-verify.ts` (`verifyEffect`) + une **attente d'effet** (`expect: EffectSpec`) sur chaque tâche held-out. L'Audit Scan mesure désormais le **RENDEMENT RÉEL** (build ET le changement a atterri dans le source), distinct du build seul, et démasque « build vert sans effet ». **Prouvé en vrai** : `edit-app-header` → build 100 % mais **rendement réel 89 %** (Qwen rate ses `<find>`, l'escalade déclare « résolu » build-vert alors que le `<header>` n'a jamais atterri). Test 16/16 + live. *Portée honnête : vérifie que le changement a ATTERRI dans le source (tue le no-op), pas la correction comportementale complète (= idée 24, runtime, plus tard). Résidu : le critère de succès de `runRelay` EN PRODUCTION reste build-only — en open-ended on n'a pas d'effet attendu à comparer (voir n°8).*
-8. **Critère de succès de `runRelay` en production** — l'audit (contrôlé, effet connu) dit la vérité ; mais en production `runRelay` se déclare « résolu » sur `inspection.ok` = build seul. Un edit no-op y passe encore pour un succès (le dashboard souveraineté est donc optimiste de ~l'ordre mesuré par l'audit). Piste : exiger au minimum un **diff non vide** (le contrat a modifié des octets) avant de déclarer succès — signal objectif disponible même sans intention déclarée. *(Identifié en fermant n°7, 2026-06-13.)*
-
-### 📌 Note d'analyse — idée 27 « Click-to-Segment » (édition visuelle chirurgicale), 2026-06-13
-**Verdict : excellente DESTINATION, mais la stack proposée (SAM ONNX + VLM séparé) est largement SUPERFLUE — Claude + le DOM qu'on contrôle la font, avec beaucoup moins d'infra.** (Analyse appliquant la règle « natif d'abord ».)
-- **Le besoin réel** : clic sur un élément de l'aperçu → modification chirurgicale de SON code TSX/Tailwind, sans ambiguïté « quel élément ? ».
-- **Ce qui marche DÉJÀ** : la vision est en boucle fermée dans MangoAI (tool `snapshot`, Read multimodal, crop/zoom) ; Claude a déjà fait une correction visuelle chirurgicale (bandeau masqué par la nav fixe, détecté à l'œil et corrigé). « Voir un élément → éditer son code » est acquis.
-- **Le SEUL vrai point dur, ce n'est PAS la vision — c'est pixel → code.** Et SAM ne le résout pas (un masque dit *où à l'écran*, jamais *quelle ligne de TSX*). Mais on **contrôle le DOM et le build**, donc on contourne la vision : `document.elementFromPoint(x,y)` → le nœud DOM EXACT (plus précis qu'un masque, déterministe, gratuit). **⚠ Correction (vérifié au #5, 2026-06-13)** : mon hypothèse `fiber._debugSource` est **fausse en React 19** (le template) — `_debugSource` y a été RETIRÉ (sondé empiriquement : `_debugStack`/`_debugOwner` seulement, pas de `{file,line}` propre). La réponse native ET insensible aux versions : un **tampon Babel** qui stampe en dev chaque élément hôte avec `data-mango-src="fichier:ligne"` (Vite/Babel transforme déjà le JSX), puis `elementFromPoint().closest('[data-mango-src]')`.
-- **Architecture livrée (#5)** : tampon Babel (`clicksource.ts`, injecté dans `vite.config.js`, dev-only) → script `inspect-relay` (`relay.ts`, clic→postMessage) → builder précharge le composer avec la réf source → **Claude/Élève** fera l'edit via la **Coque Rigide** (#6). → ❌ SAM, ❌ VLM séparé, ❌ `_debugSource`, ✅ tampon Babel + `elementFromPoint`. **Une seule brique neuve** : le relais clic→`{source, code}`, prouvé e2e.
-- **Où un VLM local / SAM gardent un sens (plus tard)** : un **Qwen-VL local** pour faire faire ça à l'**Élève** à coût zéro (compagnonnage), une fois le pont source posé — vient APRÈS. SAM seulement si on veut de la vraie segmentation d'image (édition de visuels), pas pour éditer du code (le DOM bat les pixels).
-- **Limite honnête** : mon *grounding* pixel brut est plus faible que SAM, mais on l'évite en passant par le DOM au lieu des pixels.
-- **Reco de phasage** : (1) ✅ piste n°1 = code du fichier cible à l'Élève [FAIT, #1] ; (2) ✅ relais clic→source [FAIT, #5 — tampon Babel `data-mango-src`, pas `_debugSource`] ; (3) ✅ Claude/Élève édite via le contrat [FAIT, #6 — `buildVisualEditPrompt` + vérification de changement, prouvé e2e à $0] ; (4) plus tard, déléguer à un Qwen-VL local pour le coût zéro. **Toute la chaîne native livrée, sans dépendance externe — confirmé en vrai.**
-
-### 📌 Conclusion : faut-il créer des agents spécialisés (locaux/code) pour les tâches auxiliaires ? — NON (analyse 2026-06-13)
-Inventaire complet du code fait. Deux voies distinctes : **Voie A** = déplacer le cœur de MangoAI sur un modèle local (indépendance, mais on met le modèle le plus faible sur la tâche la plus dure → risque qualité ; = Jalon D, plus tard, par *tiering* pas big-bang) ; **Voie B** = déléguer des sous-tâches bornées à des agents spécialisés (économie, faible risque). **Verdict : pas de besoin réel maintenant.**
-- Presque tout l'auxiliaire est **déjà du code pur, donc gratuit** : git/versions, deploy, github, preview, npm, Playwright, métriques. Rien à déléguer.
-- La **seule** tâche LLM auxiliaire récurrente (la revue de fond, `review.ts`) tourne **déjà sur haiku** (le moins cher) — la Voie B est donc déjà appliquée là où elle a du sens.
-- La déplacer en local serait un **mauvais calcul** : la revue est du jugement (extraction d'axiomes) ; un modèle local plus faible dégraderait le flywheel, pour un coût d'infra > à l'économie.
-- **Le vrai levier de coût = le tour de build principal**, pas l'auxiliaire. Leviers déjà en place : MVP, choix du modèle, blueprints ; planifié : dégraissage du prompt (idée 13 / Coque Souple v2) ; à terme : Voie A pour les builds faciles.
-- Seul micro-levier optionnel identifié : déclencher la revue tous les N tours (façon nudge Hermes) au lieu de chaque tour (÷3-5 du coût de revue, perte d'apprentissage négligeable) — marginal car haiku déjà bon marché. Non appliqué.
-
----
-
-## 🚀 Montée en puissance — ordre de priorité recommandé
-
-*Chaque phase s'appuie sur la précédente. Les idées entre parenthèses = numéros du tableau ci-dessus.*
-
-### Phase 1 — Fondations qui débloquent tout le reste
-> Ce sont les 3 changements qui ont le plus grand effet de levier. Sans eux, les phases suivantes sont moins efficaces.
-
-| Ordre | Idée | Pourquoi maintenant |
-|-------|------|---------------------|
-| 1 | **Sélecteur MVP/Élite** (12) | L'interrupteur central : toutes les fonctions futures naissent branchées dessus. Protège le quota Claude |
-| 2 | **Intégration GitHub native** (16) | Chaque projet généré devient un vrai repo. Portfolio, partage, visibilité — et base pour la CI/CD |
-| 3 | **Intégration Supabase** (17) | Comble le seul vrai manque vs Lovable : apps avec base de données et auth. Ouvre un nouveau marché |
-
-### Phase 2 — Cerveau plus puissant
-> Rendre MangoAI plus intelligent avant d'ajouter des fonctions de surface.
-
-| Ordre | Idée | Pourquoi |
-|-------|------|----------|
-| 4 | **Knowledge Flywheel** (10) | Chaque projet enrichit le suivant. Axiomes > skills > mémoire : la spirale ascendante |
-| 5 | **Blueprints + stacks par type** (8 + 6) | L'agent part d'une structure connue → moins de tours, moins de tokens, meilleur résultat dès le 1er message |
-| 6 | **Mango Plan + Moodboard** (9 + 11) | Concevoir avant de coder. Le plan guidé + les références visuelles réelles = zéro dette technique dès le départ |
-
-### Phase 3 — Ta formation (projets qui te forment à l'IA)
-> Ces projets sont construits *avec* MangoAI et t'enseignent l'écosystème IA en le pratiquant.
-
-| Ordre | Idée | Ce que tu comprends |
-|-------|------|---------------------|
-| 7 | **Visualiseur de tokenisation** (20) | Les tokens, le coût, la fenêtre de contexte — les bases absolues |
-| 8 | **Lab de prompts** (19) | La différence entre modèles, l'impact du prompting, le prix comparé |
-| 9 | **Agent de notes & RAG** (22) | Comment un agent choisit quoi lire — introduction au RAG |
-| 10 | **Dashboard de veille IA** (23) | Rester à jour automatiquement, résumé par Claude — outil utile immédiatement |
-
-### Phase 4 — Vision avancée & qualité
-> L'arsenal visuel complet. Dépend du sélecteur MVP/Élite (phase 1).
-
-| Ordre | Idée | Ce qu'elle apporte |
-|-------|------|---------------------|
-| 11 | **Inspiration web contextuelle** (7) | L'agent analyse les leaders du domaine avant de coder — niveau « senior » |
-| 12 | **Agent QA temporel** (1) | Bugs d'animation et de transition détectés en mouvement, pas en statique |
-| 13 | **Design pair-programming** (2) | L'agent montre avant de faire — collaboration visuelle |
-
-### Phase 5 — Expansion écosystème
-> Nouvelles intégrations qui ouvrent de nouveaux usages.
-
-| Ordre | Idée | Valeur |
-|-------|------|--------|
-| 14 | **MCP Figma** (25) | Design-to-code professionnel : Figma → React en une conversation |
-| 15 | **Déploiement étendu** (18) | Vercel + Netlify + Cloudflare = 3 cibles au choix |
-| 16 | **Tests automatiques** (24) | Projets robustes, régressions éliminées — mode Élite uniquement |
-| 17 | **Panneau métriques** (21) | Visualiser la courbe d'apprentissage — nourrit l'audit annuel |
-
-### Phase 6 — Maturité & finitions
-> Les idées les plus ambitieuses, pour quand MangoAI est déjà solide.
-
-| Ordre | Idée | Horizon |
-|-------|------|---------|
-| 18 | **Généalogie visuelle** (3) | Time-line de renders — type Figma, très impactant visuellement |
-| 19 | **Documentation multimodale** (4) | Guides illustrés auto-générés — valeur pour les projets clients |
-| 20 | **Multi-projets & composition** (26) | Bibliothèque de composants perso — maturité d'un vrai framework |
-| 21 | **Guide utilisateur MangoAI** (5) | Quand tout le reste est stable — documenter l'outil complet |
-
-## ✅ Fait et fonctionnel
-- MVP complet testé de bout en bout (génération pizzeria + itération avec contexte)
-- Backend Express + Claude Agent SDK (port 3000) — auth via login Claude Code local, pas de clé API
-- UI builder chat + aperçu live (port 5173), apps générées servies sur le port 5174
-- Sessions persistées par projet (`server/sessions.json`) — reprise après redémarrage
-- Sélecteur de projets existants (datalist dans le header)
-- Bouton ■ Stop (interruption de l'agent en cours)
-- Choix du modèle dans l'UI (⚡ Haiku / ⚖️ Sonnet / 🧠 Opus) — changeable en cours de session
-- Export ⬇ Zip du projet généré (sources sans node_modules)
-- Versions & rollback git — commit auto après chaque itération de l'agent, menu « ↩ Versions » pour revenir en arrière
-- Historique de chat persisté par projet — le chat se recharge à l'ouverture du projet, survit au rollback
-- Auto-réparation des erreurs — les erreurs runtime de l'app générée remontent dans un bandeau ⚠, bouton « 🔧 Corriger » qui les envoie à l'agent
-- Templates de démarrage — 4 starters (vitrine, e-commerce, dashboard, blog) sélectionnables à la création d'un projet
-- Déploiement 1-clic — bouton « 🚀 Publier » vers Cloudflare Pages (nécessite `npx wrangler login` une fois)
-- **Refonte UI complète** — Tailwind v4 + lucide-react + react-markdown : écran d'accueil (hero, templates, projets récents), workspace repolie (dropdowns, toasts, modal, mode mobile)
-- **Boucle d'apprentissage Hermes (5/5)** — mémoire par projet, profil utilisateur inter-projets, skills apprises, revue silencieuse en arrière-plan après chaque tâche, subagents `builder` parallèles (détail : roadmap Hermes ci-dessous)
-- **Panneau « 🧠 Mémoire »** dans le header — voir d'un clic ce que MangoAI sait : le projet, vous, les skills (`GET /api/knowledge/:name`)
-- **Compression de contexte** (context_compressor d'Hermes transposé) — mesure du contexte à chaque tour, compaction proactive en arrière-plan au-delà de 70 % (`server/src/compaction.ts`, résumé en haiku via /compact), jauge de contexte dans le header, ligne « 🗜 » dans l'historique
-- **Raisonnement analytique (Opus/Sonnet)** — extended thinking adaptatif natif du SDK (`thinking: adaptive/summarized`) + règles d'analyse dans le system prompt (3 hypothèses, auto-critique, plan avant code) ; blocs « 🧠 Réflexion » repliables dans le chat, persistés dans l'historique
-- **Robustesse des magasins (jalon 1)** — validation stricte à l'exécution de `sessions.json`, `.chat-history.json` et des frontmatters `SKILL.md` (guards TS, plafonds anti-inondation du prompt), écritures atomiques (`server/src/safe-io.ts`), filet global `unhandledRejection`/`uncaughtException` : aucun fichier corrompu par la revue d'arrière-plan ne peut plus planter un tour ni le serveur. Isolation des outils vérifiée : tout (outils agent, revue, compaction, Vite, git, wrangler) tourne en subprocess — le crash d'un outil ne touche jamais le process serveur
-- **Mode vision avancé en boucle fermée (jalon 2)** — entrées multimodales (📎 images/PDF dans le chat → `.assets/`, lus nativement par Read) + tool `snapshot` MCP in-process (`server/src/vision.ts` : Playwright msedge, crop par sélecteur/box, zoom ×1-3, budget par tour façon IterationBudget d'Hermès) + boucle « patch → snapshot → critique → crop zoomé → re-patch » pilotée par le system prompt ; hygiène contexte (purge `.snapshots/` par tour, compaction qui jette les images analysées). Validé e2e : l'agent a détecté À L'ŒIL un bandeau recouvert par la nav fixed et l'a corrigé seul
-- **Tailwind v4 préinstallé** — chaque nouveau projet embarque Tailwind v4 (`@tailwindcss/vite`) ; le clonage d'UI depuis une maquette jointe se fait en utilities Tailwind, le CSS pur reste la règle pour les sites simples ; starters préservés (import sans preflight)
-- **Bouton Snap** — capture interactive d'une zone de l'aperçu : overlay + rectangle au glisser, le backend re-rend l'aperçu à la taille de l'iframe et croppe la zone (`POST /api/snap`, PNG ×2), l'image rejoint les pièces jointes (vignette dans le chip) ; double analyse OCR + visuel par l'agent
-- **Sélecteur ⚡ MVP / 💎 Élite (idée 12)** — deuxième axe orthogonal au modèle dans le header : MVP = rapide & économe (pas de rituel analytique, pas d'extended thinking, boucle visuelle minimale, budget vision 3) ; Élite = arsenal complet (analyse + thinking si modèle ≠ haiku, boucle visuelle complète, budget vision 10). L'interrupteur sur lequel se brancheront les fonctions futures (Mango Plan, moodboard, QA temporel). `mode` persisté (localStorage), envoyé au backend, enregistré dans les métriques. Testé e2e sur les deux modes ✅
-- **Intégration GitHub native (idée 16)** — bouton « GitHub » dans le header : crée le repo (privé par défaut) via l'API GitHub et force-push l'historique git du projet, bouton « Push » pour re-pousser, chip vers le repo (`server/src/github.ts`, `POST /api/github/:name`). Le token (scope `repo`) se met dans `server/.env` (`GITHUB_TOKEN`) ; le login est lu via l'API, le token n'est jamais écrit dans `.git/config` (push via URL inline, remote `origin` propre). Le bouton n'apparaît que si un token est configuré (`githubEnabled` dans `/api/projects`). **✅ Validé e2e (2026-06-13)** : token utilisateur en place, push réel réussi (repo privé créé, branche `main`, remote sans token, zéro secret versionné)
-- **Mango Plan + moodboard (idées 9+11, Élite)** — `server/src/plan.ts` : en mode Élite, pour un nouveau projet ou un gros chantier, l'agent conçoit AVANT de coder (`PLAN_RULES`) — ≤3 questions chirurgicales, `plan.md` (intention + arborescence cible + stack + choix de design), validation utilisateur, puis génération guidée (zéro dette technique). Moodboard (`MOODBOARD_RULES` + outils WebSearch/WebFetch ajoutés aux allowedTools en Élite) : recherche 2-3 leaders du domaine, distille des règles de design réelles dans la section « Références » du plan. **MVP n'a ni plan ni web** (rapide & économe) — l'idée 12 sert enfin son but. Testé : sur un gros chantier, l'agent pose les 3 bonnes questions sans coder ✅. Capture visuelle autonome (Playwright externe) = amélioration future
-- **Blueprints + stacks par type (idées 6+8)** — catalogue `server/src/blueprints.ts` injecté dans le system prompt : 6 types (site vitrine, web app interactive, dashboard/admin, jeu 2D canvas, présentation/slides, **agent spécialisé IA**), chacun avec sa stack optimale (libs déjà choisies — recharts, @supabase/supabase-js, @anthropic-ai/sdk…) et son arborescence type (dossiers adaptés). Profondeur « structurée mais souple » : l'agent part de la structure connue mais reste libre de s'en écarter. Effet : moins de tours, droit au but dès le 1er message. Testé : l'agent reproduit fidèlement stack+arbo par type ✅
-- **Knowledge Flywheel (idée 10)** — 4ᵉ magasin de connaissance : registre d'**axiomes universels** `workspace/.axioms.md` (`server/src/axioms.ts`), distinct de la mémoire projet (faits), du profil (identité) et des skills (code/how-to). Un axiome = une règle d'ingénierie/UX abstraite, indépendante du langage et du projet, au format `AXIOME-[CAT]-[NN]` (Contexte / Piège / Règle d'or). Curé par la revue en arrière-plan ; injecté dans le system prompt comme **défaut** (la demande utilisateur l'écrase toujours). **Garde-fous appliqués** : daté, falsifiable (contradiction observée → amendement/suppression), maturité candidat→confirmé (jamais « confirmé » à la première observation), plafond strict (~12 axiomes / 3000 car.). Testé e2e : un tour exposant le piège « contenu masqué sous nav fixe » a produit `AXIOME-UIUX-01` (règle `scroll-padding-top`) ✅. Visible dans le panneau 🧠 Mémoire
-- **Intégration Supabase (idée 17)** — base de données + auth dans les apps générées : bloc `SUPABASE_RULES` (concis) dans le system prompt — l'agent utilise `@supabase/supabase-js`, client unique dans `src/lib/supabase.js` lisant `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (jamais de clé en dur), fournit le SQL à coller dans l'éditeur Supabase avec Row Level Security obligatoire, dégrade proprement si les clés manquent. **Sécurité** : `.env`/`.env.local` désormais git-ignorés dans les projets et exclus du zip — les clés ne fuitent ni dans le push GitHub ni dans l'export. **✅ VALIDÉ EN LIVE (2026-06-13)** : app `todo-supabase` générée (client `src/lib/supabase.js`, table `todos` + RLS), clés `anon` branchées, tâches réellement persistées dans le cloud (confirmé au rechargement). Comble le manque vs Lovable
-- Dépôt GitHub privé à jour : https://github.com/u2987920406-rgb/mangoai
-- **Business model & plan d'action livrés** : `business-model.pdf` (13 pages, source `business-model.html`) — comparaison des 3 pistes de monétisation, recommandation (piste A agence/freelance), plan 90 jours
-
-## 🗺️ Roadmap — surpasser Lovable/Emergent (analyse 2026-06-12)
-
-**Avantages structurels déjà acquis** (aucun concurrent ne peut copier) :
-- Coût marginal zéro + itérations illimitées (abonnement Claude vs crédits payants)
-- Moteur = preset `claude_code` (le même agent que les pros, pas un agent propriétaire bridé)
-- Code 100 % local, propriété totale, confidentialité — argument de vente piste A
-
-**Améliorations par priorité (effort/impact)** :
-1. ✅ **Rollback par git auto-commit** — FAIT (2026-06-12) : commit auto après chaque itération (`server/src/versions.ts`), menu « ↩ Versions » dans le header, endpoints `/api/versions/:name` + `/api/rollback`
-2. ✅ **Historique de chat persisté** — FAIT (2026-06-12) : messages sauvegardés par projet (`workspace/<projet>/.chat-history.json`, exclu du git et du zip), rechargés à l'ouverture du projet, endpoint `GET /api/history/:name`
-3. ✅ **Auto-réparation des erreurs** — FAIT (2026-06-12) : script relais injecté dans les apps générées (`server/src/relay.ts`), erreurs runtime remontées à l'UI via postMessage, bandeau ⚠ + bouton « 🔧 Corriger » qui envoie les erreurs à l'agent
-4. ✅ **Templates de démarrage** — FAIT (2026-06-12) : 4 templates (🏪 vitrine, 🛒 e-commerce, 📊 dashboard, 📝 blog) dans `server/templates/`, superposés au template de base à la création, sélecteur 📦 dans l'UI (visible pour les nouveaux projets)
-5. ✅ **Déploiement 1-clic** — FAIT (2026-06-12) : bouton « 🚀 Publier » → build + Cloudflare Pages (`server/src/deploy.ts`, wrangler), URL `https://<projet>.pages.dev` affichée dans le header. Compte Cloudflare connecté (wrangler login fait le 2026-06-12) — testé et validé par l'utilisateur ✅
-6. *(Plus tard)* **Supabase** pour apps avec données/auth — autoriser dans le system prompt
-
-❌ Écarté : édition visuelle WYSIWYG (énorme effort, pas là que se joue la valeur)
-
-## 🧠 Roadmap — niveau Hermes Agent (analyse 2026-06-12)
-
-**Contexte** : Hermes Agent (Nous Research) est open source MIT — code complet étudié dans `C:\Users\PC-DELL\hermes-agent-study` (clone). Sa connexion Claude exige plan Max + crédits payants ; MangoAI garde son avantage coût zéro (login Claude Code local) en réimplémentant ses concepts.
-
-**Mécanismes clés extraits du code source** :
-- **Mémoire curée par l'agent** (`tools/memory_tool.py`) : 2 fichiers — MEMORY.md (faits projet/environnement) + USER.md (préférences utilisateur) — injectés en *frozen snapshot* au début de session (le prompt reste stable → cache préservé) ; limites en caractères, pas en tokens
-- **Nudge périodique** (`agent/turn_context.py`) : tous les 10 tours, déclenche une **revue en arrière-plan** (`agent/background_review.py`) APRÈS la livraison de la réponse — ne ralentit jamais l'utilisateur
-- **Prompts de revue** : « que sauver » (préférences, corrections de l'utilisateur = signaux de premier ordre) et surtout « que NE PAS sauver » (erreurs transitoires corrigées, échecs liés à l'environnement, récits de tâches ponctuelles) — transposés dans `server/src/memory.ts`
-- **Skills auto-créées** (`tools/skill_manager_tool.py`) : SKILL.md niveau « classe de tâche » + `references/`/`templates/`/`scripts/`, divulgation progressive (métadonnées dans le prompt, contenu à la demande), nudge après 10 itérations d'outils
-- **Subagents** : enfants isolés, intersection des toolsets, résultats via callbacks ; **cron** : jobs.json + tick()
-
-**Améliorations par priorité (effort/impact pour un builder d'apps)** :
-1. ✅ **Mémoire par projet** — FAIT (2026-06-12) : `workspace/<projet>/.memory.md` curé par l'agent lui-même (règles dans le system prompt : quoi sauver / quoi ne pas sauver, fusion plutôt qu'ajout), snapshot injecté à chaque tour (`server/src/memory.ts`), exclu du git projet/zip, survit au rollback
-2. ✅ **Profil utilisateur global** — FAIT (2026-06-12) : `workspace/.user-profile.md` (équivalent du USER.md d'Hermes), injecté dans le system prompt de chaque tour de chaque projet. La revue en arrière-plan route chaque préférence vers le bon magasin : générale (« de manière générale », « toujours », goût récurrent) → profil ; spécifique → mémoire du projet. Hors git (workspace/ ignoré), plafond 3 000 caractères
-3. ✅ **Skills apprises** — FAIT (2026-06-12) : bibliothèque `workspace/.skills/<nom-classe>/SKILL.md` (frontmatter name/description + le code qui a marché), curée par la revue en arrière-plan (ordre d'Hermes : patcher > enrichir > créer, noms niveau classe, posture active). **Divulgation progressive** : seuls nom + description injectés au system prompt, l'agent lit le SKILL.md à la demande (`server/src/skills.ts`). Première skill créée toute seule : `accordeon-faq`, visible et proposée depuis les autres projets
-4. ✅ **Revue en arrière-plan** — FAIT (2026-06-12) : `server/src/review.ts` — après chaque tour réussi, un agent haiku silencieux relit le transcript et cure `.memory.md` (signaux de premier ordre : préférences et corrections de l'utilisateur ; interdits : erreurs transitoires, récits ponctuels). Zéro latence pour l'utilisateur, ~$0.02-0.04/revue, pas de récursion (la revue n'est pas revue), ligne « 🧠 Mémoire du projet mise à jour » dans l'historique. L'agent principal ne cure plus la mémoire lui-même (sauf demande explicite)
-5. ✅ **Subagents parallèles** — FAIT (2026-06-12) : agent `builder` défini via l'option `agents` du SDK (outils fichiers seulement, pas de Bash — pas de conflit npm/dev server entre builders). L'agent principal délègue les grosses demandes à volets indépendants et intègre le résultat ; consigne « pas de délégation pour les petits changements » (surcoût). Validé : 2 sections construites par 2 builders en parallèle (sonnet, $0.75), app compile. Outil `Agent` affiché 🤖/Bot dans le chat. *(Tâches planifiées : plus tard si besoin)*
-6. Système prompt durci : interdiction des commandes git à l'agent (le backend versionne déjà chaque tour)
-
-## 🔜 Aussi à faire
-1. ✅ **Compression de contexte** — FAIT (2026-06-12) : `server/src/compaction.ts` — le SDK détient l'historique (pas de liste de messages à découper comme Hermes), donc transposition des CONCEPTS : taille du contexte mesurée sur le dernier appel API de chaque tour (`agent.ts` → événement `result`), au-delà de 70 % de la fenêtre un `/compact` tourne en arrière-plan après la livraison (zéro latence, résumé écrit par haiku, instructions de préservation style Hermes) ; un nouveau message de l'utilisateur interrompt la compaction (best-effort) ; anti-thrashing ; jauge de contexte dans le header (vert/orange/rouge) ; ligne « 🗜 Contexte compressé (42k → 6k tokens) » dans l'historique. Testé e2e : compaction réelle vérifiée dans le transcript (`compact_boundary`), reprise de session avec souvenirs intacts ✅. Seuil réglable via env `COMPACT_THRESHOLD`
-2. ✅ **Raisonnement analytique pour Opus/Sonnet** — FAIT (2026-06-12) : option `thinking: { type: "adaptive", display: "summarized" }` du SDK quand le modèle ≠ haiku (le thinking adaptatif est LE mode des modèles 4.6+, `budget_tokens` est déprécié) + bloc `ANALYTIC_RULES` dans le system prompt (analyse critique du besoin, 3 hypothèses techniques, auto-critique sécurité/bugs/skills apprises, plan étape par étape — escamoté pour les changements triviaux et le Q&A). Les blocs thinking remontent en SSE (événement `thinking`), s'affichent repliés « 🧠 Réflexion » dans le chat et sont persistés dans l'historique. Testé e2e sur sonnet : le raisonnement analyse le code existant, formule des hypothèses et identifie la vraie cause avant de coder ✅
-3. *(Plus tard)* Supabase pour apps avec données/auth ; tâches planifiées façon cron d'Hermes si besoin
 
 ## 🚀 Pour relancer après redémarrage
-*(Projet déplacé sur D: le 2026-06-12 — libération du disque C ; ouvrir les sessions Claude Code dans `D:\IA\mangoai`)*
-```
-cd D:\IA\mangoai\server
-npm run start
-```
-```
-cd D:\IA\mangoai\ui
-npm run dev
-```
-Puis ouvrir **http://localhost:5173** — les conversations des projets reprennent automatiquement (sessions persistées).
 
-**Pour le cerveau Élève local (Qwen) — facultatif, requis seulement si on choisit « 🎓 Élève local »** :
+```bash
+cd D:\IA\mangoai\server && npm run start
+cd D:\IA\mangoai\ui && npm run dev
 ```
+Puis ouvrir **http://localhost:5173**
+
+**Élève local (facultatif — requis si cerveau « 🎓 Élève local ») :**
+```bash
 ollama serve
 ```
-(modèles sur `D:\ollama\models` via `OLLAMA_MODELS` ; modèle `qwen2.5-coder:7b`. 1er appel ~60 s à froid, puis ~5 s.) **Santé de l'Élève** : `cd server && npx tsx src/audit-scan.ts` (scan, mesure le RENDEMENT RÉEL build+effet) · `… --ablate` (après un nouvel axiome).
+Modèle actif : `qwen2.5-coder:14b` (9 Go, D:\ollama\models)
 
-**Bancs / tests déterministes utiles** (`cd server`) : `npx tsx src/test-clicksource.ts` (relais clic→source + édition visuelle), `npx tsx src/test-audit-verify.ts` (vérification d'effet), `npx tsx src/test-axioms.ts` (récupération v2.1). Bancs live (Ollama requis) : `exp-clicksource-{live,relay}.ts`, `exp-visual-edit.ts`.
+**Tests déterministes utiles** (`cd server`) :
+- `npx tsx src/audit-scan.ts` — scan rendement réel
+- `npx tsx src/audit-scan.ts --ablate` — après un nouvel axiome
