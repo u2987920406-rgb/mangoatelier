@@ -1,0 +1,161 @@
+// Idée #40 — Super-agent spécialisé : génère un agent expert complet depuis un domaine.
+import Anthropic from '@anthropic-ai/sdk'
+import type { Express, Request, Response } from 'express'
+import path from 'node:path'
+import fs from 'node:fs'
+
+const client = new Anthropic()
+
+const DATA_DIR = path.join(process.cwd(), '..', 'server', 'data')
+const SUPER_AGENTS_FILE = path.join(DATA_DIR, 'super-agents.json')
+
+export interface SuperAgentTool {
+  name: string
+  desc: string
+}
+
+export interface SuperAgent {
+  id: string
+  name: string
+  domain: string
+  systemPrompt: string
+  tools: SuperAgentTool[]
+  examples: string[]
+  tags: string[]
+  createdAt: string
+}
+
+function loadAgents(): SuperAgent[] {
+  if (!fs.existsSync(SUPER_AGENTS_FILE)) return []
+  try {
+    return JSON.parse(fs.readFileSync(SUPER_AGENTS_FILE, 'utf-8')) as SuperAgent[]
+  } catch {
+    return []
+  }
+}
+
+function saveAgents(agents: SuperAgent[]): void {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+  fs.writeFileSync(SUPER_AGENTS_FILE, JSON.stringify(agents, null, 2), 'utf-8')
+}
+
+function generateId(): string {
+  return `sa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+export function registerSuperAgentRoutes(app: Express): void {
+
+  // POST /api/super-agent/build
+  app.post('/api/super-agent/build', async (req: Request, res: Response) => {
+    const { domain, description } = req.body as { domain?: string; description?: string }
+
+    if (!domain?.trim()) {
+      res.status(400).json({ error: 'Le champ "domain" est requis.' })
+      return
+    }
+
+    const descriptionBlock = description?.trim()
+      ? `\n\nContexte supplémentaire fourni par l'utilisateur :\n${description.trim()}`
+      : ''
+
+    const systemPrompt = `Tu es un architecte d'agents IA. Tu génères des agents experts hautement opérationnels.`
+
+    const userPrompt = `Génère un agent expert spécialisé en : ${domain.trim()}.${descriptionBlock}
+
+Retourne UNIQUEMENT un objet JSON valide (sans markdown, sans explication, sans code fence) avec exactement ces clés :
+
+{
+  "name": "Nom court et évocateur de l'agent (ex: LexWork Pro)",
+  "systemPrompt": "System prompt très opérationnel, minimum 200 mots. Décrit la personnalité, les règles strictes de l'agent, ses limites, son style de réponse, ses priorités et ses biais. Il doit pouvoir être copié-collé directement dans un système IA.",
+  "tools": [
+    { "name": "nom_outil", "desc": "Description courte de l'outil et pourquoi l'agent l'utilise" }
+  ],
+  "examples": [
+    "Exemple de prompt type 1 que l'utilisateur peut poser à cet agent",
+    "Exemple de prompt type 2",
+    "Exemple de prompt type 3"
+  ],
+  "tags": ["tag1", "tag2", "tag3"]
+}
+
+Règles :
+- Le systemPrompt doit faire minimum 200 mots, être très concret et opérationnel
+- Les tools doivent être pertinents pour le domaine (3 à 6 outils)
+- Les examples doivent être des vraies questions utiles, pas des généralités
+- Les tags décrivent le domaine et les cas d'usage (3 à 5 tags)`
+
+    try {
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: userPrompt }],
+        system: systemPrompt,
+      })
+
+      const rawText = message.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b as { type: 'text'; text: string }).text)
+        .join('')
+
+      // Extraire le JSON même si Claude entoure d'un code fence
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        res.status(502).json({ error: 'Claude n\'a pas retourné de JSON valide.', raw: rawText })
+        return
+      }
+
+      let parsed: { name?: string; systemPrompt?: string; tools?: SuperAgentTool[]; examples?: string[]; tags?: string[] }
+      try {
+        parsed = JSON.parse(jsonMatch[0])
+      } catch (e) {
+        res.status(502).json({ error: 'Impossible de parser la réponse JSON.', raw: rawText })
+        return
+      }
+
+      if (!parsed.name || !parsed.systemPrompt || !Array.isArray(parsed.tools) || !Array.isArray(parsed.examples)) {
+        res.status(502).json({ error: 'Structure JSON incomplète.', parsed })
+        return
+      }
+
+      const agent: SuperAgent = {
+        id: generateId(),
+        name: parsed.name,
+        domain: domain.trim(),
+        systemPrompt: parsed.systemPrompt,
+        tools: parsed.tools ?? [],
+        examples: parsed.examples ?? [],
+        tags: parsed.tags ?? [],
+        createdAt: new Date().toISOString(),
+      }
+
+      const agents = loadAgents()
+      agents.push(agent)
+      saveAgents(agents)
+
+      res.json({ agent })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      res.status(500).json({ error: `Erreur lors de la génération : ${msg}` })
+    }
+  })
+
+  // GET /api/super-agent/list
+  app.get('/api/super-agent/list', (_req: Request, res: Response) => {
+    const agents = loadAgents()
+    res.json({ agents })
+  })
+
+  // DELETE /api/super-agent/:id
+  app.delete('/api/super-agent/:id', (req: Request, res: Response) => {
+    const { id } = req.params
+    const agents = loadAgents()
+    const idx = agents.findIndex((a) => a.id === id)
+    if (idx === -1) {
+      res.status(404).json({ error: `Agent "${id}" introuvable.` })
+      return
+    }
+    agents.splice(idx, 1)
+    saveAgents(agents)
+    res.json({ ok: true })
+  })
+}
