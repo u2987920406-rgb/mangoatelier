@@ -19,6 +19,7 @@ import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.
 import { identityPromptSection } from "./identity.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
 import { hasBackend } from "./backend-generator.js";
+import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -164,6 +165,10 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // Chantier #35 — generated Express backend. Injected only when the project
   // has an api/ subfolder (hasBackend check), keeping pure-frontend prompts lean.
   backend: (ctx) => (hasBackend(ctx.projectDir) ? BACKEND_RULES : ""),
+  // Idée #36 — cross-project component library: reusable React/JSX components
+  // shared across all projects. Rules + available list injected in every turn
+  // so the agent both proposes existing components and saves new ones.
+  components: () => COMPONENTS_RULES + componentsPromptSection(WORKSPACE_DIR),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -171,11 +176,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

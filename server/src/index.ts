@@ -33,6 +33,7 @@ import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, s
 import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
 import { processFeedback, checkAndUpdateStreak, resetStreak, processEscalationReference, type FeedbackRating } from "./feedback.js";
+import { listComponents, loadComponent, saveComponent, deleteComponent, type ComponentEntry } from "./components.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -508,6 +509,8 @@ app.get("/api/knowledge/:name", (req, res) => {
     axioms: loadAxioms(WORKSPACE_DIR),
     designSystem: loadDesignSystem(WORKSPACE_DIR),
     architecture: dir ? loadArchitecture(dir) : "",
+    // Idée #36 — cross-project component library (workspace-level).
+    components: listComponents(WORKSPACE_DIR),
     // Idée #42 — personal identity layers (workspace-level, cross-project).
     identity: {
       language: loadLanguage(WORKSPACE_DIR),
@@ -515,6 +518,62 @@ app.get("/api/knowledge/:name", (req, res) => {
       vision: loadVision(WORKSPACE_DIR),
     },
   });
+});
+
+// ── Idée #36 — Bibliothèque de composants inter-projets ──────────────────────
+
+// List all component metas
+app.get("/api/components", (_req, res) => {
+  res.json({ components: listComponents(WORKSPACE_DIR) });
+});
+
+// Get a single component (meta + code)
+app.get("/api/components/:name", (req, res) => {
+  const entry = loadComponent(WORKSPACE_DIR, req.params.name);
+  if (!entry) {
+    res.status(404).json({ error: `Composant "${req.params.name}" introuvable` });
+    return;
+  }
+  res.json(entry);
+});
+
+// Create or update a component (manual from the UI)
+app.post("/api/components", (req, res) => {
+  const { meta, code } = req.body as Partial<ComponentEntry>;
+  if (!meta?.name?.trim() || !code?.trim()) {
+    res.status(400).json({ error: "meta.name et code requis" });
+    return;
+  }
+  const now = new Date().toISOString();
+  const existing = loadComponent(WORKSPACE_DIR, meta.name);
+  const entry: ComponentEntry = {
+    meta: {
+      name: meta.name.trim(),
+      description: meta.description ?? "",
+      tags: meta.tags ?? [],
+      props: meta.props ?? [],
+      usedIn: meta.usedIn ?? [],
+      createdAt: existing?.meta.createdAt ?? now,
+      updatedAt: now,
+    },
+    code: code.trim(),
+  };
+  try {
+    saveComponent(WORKSPACE_DIR, entry);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Delete a component
+app.delete("/api/components/:name", (req, res) => {
+  try {
+    deleteComponent(WORKSPACE_DIR, req.params.name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Idée #42 — couches d'identité : lecture / écriture d'une couche

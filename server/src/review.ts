@@ -23,6 +23,7 @@ import {
   loadLanguage,
   loadThinkingStyle,
 } from "./identity.js";
+import { COMPONENTS_DIR_NAME, componentsSnapshot, listComponents } from "./components.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
 // One review at a time; a turn that ends while a review runs skips its review
@@ -96,6 +97,18 @@ job is to curate the knowledge stores below (paths are given in the user message
    analogies, questions before accepting; when they explore vs when they want
    execution. Add an entry ONLY when a decision pattern is visible across the
    turn(s) — not a single instance. Short French bullets, under 25 lines, MERGE.
+7. The COMPONENT library (${COMPONENTS_DIR_NAME}/ at the workspace root, path given in
+   the user message as COMPONENTS_DIR) — REUSABLE React/JSX/TSX components. Each
+   component lives in its own subfolder: <Name>/component.tsx + <Name>/meta.json
+   ({"name","description","tags":[],"props":[],"usedIn":[],"createdAt":"ISO","updatedAt":"ISO"}).
+   Extract a component ONLY when the turn produced a well-formed, self-contained
+   React component (≥ 20 lines, props API visible, NO project-specific data hardcoded)
+   that would plausibly be reused in a DIFFERENT project. Use PascalCase for the
+   folder/name. The existing component list is given in the user message.
+   SKIP: domain-specific components, trivial wrappers (< 20 lines), one-off layouts,
+   and anything that imports project-specific data, hooks or API paths.
+   If a component with the same name already exists and the new version is better,
+   overwrite it and update meta.json's updatedAt + usedIn.
 ABSOLUTE RULE — ${VISION_FILE_NAME}: you must NEVER create, edit or touch the
 .vision.md file. It is 100% MANUAL, authored only by the user via explicit
 signals. Even if the turn looks like a validated pattern, do NOT write it there.
@@ -138,6 +151,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const axiomsBefore = axiomsSnapshot(WORKSPACE_DIR);
       const languageBefore = loadLanguage(WORKSPACE_DIR);
       const thinkingBefore = loadThinkingStyle(WORKSPACE_DIR);
+      const componentsBefore = componentsSnapshot(WORKSPACE_DIR);
       // Absolute paths only — a relative ".skills/..." or bare filename can be
       // resolved by the reviewer against the wrong base and land outside the
       // workspace (observed: a skill written to the repo root). Forward slashes
@@ -149,8 +163,12 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const axiomsPath = abs(path.join(WORKSPACE_DIR, AXIOMS_FILE_NAME));
       const languagePath = abs(path.join(WORKSPACE_DIR, LANGUAGE_FILE_NAME));
       const thinkingPath = abs(path.join(WORKSPACE_DIR, THINKING_STYLE_FILE_NAME));
+      const componentsDirPath = abs(path.join(WORKSPACE_DIR, COMPONENTS_DIR_NAME));
       const skillList = listSkills()
         .map((s) => `- ${s.name}: ${s.description}`)
+        .join("\n");
+      const componentList = listComponents(WORKSPACE_DIR)
+        .map((c) => `- ${c.name}: ${c.description}${c.tags.length ? ` [${c.tags.join(", ")}]` : ""}`)
         .join("\n");
       const prompt = [
         "Conversation turn to review:",
@@ -173,6 +191,9 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         "",
         `THINKING-STYLE file (absolute path — write here): ${thinkingPath} — current content:`,
         thinkingBefore || "(the file does not exist yet)",
+        "",
+        `COMPONENTS_DIR (absolute — create components as ${componentsDirPath}/<Name>/component.tsx + meta.json):`,
+        componentList || "(none yet)",
         "",
         `Reminder: NEVER touch ${VISION_FILE_NAME} — it is manual-only.`,
         "Update the store(s) if warranted, then stop.",
@@ -202,7 +223,8 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const axiomsChanged = axiomsSnapshot(WORKSPACE_DIR) !== axiomsBefore;
       const languageChanged = loadLanguage(WORKSPACE_DIR) !== languageBefore;
       const thinkingChanged = loadThinkingStyle(WORKSPACE_DIR) !== thinkingBefore;
-      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged || languageChanged || thinkingChanged) {
+      const componentsChanged = componentsSnapshot(WORKSPACE_DIR) !== componentsBefore;
+      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged || languageChanged || thinkingChanged || componentsChanged) {
         const what = [
           ...(memoryChanged ? ["mémoire du projet"] : []),
           ...(profileChanged ? ["profil utilisateur"] : []),
@@ -210,6 +232,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
           ...(axiomsChanged ? ["registre d'axiomes"] : []),
           ...(languageChanged ? ["vocabulaire personnel"] : []),
           ...(thinkingChanged ? ["style de pensée"] : []),
+          ...(componentsChanged ? ["bibliothèque de composants"] : []),
         ].join(" + ");
         console.log(`[review] ${what} updated ($${cost.toFixed(4)})`);
         // Visible on the next history reload, like the "version saved" line.
