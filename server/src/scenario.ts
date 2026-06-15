@@ -16,6 +16,7 @@ import { BLUEPRINTS_RULES } from "./blueprints.js";
 import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
+import { identityPromptSection } from "./identity.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
 import { hasBackend } from "./backend-generator.js";
 
@@ -146,6 +147,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // Future retrieval seam: today returns the capped registry unchanged.
   axioms: () => selectAxioms(WORKSPACE_DIR),
   memory: (ctx) => memoryPromptSection(ctx.projectDir, WORKSPACE_DIR),
+  // Idée #42 — personal identity layers (.language / .thinking-style / .vision):
+  // who the user is deeply, across all projects. Injected right after the user
+  // profile/memory so the agent reads intent through the user's own language,
+  // thinking style and long-term vision. "" when all three layers are empty.
+  identity: () => identityPromptSection(WORKSPACE_DIR),
   skills: () => skillsPromptSection(),
   // Chantier A — cross-project design system: visual identity that survives
   // project switches (palette, typo, components). Always injected so new
@@ -165,11 +171,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "architecture", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "architecture", "memory", "identity", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

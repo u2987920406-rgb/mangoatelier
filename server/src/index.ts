@@ -27,6 +27,7 @@ import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
+import { IDENTITY_LAYERS, loadLanguage, loadThinkingStyle, loadVision, type IdentityLayer } from "./identity.js";
 import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 import multer from "multer";
@@ -506,7 +507,47 @@ app.get("/api/knowledge/:name", (req, res) => {
     axioms: loadAxioms(WORKSPACE_DIR),
     designSystem: loadDesignSystem(WORKSPACE_DIR),
     architecture: dir ? loadArchitecture(dir) : "",
+    // Idée #42 — personal identity layers (workspace-level, cross-project).
+    identity: {
+      language: loadLanguage(WORKSPACE_DIR),
+      thinking: loadThinkingStyle(WORKSPACE_DIR),
+      vision: loadVision(WORKSPACE_DIR),
+    },
   });
+});
+
+// Idée #42 — couches d'identité : lecture / écriture d'une couche
+// (layer ∈ language | thinking | vision). Fichiers cross-projet à la racine du
+// workspace. .vision.md est éditable ici (signal explicite de l'utilisateur),
+// mais la revue en arrière-plan n'y touche jamais.
+app.get("/api/identity/:layer", (req, res) => {
+  const layer = req.params.layer as IdentityLayer;
+  const store = IDENTITY_LAYERS[layer];
+  if (!store) {
+    res.status(400).json({ error: "layer invalide (language | thinking | vision)" });
+    return;
+  }
+  res.json({ content: store.load(WORKSPACE_DIR) });
+});
+
+app.put("/api/identity/:layer", (req, res) => {
+  const layer = req.params.layer as IdentityLayer;
+  const store = IDENTITY_LAYERS[layer];
+  if (!store) {
+    res.status(400).json({ error: "layer invalide (language | thinking | vision)" });
+    return;
+  }
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    store.save(WORKSPACE_DIR, content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Chantier #38 — Architecture vivante : écriture manuelle depuis l'UI

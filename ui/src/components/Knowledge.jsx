@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Check, FolderOpen, GitBranch, Loader2, Palette, Pencil, Plus, RefreshCw, Sparkles, User, Wrench, X } from "lucide-react";
+import { BrainCircuit, Check, Compass, FolderOpen, GitBranch, Languages, Loader2, Lock, Palette, Pencil, Plus, RefreshCw, Sparkles, User, Wrench, X } from "lucide-react";
 
 // The reviewer sometimes writes a YAML frontmatter header — metadata, not
 // content; hide it from the rendered view.
@@ -122,7 +122,11 @@ export default function Knowledge({ projectName }) {
     );
   }
 
-  const empty = !data.memory && !data.profile && data.skills.length === 0 && !data.axioms && !data.designSystem && !data.architecture;
+  const id = data.identity || { language: "", thinking: "", vision: "" };
+  const hasIdentity = id.language || id.thinking || id.vision;
+  const empty =
+    !data.memory && !data.profile && data.skills.length === 0 && !data.axioms &&
+    !data.designSystem && !data.architecture && !hasIdentity;
   if (empty) {
     return (
       <div>
@@ -241,6 +245,36 @@ export default function Knowledge({ projectName }) {
         </Section>
       )}
 
+      {/* Idée #42 — Couches d'identité (cross-projet) */}
+      <IdentityLayer
+        icon={Languages}
+        title="Vocabulaire personnel"
+        layer="language"
+        value={id.language}
+        placeholder={"## Raccourcis\n- \"on attaque\" = implémente maintenant\n- \"on creuse\" = approfondir sans coder\n\n## Erreurs de transcription\n- \"Obama\" = Ollama"}
+        emptyHint="Vide — la revue en arrière-plan détecte tes formulations récurrentes."
+        onSaved={(v) => setData((d) => ({ ...d, identity: { ...(d.identity || {}), language: v } }))}
+      />
+      <IdentityLayer
+        icon={BrainCircuit}
+        title="Style de pensée"
+        layer="thinking"
+        value={id.thinking}
+        placeholder={"## Décision\n- Explore avant d'agir\n- Valide par la logique\n- Pense en analogies\n- Questionne avant d'accepter"}
+        emptyHint="Vide — la revue en arrière-plan détecte tes patterns de décision."
+        onSaved={(v) => setData((d) => ({ ...d, identity: { ...(d.identity || {}), thinking: v } }))}
+      />
+      <IdentityLayer
+        icon={Compass}
+        title="Vision validée"
+        layer="vision"
+        value={id.vision}
+        manual
+        placeholder={"## Patterns validés\n- (ajoute ici ce que tu veux garder et réutiliser)"}
+        emptyHint="Vide — 100% manuel. Note ici les approches et patterns que tu valides explicitement ; MangoAI n'y écrit jamais seul."
+        onSaved={(v) => setData((d) => ({ ...d, identity: { ...(d.identity || {}), vision: v } }))}
+      />
+
       {/* Chantier A — Design system persistant (cross-projet) */}
       <Section
         icon={Palette}
@@ -314,12 +348,89 @@ export default function Knowledge({ projectName }) {
   );
 }
 
-function Section({ icon: Icon, title, children, action = null }) {
+// Idée #42 — one editable identity layer (inline editor, same pattern as the
+// Design system / Architecture sections). `manual` adds a "Manuel" badge for
+// .vision.md, which the background review never curates.
+function IdentityLayer({ icon, title, layer, value, placeholder, emptyHint, manual = false, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  return (
+    <Section
+      icon={icon}
+      title={title}
+      badge={manual ? <span className="flex items-center gap-1 rounded bg-edge-soft px-1.5 py-0.5 text-[10px] font-medium text-dim"><Lock size={9} /> Manuel</span> : null}
+      action={
+        !editing ? (
+          <button
+            onClick={() => { setDraft(value || ""); setEditing(true); }}
+            className="rounded p-0.5 text-faint hover:text-ink transition-colors"
+            title={`Modifier — ${title}`}
+          >
+            <Pencil size={11} />
+          </button>
+        ) : null
+      }
+    >
+      {!editing ? (
+        value ? (
+          <div className="md text-xs leading-relaxed">
+            <ReactMarkdown>{stripFrontmatter(value)}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="text-xs text-faint italic">{emptyHint}</p>
+        )
+      ) : (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={8}
+            placeholder={placeholder}
+            className="w-full resize-y rounded-lg border border-edge bg-bg px-2.5 py-1.5 font-mono text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-edge py-1.5 text-xs text-dim hover:text-ink transition-colors"
+            >
+              <X size={11} /> Annuler
+            </button>
+            <button
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await fetch(`/api/identity/${layer}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: draft }),
+                  });
+                  onSaved(draft);
+                  setEditing(false);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-accent py-1.5 text-xs font-semibold text-white hover:bg-accent-soft disabled:opacity-40 transition-colors"
+            >
+              {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+              {saving ? "Sauvegarde…" : "Sauvegarder"}
+            </button>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function Section({ icon: Icon, title, children, action = null, badge = null }) {
   return (
     <section className="rounded-lg px-2 py-2">
       <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">
         <Icon size={12} />
         {title}
+        {badge}
         {action && <span className="ml-auto">{action}</span>}
       </h3>
       {children}

@@ -16,6 +16,13 @@ import {
 import { WORKSPACE_DIR } from "./projects.js";
 import { listSkills, skillsSnapshot, SKILLS_DIR } from "./skills.js";
 import { AXIOMS_FILE_NAME, axiomsSnapshot, loadAxioms } from "./axioms.js";
+import {
+  LANGUAGE_FILE_NAME,
+  THINKING_STYLE_FILE_NAME,
+  VISION_FILE_NAME,
+  loadLanguage,
+  loadThinkingStyle,
+} from "./identity.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
 // One review at a time; a turn that ends while a review runs skips its review
@@ -30,7 +37,7 @@ export function reviewStatus(): { running: boolean } {
 // (declarative facts vs user identity vs procedural how-to knowledge).
 const REVIEW_SYSTEM = `
 You are a silent background reviewer for a "Lovable-like" app builder. Your ONLY
-job is to curate three knowledge stores (paths are given in the user message):
+job is to curate the knowledge stores below (paths are given in the user message):
 1. The PROJECT memory (${MEMORY_FILE_NAME} inside the project folder): design
    decisions, conventions, data shapes, pitfalls — facts scoped to THIS project.
 2. The USER profile (${USER_PROFILE_FILE_NAME} at the workspace root): who the
@@ -77,6 +84,21 @@ job is to curate three knowledge stores (paths are given in the user message):
    - Hard cap: keep the registry under ~12 axioms and 3000 characters. When
      full, MERGE overlapping axioms or drop the weakest "candidat" — never grow
      past the cap. Quality over quantity: most turns add NO axiom.
+5. The LANGUAGE store (${LANGUAGE_FILE_NAME} at the workspace root) — the user's
+   PERSONAL VOCABULARY: their shortcuts, habitual phrasings, recurring
+   dictation/transcription errors (voice dictation mangles technical terms), and
+   expressions that carry a precise meaning here ("on attaque" = implement now,
+   "on creuse" = explore deeper without coding yet). Add an entry ONLY when a
+   language pattern RECURS or is clearly idiosyncratic — not a one-off wording.
+   Short French bullets, under 25 lines, MERGE don't duplicate.
+6. The THINKING-STYLE store (${THINKING_STYLE_FILE_NAME} at the workspace root) —
+   HOW the user decides: explores before acting, validates by logic, thinks in
+   analogies, questions before accepting; when they explore vs when they want
+   execution. Add an entry ONLY when a decision pattern is visible across the
+   turn(s) — not a single instance. Short French bullets, under 25 lines, MERGE.
+ABSOLUTE RULE — ${VISION_FILE_NAME}: you must NEVER create, edit or touch the
+.vision.md file. It is 100% MANUAL, authored only by the user via explicit
+signals. Even if the turn looks like a validated pattern, do NOT write it there.
 User preferences and corrections ("stop doing X", "I don't like Y") are
 FIRST-CLASS signals — save them in the right memory store.
 Do NOT save anywhere: transient errors that were fixed by retrying, one-off task
@@ -114,6 +136,8 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const profileBefore = loadUserProfile(WORKSPACE_DIR);
       const skillsBefore = skillsSnapshot();
       const axiomsBefore = axiomsSnapshot(WORKSPACE_DIR);
+      const languageBefore = loadLanguage(WORKSPACE_DIR);
+      const thinkingBefore = loadThinkingStyle(WORKSPACE_DIR);
       // Absolute paths only — a relative ".skills/..." or bare filename can be
       // resolved by the reviewer against the wrong base and land outside the
       // workspace (observed: a skill written to the repo root). Forward slashes
@@ -123,6 +147,8 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const profilePath = abs(path.join(WORKSPACE_DIR, USER_PROFILE_FILE_NAME));
       const skillsDirPath = abs(SKILLS_DIR);
       const axiomsPath = abs(path.join(WORKSPACE_DIR, AXIOMS_FILE_NAME));
+      const languagePath = abs(path.join(WORKSPACE_DIR, LANGUAGE_FILE_NAME));
+      const thinkingPath = abs(path.join(WORKSPACE_DIR, THINKING_STYLE_FILE_NAME));
       const skillList = listSkills()
         .map((s) => `- ${s.name}: ${s.description}`)
         .join("\n");
@@ -142,6 +168,13 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         `AXIOM registry file (absolute path — write here): ${axiomsPath} — current content:`,
         loadAxioms(WORKSPACE_DIR) || "(the file does not exist yet)",
         "",
+        `LANGUAGE file (absolute path — write here): ${languagePath} — current content:`,
+        languageBefore || "(the file does not exist yet)",
+        "",
+        `THINKING-STYLE file (absolute path — write here): ${thinkingPath} — current content:`,
+        thinkingBefore || "(the file does not exist yet)",
+        "",
+        `Reminder: NEVER touch ${VISION_FILE_NAME} — it is manual-only.`,
         "Update the store(s) if warranted, then stop.",
       ].join("\n");
 
@@ -167,12 +200,16 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const profileChanged = loadUserProfile(WORKSPACE_DIR) !== profileBefore;
       const skillsChanged = skillsSnapshot() !== skillsBefore;
       const axiomsChanged = axiomsSnapshot(WORKSPACE_DIR) !== axiomsBefore;
-      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged) {
+      const languageChanged = loadLanguage(WORKSPACE_DIR) !== languageBefore;
+      const thinkingChanged = loadThinkingStyle(WORKSPACE_DIR) !== thinkingBefore;
+      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged || languageChanged || thinkingChanged) {
         const what = [
           ...(memoryChanged ? ["mémoire du projet"] : []),
           ...(profileChanged ? ["profil utilisateur"] : []),
           ...(skillsChanged ? ["bibliothèque de skills"] : []),
           ...(axiomsChanged ? ["registre d'axiomes"] : []),
+          ...(languageChanged ? ["vocabulaire personnel"] : []),
+          ...(thinkingChanged ? ["style de pensée"] : []),
         ].join(" + ");
         console.log(`[review] ${what} updated ($${cost.toFixed(4)})`);
         // Visible on the next history reload, like the "version saved" line.
