@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { Express, Request, Response } from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
+import { SKILLS_DIR } from './skills.js'
 
 const client = new Anthropic()
 
@@ -41,6 +42,27 @@ function saveAgents(agents: SuperAgent[]): void {
 
 function generateId(): string {
   return `sa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/**
+ * Convertit un nom arbitraire en slug kebab-case ASCII sûr.
+ * Seuls les caractères [a-z0-9-] sont conservés.
+ * Protection contre le path traversal : aucun `.` ni `/` ne survit.
+ */
+function slugify(name: string): string {
+  return name
+    .normalize('NFD')                        // décompose les accents
+    .replace(/[̀-ͯ]/g, '')         // supprime les diacritiques
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')            // remplace tout non-alphanum par tiret
+    .replace(/^-+|-+$/g, '')                 // trim tirets bord
+    .replace(/-{2,}/g, '-')                  // tirets consécutifs → un seul
+    .slice(0, 80)                            // longueur max raisonnable
+}
+
+/** Aplatis une valeur multi-ligne sur une seule ligne pour le frontmatter YAML. */
+function flatLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
 }
 
 export function registerSuperAgentRoutes(app: Express): void {
@@ -177,6 +199,104 @@ Règles :
   app.get('/api/super-agent/list', (_req: Request, res: Response) => {
     const agents = loadAgents()
     res.json({ agents })
+  })
+
+  // POST /api/super-agent/:id/export — exporte l'agent en SKILL.md dans workspace/.skills/
+  app.post('/api/super-agent/:id/export', (req: Request, res: Response) => {
+    const { id } = req.params
+    const agents = loadAgents()
+    const agent = agents.find((a) => a.id === id)
+    if (!agent) {
+      res.status(404).json({ error: `Agent "${id}" introuvable.` })
+      return
+    }
+
+    // Calcul du slug : dériver du nom, fallback sur l'id si vide après nettoyage
+    let slug = slugify(agent.name)
+    if (!slug) slug = agent.id.replace(/[^a-z0-9-]/gi, '-').toLowerCase()
+
+    // Sécurité path traversal : vérification finale — slug ne doit contenir que [a-z0-9-]
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      res.status(400).json({ error: `Slug invalide dérivé du nom : "${slug}"` })
+      return
+    }
+
+    const skillDir = path.join(SKILLS_DIR, slug)
+    const skillFile = path.join(skillDir, 'SKILL.md')
+    const metaFile = path.join(skillDir, 'META.json')
+
+    try {
+      fs.mkdirSync(skillDir, { recursive: true })
+
+      // ── Construction du SKILL.md ──────────────────────────────────────────
+      // Le frontmatter DOIT commencer par `---` + newline exactement,
+      // sans rien avant, pour être parsé par listSkills() dans skills.ts.
+      const nameOneLine = flatLine(agent.name)
+      const descOneLine = flatLine(`Expert ${agent.domain} — ${agent.systemPrompt.slice(0, 100)}`)
+
+      const toolsSection = agent.tools.length > 0
+        ? agent.tools.map((t) => `- **${t.name}** : ${t.desc}`).join('\n')
+        : '_Aucun outil spécifique._'
+
+      const examplesSection = agent.examples.length > 0
+        ? agent.examples.map((ex) => `- ${ex}`).join('\n')
+        : '_Aucun exemple._'
+
+      const tagsSection = agent.tags.length > 0
+        ? agent.tags.map((t) => `\`${t}\``).join(', ')
+        : '_Aucun tag._'
+
+      const skillMd = [
+        '---',
+        `name: ${nameOneLine}`,
+        `description: ${descOneLine.slice(0, 240)}`,
+        '---',
+        '',
+        `# ${agent.name}`,
+        '',
+        `> Agent expert spécialisé en **${agent.domain}**, généré par MangoAI le ${new Date(agent.createdAt).toLocaleDateString('fr-FR')}.`,
+        '',
+        '## System Prompt',
+        '',
+        agent.systemPrompt,
+        '',
+        '## Outils recommandés',
+        '',
+        toolsSection,
+        '',
+        '## Exemples de prompts',
+        '',
+        examplesSection,
+        '',
+        '## Tags',
+        '',
+        tagsSection,
+        '',
+      ].join('\n')
+
+      fs.writeFileSync(skillFile, skillMd, 'utf-8')
+
+      // ── META.json (inerte pour skills.ts, utile pour la traçabilité) ──────
+      const meta = {
+        name: agent.name,
+        domain: agent.domain,
+        tags: agent.tags,
+        sourceId: agent.id,
+        createdAt: agent.createdAt,
+        exportedAt: new Date().toISOString(),
+      }
+      fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2), 'utf-8')
+
+      res.json({
+        ok: true,
+        slug,
+        path: skillFile.replace(/\\/g, '/'),
+        skillDir: skillDir.replace(/\\/g, '/'),
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      res.status(500).json({ error: `Erreur lors de l'export du skill : ${msg}` })
+    }
   })
 
   // DELETE /api/super-agent/:id

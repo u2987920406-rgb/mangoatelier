@@ -9,6 +9,7 @@
 // v1 is a BEHAVIOR-CONSTANT refactor: assembleSystemPrompt(ctx) reproduces the
 // exact same string the old hard-coded concatenation produced (verified by a
 // byte-for-byte comparison before shipping).
+import path from "node:path";
 import { MEMORY_RULES, MEMORY_FILE_NAME, memoryPromptSection } from "./memory.js";
 import { skillsPromptSection } from "./skills.js";
 import { selectAxioms } from "./axioms.js";
@@ -20,6 +21,7 @@ import { identityPromptSection } from "./identity.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
 import { hasBackend } from "./backend-generator.js";
 import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
+import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -169,6 +171,13 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // shared across all projects. Rules + available list injected in every turn
   // so the agent both proposes existing components and saves new ones.
   components: () => COMPONENTS_RULES + componentsPromptSection(WORKSPACE_DIR),
+  // Idée #26 Phase 2 — raw source files from OTHER workspace projects: before
+  // recoding a component/hook/util, the agent checks what already exists in the
+  // user's other projects and adapts it instead of starting from scratch.
+  // Distinct from .components (curated) — these are living, unfiltered project files.
+  // Returns "" when there are no other projects → block is silently absent.
+  multiProject: (ctx) =>
+    MULTI_PROJECT_RULES + multiProjectPromptSection(WORKSPACE_DIR, path.basename(ctx.projectDir)),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -176,11 +185,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "architecture", "memory", "identity", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Sparkles, Loader2, Copy, Check, Trash2, Tag, Wrench, MessageSquare, ChevronDown, ChevronUp, Bot } from 'lucide-react'
+import { ArrowLeft, Sparkles, Loader2, Copy, Check, Trash2, Tag, Wrench, MessageSquare, ChevronDown, ChevronUp, Bot, FileDown } from 'lucide-react'
 
 export default function SuperAgentBuilder({ onBack }) {
   const [domain, setDomain] = useState('')
@@ -12,6 +12,7 @@ export default function SuperAgentBuilder({ onBack }) {
   const [toast, setToast] = useState(null)
   const [expandedPrompt, setExpandedPrompt] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [exportingId, setExportingId] = useState(null)
 
   const showToast = useCallback((msg) => {
     setToast(msg)
@@ -82,6 +83,20 @@ export default function SuperAgentBuilder({ onBack }) {
       showToast('Erreur suppression')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleExport = async (id) => {
+    setExportingId(id)
+    try {
+      const r = await fetch(`/api/super-agent/${id}/export`, { method: 'POST' })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error ?? 'Erreur export')
+      showToast(`Skill exporté → .skills/${data.slug}/`)
+    } catch (e) {
+      showToast(`Erreur export : ${e.message}`)
+    } finally {
+      setExportingId(null)
     }
   }
 
@@ -176,7 +191,7 @@ export default function SuperAgentBuilder({ onBack }) {
               <Bot size={16} className="text-accent-soft" />
               <h2 className="text-sm font-semibold text-ink uppercase tracking-wider">Agent généré</h2>
             </div>
-            <AgentCard agent={result} onCopy={copyToClipboard} expandedPrompt={expandedPrompt} setExpandedPrompt={setExpandedPrompt} onDelete={handleDelete} deletingId={deletingId} highlight />
+            <AgentCard agent={result} onCopy={copyToClipboard} expandedPrompt={expandedPrompt} setExpandedPrompt={setExpandedPrompt} onDelete={handleDelete} deletingId={deletingId} onExport={handleExport} exportingId={exportingId} highlight />
           </section>
         )}
 
@@ -203,6 +218,8 @@ export default function SuperAgentBuilder({ onBack }) {
                   setExpandedPrompt={setExpandedPrompt}
                   onDelete={handleDelete}
                   deletingId={deletingId}
+                  onExport={handleExport}
+                  exportingId={exportingId}
                 />
               ))}
             </div>
@@ -215,7 +232,7 @@ export default function SuperAgentBuilder({ onBack }) {
 
 // ── Composant AgentCard ──────────────────────────────────────────────────────
 
-function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete, deletingId, highlight = false }) {
+function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete, deletingId, onExport, exportingId, highlight = false }) {
   const [copiedExample, setCopiedExample] = useState(null)
   const isExpanded = expandedPrompt === agent.id
 
@@ -246,14 +263,27 @@ function AgentCard({ agent, onCopy, expandedPrompt, setExpandedPrompt, onDelete,
             </div>
           )}
         </div>
-        <button
-          onClick={() => onDelete(agent.id)}
-          disabled={deletingId === agent.id}
-          className="flex-shrink-0 p-1.5 text-faint hover:text-red-400 transition-colors disabled:opacity-40"
-          title="Supprimer"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => onExport(agent.id)}
+            disabled={exportingId === agent.id}
+            className="p-1.5 text-faint hover:text-accent-soft transition-colors disabled:opacity-40"
+            title="Exporter en skill"
+          >
+            {exportingId === agent.id
+              ? <Loader2 size={14} className="animate-spin" />
+              : <FileDown size={14} />
+            }
+          </button>
+          <button
+            onClick={() => onDelete(agent.id)}
+            disabled={deletingId === agent.id}
+            className="p-1.5 text-faint hover:text-red-400 transition-colors disabled:opacity-40"
+            title="Supprimer"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* System Prompt */}

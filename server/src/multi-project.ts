@@ -39,7 +39,7 @@ interface SourceFile {
   category: FileCategory
 }
 
-function findSourceFiles(projectPath: string): string[] {
+export function findSourceFiles(projectPath: string): string[] {
   const results: string[] = []
 
   // Scanner chaque sous-dossier connu de src/
@@ -85,6 +85,98 @@ function getPreview(filePath: string): string[] {
   } catch {
     return []
   }
+}
+
+// ── Phase 2 idée #26 — injection prompt multi-projets ───────────────────────
+
+/**
+ * Règles injectées dans le system prompt pour que l'agent consulte les fichiers
+ * des AUTRES projets du workspace avant de recoder un composant/hook/util.
+ *
+ * DISTINCTION avec la bibliothèque curée `.components` (idée #36) :
+ * - `.components/` = composants VALIDÉS, génériques, extraits manuellement
+ *   (bibliothèque curated — voir COMPONENTS_RULES dans components.ts).
+ * - La section ci-dessous = scan BRUT de tes autres projets réels `workspace/<projet>/src/…`
+ *   Ce sont tes chantiers vivants, non filtrés — une mine d'inspiration et de
+ *   code fonctionnel, mais pas encore « promu » en bibliothèque.
+ */
+export const MULTI_PROJECT_RULES = `
+Cross-project source files (your other workspace projects — raw, not curated):
+IMPORTANT DISTINCTION — two separate knowledge stores exist:
+  1. Curated component library (workspace/.components/) → listed by COMPONENTS_RULES above. These are validated, generic, deliberately extracted components.
+  2. Raw project files (below) → source files found in your OTHER real projects (workspace/<project>/src/…). These are living code, project-specific, NOT yet promoted to the library.
+Before coding a new component, hook, util or service:
+- Check the list of raw project files injected below.
+- If a file from another project looks relevant, READ it (workspace/<project>/<path>) to understand its API; then ADAPT or COPY it to the current project — do not recode what already works.
+- Mention explicitly what you reused and from which project.
+- If the reused code is generic enough (≥ 20 lines, clean props/API, no hard-coded project data), save it to the curated library too (workspace/.components/ per COMPONENTS_RULES).`;
+
+/**
+ * Construit la section du system prompt listant les fichiers source des AUTRES
+ * projets du workspace (scan brut via findSourceFiles).
+ *
+ * @param workspaceDir  Chemin absolu du dossier workspace/.
+ * @param currentProject Nom du projet courant (basename) — exclu de la liste.
+ * @returns Section formatée, ou "" si aucun autre projet ne contient de fichiers.
+ */
+export function multiProjectPromptSection(workspaceDir: string, currentProject?: string): string {
+  if (!fs.existsSync(workspaceDir)) return "";
+
+  let projectDirs: fs.Dirent[];
+  try {
+    projectDirs = fs.readdirSync(workspaceDir, { withFileTypes: true });
+  } catch {
+    return "";
+  }
+
+  // Constantes de plafonnement pour rester économe en tokens
+  const MAX_FILES_PER_PROJECT = 8;
+  const MAX_TOTAL = 40;
+
+  const sections: string[] = [];
+  let totalCount = 0;
+
+  for (const entry of projectDirs) {
+    if (!entry.isDirectory()) continue;
+    if (isExcluded(entry.name)) continue;
+    if (currentProject && entry.name === currentProject) continue;
+    if (totalCount >= MAX_TOTAL) break;
+
+    const projectPath = path.join(workspaceDir, entry.name);
+    const allFiles = findSourceFiles(projectPath);
+
+    if (allFiles.length === 0) continue;
+
+    // Prioriser les composants (category === 'component') puis les autres
+    const components = allFiles.filter((f) => inferCategory(f) === 'component');
+    const others = allFiles.filter((f) => inferCategory(f) !== 'component');
+    const ordered = [...components, ...others];
+
+    const available = MAX_TOTAL - totalCount;
+    const capped = ordered.slice(0, Math.min(MAX_FILES_PER_PROJECT, available));
+    const omitted = ordered.length - capped.length;
+
+    const lines = capped.map((relPath) => {
+      const cat = inferCategory(relPath);
+      const fwd = relPath.replace(/\\/g, '/');
+      return `  - [${cat}] ${entry.name}/${fwd}`;
+    });
+    if (omitted > 0) {
+      lines.push(`  - … et ${omitted} autre${omitted > 1 ? 's' : ''} fichier${omitted > 1 ? 's' : ''}`);
+    }
+
+    sections.push(`**${entry.name}** (${allFiles.length} fichier${allFiles.length > 1 ? 's' : ''}):\n${lines.join('\n')}`);
+    totalCount += capped.length;
+  }
+
+  if (sections.length === 0) return "";
+
+  return (
+    `\n\nRaw source files from your other projects (${totalCount} listed` +
+    (totalCount === MAX_TOTAL ? `, capped at ${MAX_TOTAL}` : '') +
+    `):\n` +
+    sections.join('\n')
+  );
 }
 
 export function registerMultiProjectRoutes(app: Express): void {
