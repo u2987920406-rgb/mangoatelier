@@ -29,6 +29,8 @@ import { runRelay } from "./eleve.js";
 import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
 import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
+import multer from "multer";
+import { transcribeAudio } from "./transcribe.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -721,6 +723,17 @@ app.post("/api/rollback", async (req, res) => {
 });
 
 // Interrupt the agent currently working (if any)
+const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+app.post("/api/transcribe", audioUpload.single("audio"), async (req, res) => {
+  if (!req.file) { res.status(400).json({ error: "Aucun fichier audio reçu" }); return; }
+  try {
+    const text = await transcribeAudio(req.file.buffer, req.file.mimetype);
+    res.json({ text });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 app.post("/api/stop", async (_req, res) => {
   const stopped = await interruptAgent();
   // Guaranteed escape hatch: free the slot even if a wedged turn's finally never

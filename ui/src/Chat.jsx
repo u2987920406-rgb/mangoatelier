@@ -39,7 +39,9 @@ export default function Chat({
   const inputRef = useRef(null);
   const fileRef = useRef(null);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const [contextFile, setContextFile] = useState(null);   // string | null
   const [filePicker, setFilePicker] = useState(false);    // popover ouvert ?
   const [fileList, setFileList] = useState([]);            // fichiers du projet
@@ -316,26 +318,36 @@ export default function Chat({
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }
 
-  function toggleMic() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
+  async function toggleMic() {
     if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
+      mediaRecorderRef.current?.stop();
       return;
     }
-    const rec = new SR();
-    rec.lang = "fr-FR";
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput((prev) => (prev ? prev + " " + transcript : transcript));
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return;
+    }
+    audioChunksRef.current = [];
+    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setListening(false);
+      setTranscribing(true);
+      try {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const form = new FormData();
+        form.append("audio", blob, "record.webm");
+        const res = await fetch("/api/transcribe", { method: "POST", body: form });
+        const data = await res.json();
+        if (data.text) setInput((prev) => (prev ? prev + " " + data.text : data.text));
+      } catch {}
+      setTranscribing(false);
     };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    rec.start();
-    recognitionRef.current = rec;
+    recorder.start();
+    mediaRecorderRef.current = recorder;
     setListening(true);
   }
 
@@ -486,11 +498,11 @@ export default function Chat({
           </button>
           <button
             onClick={toggleMic}
-            disabled={busy}
+            disabled={busy || transcribing}
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
-              listening ? "animate-pulse text-err" : "text-faint hover:text-ink"
+              listening ? "animate-pulse text-err" : transcribing ? "animate-pulse text-accent" : "text-faint hover:text-ink"
             }`}
-            title={listening ? "Arrêter la dictée" : "Dicter un message (français)"}
+            title={listening ? "Arrêter l'enregistrement" : transcribing ? "Transcription Whisper…" : "Dicter (Whisper local)"}
           >
             {listening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
