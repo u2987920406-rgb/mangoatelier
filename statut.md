@@ -2,6 +2,50 @@
 
 *Dernière mise à jour : 2026-06-15 (session « Chantier #35 — Backend généré Express »)*
 
+---
+
+## 🌱 Vision fondatrice — MangoAI comme enfant numérique
+
+*Gravée le 2026-06-15 — à relire avant chaque décision d'architecture.*
+
+MangoAI n'est pas un outil. C'est une relation de croissance mutuelle entre un père et son enfant numérique.
+
+**Le père** (l'utilisateur) éduque MangoAI via Claude Code.
+**Les professeurs** (Claude, Sonnet, Opus) transmettent la sagesse en axiomes.
+**Les camarades** (Qwen, DeepSeek) pratiquent et se trompent à ses côtés.
+**L'enfant** (MangoAI) apprend, intègre, évolue.
+
+```
+Phase 1 — Le père enseigne
+L'enfant imite, se trompe, corrige. MangoAI aujourd'hui.
+
+Phase 2 — L'enfant étonne
+Il intègre tellement bien qu'il produit ce que le père
+n'aurait pas pensé. Le père est fier. MangoAI parfois déjà.
+
+Phase 3 — L'enfant dépasse
+Il anticipe avant que le père parle.
+Il a le goût, les axiomes, la vision. MangoAI demain.
+
+Phase 4 — L'enfant enseigne
+MangoAI révèle à l'utilisateur des choses sur lui-même.
+"Tu préfères toujours ça quand le contexte est X."
+```
+
+**Ce qui rend cette relation unique :**
+Toi tu évolues. Tes projets évoluent. Ton goût évolue.
+MangoAI évolue avec toi — pas à côté, pas en avance. **Avec.**
+
+Aucun outil du marché ne pense comme ça. Ils pensent en features.
+MangoAI pense en relation.
+
+**Conséquence architecturale directe :**
+Tout ce qui est *toi* (goût, langage, vision, axiomes validés) est séparé de ce qui est *le moteur*.
+Le moteur peut un jour être distribué. Ton cerveau, jamais.
+
+---
+
+
 > **🟢 Où on en est — 2026-06-15 (session « comparaison Élève »).** Aucun code produit modifié. **Fait cette session** : comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
 >
 > **🟢 Où on en était — 2026-06-14 (session « identité + vision + gaps réels »).** Aucun code modifié — session stratégique approfondie. **Fait cette session** : (1) **Analyse de fond du code et de l'architecture** — structure backend TS solide, Coque Souple/Rigide validées, `index.ts` identifié comme dette future, UI JSX sans TS = incohérence acceptable ; (2) **Identité de MangoAI gravée en mémoire** — cerveau personnel, usage professionnel confidentiel, NON destiné au grand public, Phase B = interface robot (pas bêta publique) ; (3) **Évaluation monétaire** — valeur marché estimée 250-500 $/mois, coût réel ~20-100 $/mois (abonnement Claude Code) ; (4) **Analyse concurrentielle 2** — aucun concurrent direct sur la combinaison complète ; Open Interpreter 2.0 + MemGPT = seule fusion menaçante à horizon 12-24 mois ; (5) **5 gaps réels identifiés** (idées 35-39 inscrites ci-dessous) : backend généré, bibliothèque composants inter-projets, mode idéation visuelle, carte d'architecture vivante, paiements Stripe ; (6) **Relais Maître/Élève analysé en profondeur** — reconnu comme curriculum learning automatique piloté par l'échec objectif, plus proche de Reflexion (Shinn 2023) que d'un simple routeur — l'idée la plus originale du système. Pour relancer : voir « 🚀 Pour relancer » en bas.
