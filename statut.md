@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-15 (session « Chantier #8 — URL Analyser Sharingan »)*
+*Dernière mise à jour : 2026-06-15 (session « Chantiers #3+#A — Mode discret + Design system »)*
 
 > **🟢 Où on en est — 2026-06-15 (session « comparaison Élève »).** Aucun code produit modifié. **Fait cette session** : comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
 >
@@ -90,7 +90,7 @@
 
 | # | Fonction | Description | Priorité | Modèle optimal | Effort |
 |---|---|---|---|---|---|
-| **A** | **Design system persistant** | Palette, typo, composants réutilisables entre projets (`workspace/.design-system.md`) | 🟡 | ⚖️ Sonnet 4.6 | M |
+| **A** | **Design system persistant** | **✅ FAIT (2026-06-15)** : `design-system.ts` (`loadDesignSystem` / `saveDesignSystem` / `DESIGN_SYSTEM_RULES` / `designSystemPromptSection`) ; bloc `designSystem` injecté dans les 3 scénarios (elite/mvp/finition) ; endpoints `GET /api/design-system` + `PUT /api/design-system` ; `/api/knowledge` enrichi ; panneau Mémoire : section "Design system" avec éditeur Markdown inline (✏ Pencil → textarea → Sauvegarder). `tsc` 0, build UI OK. | 🟡 | — | — |
 | **B** | **Routing modèle automatique** | Complexité de la tâche → modèle optimal choisi seul (simple=Haiku, logique=Sonnet, vision=Opus) | 🟡 | 🧠 Opus 4.8 | L |
 | **C** | **Agents autonomes** | Tâches planifiées / cron / connexion services externes | 🔵 | 🧠 Opus 4.8 | XL |
 | **1** | **Panel latéral pop-up** | Sidebar éditeur visuel sur la preview — modifier/redimensionner/déplacer un élément directement | 🟠 | ⚖️ Sonnet 4.6 | M |
@@ -98,7 +98,7 @@
 | **1b** | ↳ Modificateur de couleur | Palette par élément sélectionné (fond, texte, bordure, bouton) | 🟠 | ⚡ Haiku 4.5 | S |
 | **1c** | ↳ Sélecteur d'éléments | Clic preview → highlight + propriétés éditables dans le panel | 🟠 | ⚖️ Sonnet 4.6 | S |
 | **2** | **Créateur de skills dans le panel** | Bouton dans le panel latéral pour créer une skill spécialisée depuis l'interface | 🟡 | ⚖️ Sonnet 4.6 | M |
-| **3** | **Mode discret** | Basculer visible/invisible les blocs 🧠 Réflexion | 🟢 | ⚡ Haiku 4.5 | XS |
+| **3** | **Mode discret** | **✅ DÉJÀ FAIT (antérieur)** : bouton Eye/EyeOff dans `Header.jsx`, state `showThinking` persisté localStorage, `Chat.jsx:647` masque les blocs Réflexion quand false. Découvert lors de l'audit 2026-06-15. | 🟢 | — | — |
 | **4** | **Bouton micro** | Entrée vocale à côté du bouton d'envoi → transcription dans le chat | 🟡 | ⚡ Haiku 4.5 | S |
 | **5** | **Menu de mode dans le chat** | Sélecteur scroll 3 modes : **Construire** (Sonnet, effort max) · **Planifier** (analytique) · **Discuter** (Haiku, rapide) — change modèle + effort en background | 🟢 | ⚖️ Sonnet 4.6 | S |
 | **6** | **Menu d'accueil repensé** | Page d'accueil ergonomique : scroll projets, accès rapide, design épuré | 🟡 | ⚖️ Sonnet 4.6 | M |

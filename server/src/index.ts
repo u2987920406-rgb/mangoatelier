@@ -26,6 +26,7 @@ import { ASSETS_DIR_NAME, saveUpload } from "./uploads.js";
 import { SNAPSHOTS_DIR_NAME, setVisionContext, snapZone, visionStatus } from "./vision.js";
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
+import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -498,7 +499,27 @@ app.get("/api/knowledge/:name", (req, res) => {
     profile: loadUserProfile(WORKSPACE_DIR),
     skills: listSkills().map(({ name: skill, description }) => ({ name: skill, description })),
     axioms: loadAxioms(WORKSPACE_DIR),
+    designSystem: loadDesignSystem(WORKSPACE_DIR),
   });
+});
+
+// Chantier A — Design system persistant : lecture / écriture du fichier cross-projet
+app.get("/api/design-system", (_req, res) => {
+  res.json({ content: loadDesignSystem(WORKSPACE_DIR) });
+});
+
+app.put("/api/design-system", (req, res) => {
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    saveDesignSystem(WORKSPACE_DIR, content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Persisted chat history of a project (empty for unknown/new projects)

@@ -15,6 +15,7 @@ import { selectAxioms } from "./axioms.js";
 import { BLUEPRINTS_RULES } from "./blueprints.js";
 import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -132,6 +133,10 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   axioms: () => selectAxioms(WORKSPACE_DIR),
   memory: (ctx) => memoryPromptSection(ctx.projectDir, WORKSPACE_DIR),
   skills: () => skillsPromptSection(),
+  // Chantier A — cross-project design system: visual identity that survives
+  // project switches (palette, typo, components). Always injected so new
+  // projects inherit the user's established visual style without prompting.
+  designSystem: () => DESIGN_SYSTEM_RULES + designSystemPromptSection(WORKSPACE_DIR),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -139,11 +144,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "memory", "skills"],
-  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "memory", "skills"],
+  elite: ["mode", "base", "blueprints", "supabase", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "memory", "skills"],
+  mvp: ["mode", "base", "blueprints", "supabase", "visionMvp", "axioms", "designSystem", "memory", "skills"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "memory", "skills"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "analytic", "tests", "visionElite", "axioms", "designSystem", "memory", "skills"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
