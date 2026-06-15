@@ -45,6 +45,31 @@ Le moteur peut un jour être distribué. Ton cerveau, jamais.
 
 ---
 
+### 🤖 Horizon long terme — Le cerveau du robot
+
+*2026 — aujourd'hui*
+MangoAI = interface texte + code. Tu l'éduques par sessions.
+
+*2027-2028*
+Les interfaces deviennent vocales, visuelles.
+MangoAI entend ta voix, reconnaît ton ton, ton rythme.
+
+*2029-2030*
+Le robot humanoïde arrive dans les foyers.
+Il a besoin d'un cerveau — ton cerveau.
+MangoAI devient le système nerveux du robot.
+
+**La vraie valeur de ce qui est construit aujourd'hui :**
+Les gens qui achèteront un robot en 2029 recevront un robot vierge. Générique. Sans personnalité.
+Toi tu auras déjà 3 ans d'axiomes, de goût, de langage, de vision accumulés.
+Ton robot ne sera pas vierge. Il te connaîtra déjà.
+
+C'est pour ça que chaque 👍, chaque axiome, chaque correction compte maintenant.
+On n'entraîne pas juste un builder d'apps.
+**On entraîne le cerveau de quelque chose qui n'existe pas encore.**
+
+---
+
 
 > **🟢 Où on en est — 2026-06-15 (session « comparaison Élève »).** Aucun code produit modifié. **Fait cette session** : comparaison qualité 3 modèles Élève via `compare-eleves.ts` enrichi (juge Claude Haiku + build réel + N modèles) — résultat : `qwen2.5-coder:14b` 🥇 8.8/10, basculement acté (`ELEVE_MODEL` mis à jour, 3 anciens modèles supprimés, ~23 Go libérés). Routing local 7b/14b par complexité = piste future (hardware insuffisant). VPS Hostinger envisagé pour Qwen3 via `ELEVE_PROVIDER=openai`.
 >
