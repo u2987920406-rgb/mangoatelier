@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Moon, Sparkles, Trash2, ExternalLink, Loader2, Star } from "lucide-react";
+import { ArrowLeft, Moon, Sparkles, Trash2, ExternalLink, Loader2, Star, ClipboardCheck, Check } from "lucide-react";
+
+// Questionnaire structuré de la review matinale (vague 2) → axiomes.
+const REVIEW_QUESTIONS = [
+  { key: "design", label: "Le design me plaît" },
+  { key: "fonctionnel", label: "C'est fonctionnel / complet" },
+  { key: "originalite", label: "C'est original" },
+  { key: "coherence", label: "Fidèle à mon style" },
+  { key: "garder", label: "Je garderais ce code" },
+];
 
 // Idée #58/#59 vague 1 — galerie de review des projets générés la nuit, avec le
 // score du juge (#59). Voir / garder / supprimer + déclenchement manuel d'un lot.
@@ -20,7 +29,42 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
   const [progress, setProgress] = useState({ current: 0, total: 0, label: "" });
   const [count, setCount] = useState(3);
   const [hideLow, setHideLow] = useState(false);
+  const [config, setConfig] = useState(null); // { enabled, count, hour }
+  const [reviewingId, setReviewingId] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ answers: {}, liked: "", disliked: "" });
   const timer = useRef(null);
+
+  useEffect(() => {
+    fetch("/api/nocturnal/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c) => c && setConfig(c))
+      .catch(() => {});
+  }, []);
+
+  function saveConfig(patch) {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    fetch("/api/nocturnal/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).catch(() => {});
+  }
+
+  function openReview(id) {
+    setReviewingId(id);
+    setReviewForm({ answers: {}, liked: "", disliked: "" });
+  }
+
+  async function submitReview(id) {
+    await fetch(`/api/nocturnal/${id}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reviewForm),
+    }).catch(() => {});
+    setReviewingId(null);
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, reviewed: true } : e)));
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -102,6 +146,37 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
           </label>
         </div>
 
+        {/* Planificateur auto nocturne (vague 2) */}
+        {config && (
+          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-edge bg-panel/40 px-3 py-2 text-xs">
+            <label className="flex items-center gap-1.5 text-dim cursor-pointer">
+              <input type="checkbox" checked={config.enabled} onChange={(e) => saveConfig({ enabled: e.target.checked })} />
+              <Moon size={13} className="text-accent-soft" /> Génération automatique la nuit
+            </label>
+            <span className="text-faint">à</span>
+            <select
+              value={config.hour}
+              onChange={(e) => saveConfig({ hour: Number(e.target.value) })}
+              className="rounded-lg border border-edge bg-bg px-2 py-1 text-ink focus:border-accent focus:outline-none"
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>{String(h).padStart(2, "0")}h</option>
+              ))}
+            </select>
+            <span className="text-faint">·</span>
+            <select
+              value={config.count}
+              onChange={(e) => saveConfig({ count: Number(e.target.value) })}
+              className="rounded-lg border border-edge bg-bg px-2 py-1 text-ink focus:border-accent focus:outline-none"
+            >
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>{n} projet{n > 1 ? "s" : ""}</option>
+              ))}
+            </select>
+            <span className="text-faint">/ nuit (PC allumé requis)</span>
+          </div>
+        )}
+
         {visible.length === 0 && (
           <p className="text-faint text-sm">
             {running ? "Génération en cours…" : "Aucun projet. Lance un lot — MangoAI génère et le juge note chacun."}
@@ -146,6 +221,18 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
                 >
                   <ExternalLink size={12} /> Ouvrir
                 </button>
+                {e.reviewed ? (
+                  <span className="flex items-center gap-1 rounded-lg border border-ok/40 bg-ok/10 px-2.5 py-1 text-xs text-ok">
+                    <Check size={12} /> Reviewé
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => (reviewingId === e.id ? setReviewingId(null) : openReview(e.id))}
+                    className="flex items-center gap-1 rounded-lg border border-edge px-2.5 py-1 text-xs text-dim hover:text-accent hover:border-accent/40 transition-colors"
+                  >
+                    <ClipboardCheck size={12} /> Reviewer
+                  </button>
+                )}
                 <button
                   onClick={() => remove(e.id)}
                   className="ml-auto flex items-center gap-1 rounded-lg border border-edge px-2.5 py-1 text-xs text-faint hover:text-err hover:border-err/40 transition-colors"
@@ -153,6 +240,44 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
                   <Trash2 size={12} /> Supprimer
                 </button>
               </div>
+
+              {/* Questionnaire de review → axiomes (vague 2) */}
+              {reviewingId === e.id && !e.reviewed && (
+                <div className="mt-2 flex flex-col gap-2 rounded-lg border border-accent/20 bg-accent/[0.04] p-3">
+                  <div className="flex flex-col gap-1">
+                    {REVIEW_QUESTIONS.map((q) => (
+                      <label key={q.key} className="flex items-center gap-2 text-xs text-dim cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(reviewForm.answers[q.key])}
+                          onChange={(ev) =>
+                            setReviewForm((f) => ({ ...f, answers: { ...f.answers, [q.key]: ev.target.checked } }))
+                          }
+                        />
+                        {q.label}
+                      </label>
+                    ))}
+                  </div>
+                  <input
+                    value={reviewForm.liked}
+                    onChange={(ev) => setReviewForm((f) => ({ ...f, liked: ev.target.value }))}
+                    placeholder="Ce que tu as aimé (optionnel)"
+                    className="rounded-md border border-edge bg-bg px-2 py-1 text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+                  />
+                  <input
+                    value={reviewForm.disliked}
+                    onChange={(ev) => setReviewForm((f) => ({ ...f, disliked: ev.target.value }))}
+                    placeholder="Ce que tu n'as pas aimé (optionnel)"
+                    className="rounded-md border border-edge bg-bg px-2 py-1 text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+                  />
+                  <button
+                    onClick={() => submitReview(e.id)}
+                    className="self-start flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-soft transition-colors"
+                  >
+                    <Check size={13} /> Valider → MangoAI apprend
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

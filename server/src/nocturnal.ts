@@ -16,9 +16,11 @@ import { generateUniquePrompts } from "./train-loop.js";
 import { askLLM, resolveProvider } from "./llm-engine.js";
 import { loadPreferences } from "./preferences.js";
 import { atomicWriteFileSync } from "./safe-io.js";
+import { AXIOMS_FILE_NAME } from "./axioms.js";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "nocturnal.json");
+const CONFIG_FILE = path.join(DATA_DIR, "nocturnal-config.json");
 
 export interface JudgeDims {
   design: number;
@@ -41,6 +43,34 @@ export interface NocturnalEntry {
   score?: number; // /10 global (#59)
   dims?: JudgeDims;
   judgeComment?: string;
+  reviewed?: boolean; // vague 2 : review matinale faite (questionnaire → axiomes)
+}
+
+// Réglages du planificateur auto nocturne (vague 2).
+interface NocturnalConfig {
+  enabled: boolean;
+  count: number;
+  hour: number; // heure locale (0-23) de génération
+  lastAutoRun?: string; // YYYY-MM-DD du dernier run auto (1 fois/nuit)
+}
+
+function loadConfig(): NocturnalConfig {
+  try {
+    const c = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8")) as Partial<NocturnalConfig>;
+    return {
+      enabled: Boolean(c.enabled),
+      count: typeof c.count === "number" ? Math.max(1, Math.min(10, c.count)) : 3,
+      hour: typeof c.hour === "number" && c.hour >= 0 && c.hour <= 23 ? c.hour : 2,
+      lastAutoRun: typeof c.lastAutoRun === "string" ? c.lastAutoRun : undefined,
+    };
+  } catch {
+    return { enabled: false, count: 3, hour: 2 };
+  }
+}
+
+function saveConfig(c: NocturnalConfig): void {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  atomicWriteFileSync(CONFIG_FILE, JSON.stringify(c, null, 2));
 }
 
 function loadEntries(): NocturnalEntry[] {
@@ -215,6 +245,81 @@ export async function runNocturnalBatch(count: number): Promise<void> {
   }
 }
 
+// ── Review matinale → axiomes (vague 2, RLHF amplifié #41) ───────────────────
+
+export interface NocturnalReviewInput {
+  answers?: Record<string, boolean>; // ex. { design:true, fonctionnel:false, ... }
+  liked?: string;
+  disliked?: string;
+}
+
+/** Distille la review structurée d'un projet nocturne en axiome(s) tagué(s)
+ * [review-nocturne] et l'append à .axioms.md. Best-effort, ne lève jamais. */
+export async function reviewToAxioms(entry: NocturnalEntry, input: NocturnalReviewInput): Promise<void> {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const answersText = input.answers
+      ? Object.entries(input.answers).map(([k, v]) => `${k}: ${v ? "oui" : "non"}`).join(", ")
+      : "(aucune)";
+    const liked = (input.liked ?? "").trim();
+    const disliked = (input.disliked ?? "").trim();
+    // Rien d'exploitable → pas d'axiome.
+    if (!liked && !disliked && !input.answers) return;
+
+    const system =
+      "Tu distilles la review d'un projet généré en UN OU DEUX axiomes universels de goût/UX (règles abstraites réutilisables), pas une description. Réponds UNIQUEMENT par le(s) bloc(s) axiome demandé(s), rien d'autre.";
+    const user = `L'utilisateur a passé en revue un projet web généré la nuit (« ${entry.task.slice(0, 200)} »).
+Cases cochées : ${answersText}.
+Ce qu'il a AIMÉ : « ${liked || "—"} ».
+Ce qu'il n'a PAS aimé : « ${disliked || "—"} ».
+
+Extrais 1 à 2 axiomes de goût/UX que cela t'apprend sur ses préférences, applicables à ses futurs projets. Format EXACT pour chaque axiome (rien d'autre) :
+AXIOME-UX-XX [candidat] [validé-utilisateur] [review-nocturne]
+- Contexte: (quand appliquer)
+- Piège: (ce qu'il n'aime pas)
+- Règle d'or: (ce qu'il préfère, concret)
+- Source: 🌙 review nocturne (${today})`;
+
+    let text = "";
+    try {
+      text = (await askLLM(system, user, { provider: resolveProvider(process.env.NOCTURNAL_JUDGE_PROVIDER, "claude"), maxTokens: 500 })).trim();
+    } catch {
+      return;
+    }
+    if (!text.startsWith("AXIOME-")) return;
+    const axiomsPath = path.join(WORKSPACE_DIR, AXIOMS_FILE_NAME);
+    fs.mkdirSync(WORKSPACE_DIR, { recursive: true });
+    const existing = fs.existsSync(axiomsPath) ? fs.readFileSync(axiomsPath, "utf8").trim() : "";
+    fs.writeFileSync(axiomsPath, (existing ? `${existing}\n\n${text}` : text) + "\n", "utf8");
+  } catch {
+    return;
+  }
+}
+
+// ── Planificateur auto nocturne (vague 2) ────────────────────────────────────
+
+function localDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Tick périodique : lance un lot une fois par nuit à l'heure configurée. */
+function startNocturnalScheduler(): void {
+  const tick = () => {
+    try {
+      const cfg = loadConfig();
+      if (!cfg.enabled || running) return;
+      if (new Date().getHours() !== cfg.hour) return;
+      if (cfg.lastAutoRun === localDate()) return; // déjà tourné cette nuit
+      saveConfig({ ...cfg, lastAutoRun: localDate() });
+      void runNocturnalBatch(cfg.count);
+    } catch {
+      /* ignore */
+    }
+  };
+  setInterval(tick, 15 * 60 * 1000); // toutes les 15 min
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 export function registerNocturnalRoutes(app: Express): void {
@@ -249,4 +354,40 @@ export function registerNocturnalRoutes(app: Express): void {
     saveEntries(entries.filter((e) => e.id !== id));
     res.json({ ok: true });
   });
+
+  // Réglages du planificateur auto nocturne (vague 2).
+  app.get("/api/nocturnal/config", (_req: Request, res: Response) => {
+    res.json(loadConfig());
+  });
+
+  app.put("/api/nocturnal/config", (req: Request, res: Response) => {
+    const body = req.body as Partial<NocturnalConfig>;
+    const cur = loadConfig();
+    const next: NocturnalConfig = {
+      ...cur,
+      ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
+      ...(typeof body.count === "number" ? { count: Math.max(1, Math.min(10, body.count)) } : {}),
+      ...(typeof body.hour === "number" && body.hour >= 0 && body.hour <= 23 ? { hour: body.hour } : {}),
+    };
+    saveConfig(next);
+    res.json(next);
+  });
+
+  // Review structurée d'un projet → axiomes (vague 2). Marque l'entrée reviewée.
+  app.post("/api/nocturnal/:id/review", (req: Request, res: Response) => {
+    const { id } = req.params;
+    const entries = loadEntries();
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) {
+      res.status(404).json({ error: "introuvable" });
+      return;
+    }
+    const body = req.body as NocturnalReviewInput;
+    void reviewToAxioms(entry, body); // fire-and-forget : la synthèse tourne en fond
+    entry.reviewed = true;
+    saveEntries(entries);
+    res.json({ ok: true });
+  });
+
+  startNocturnalScheduler();
 }
