@@ -223,6 +223,59 @@ Ces améliorations ont été discutées après la session principale. À implém
 
 ---
 
+## Réflexions stratégiques — Session atelier (suite) — 16 juin 2026
+
+### Taux de complétion après tous les chantiers discutés
+
+**Aujourd'hui : ~75% → Après chantiers : ~91%**
+
+| Domaine | Aujourd'hui | Après chantiers |
+|---|---|---|
+| Moteur de génération | 95% | 97% |
+| Mémoire & apprentissage | 85% | 93% |
+| Interface utilisateur | 78% | 89% |
+| Calibration (tutoriel) | 5% | 90% |
+| Automation nocturne | 55% | 85% |
+| Human-in-the-loop | 20% | 78% |
+| Notes & Voix | 10% | 88% |
+
+### De zéro à opérationnel (nouvel utilisateur)
+
+- **Jour 1** : première landing page livrée (tuto 1-2)
+- **Semaine 1** : opérationnel sur landing, portfolio, dashboard, SaaS frontend
+- **Semaine 2** : full-stack (backend Express, API)
+- **Semaine 3-4** : MangoAI calibré, 1er tour souvent le bon
+- **Mois 2+** : studio solo — génération la nuit, curation le matin
+
+### Comment les IA s'auto-améliorent
+
+- **RLHF** → humains notent les sorties → déjà dans feedback.ts
+- **RLAIF** → IA juge une autre IA → déjà dans Hermes (review.ts) + juge nocturne planifié
+- **Constitutional AI** → modèle s'auto-critique selon une constitution → axiomes.md = constitution de Raf
+- **Self-play / Synthetic Data** → modèle génère ses propres données d'entraînement
+- **Différence MangoAI** : les labs réentraînent les *poids* (semaines de GPU). MangoAI réentraîne le *contexte* (axiomes, profil, mémoire). Même effet à l'échelle personnelle.
+
+### Vision business — Les insights fondateurs
+
+**1. Le modèle "logiciel installé" revient**
+MangoAI peut être vendu comme Photoshop l'était — installé sur le PC du client, données chez lui, pas de SaaS, pas d'abonnement. La valeur augmente avec le temps car le système apprend l'utilisateur. Lock-in mémoriel et affectif — pas contractuel.
+
+**2. La vraie guerre n'est pas sur le modèle**
+Tout le monde a accès aux mêmes LLM (Claude, GPT, Gemini). Ce qui différencie : la couche personnelle autour du modèle. Axiomes + mémoire + profil = résultat unique impossible à reproduire ailleurs. Dans 3 ans, tous les modèles seront "assez bons" — les gagnants seront ceux qui ont le meilleur contexte personnel accumulé.
+
+**3. La courbe de valeur**
+- Achat à 1 an → moteur calibré, goût encodé, base solide
+- Achat à 5 ans → 5 ans d'axiomes, feedbacks nocturnes, projets livrés, erreurs digérées, lexique personnel, réflexes de créateur distillés
+- Le client n'achète pas un logiciel — il achète une **expertise encapsulée**
+
+**4. MangoAI = vendre sa marque qui agit**
+Une marque classique = perception (logo, réputation). MangoAI à 5 ans = la marque de Raf **qui prend des décisions**, qui génère dans son style sans qu'il soit présent. Comme Chanel sans Chanel — le goût survit et agit. Scalable, duplicable, illimité.
+
+> *"MangoAI est ton atelier qui tourne sans toi."*
+> *"Quand quelqu'un l'achète à 5 ans, il achète 5 ans de Raf — sans te payer à l'heure."*
+
+---
+
 ## Préférences et règles importantes
 
 - Toujours répondre en français
