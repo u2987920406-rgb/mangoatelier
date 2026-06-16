@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Palette, Rss, Scissors, Sliders, ShieldCheck } from "lucide-react";
+import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Palette, Rss, Scissors, Sliders, ShieldCheck } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -24,6 +24,7 @@ import SuperAgentBuilder from "./components/SuperAgentBuilder.jsx";
 import DesignReview from "./components/DesignReview.jsx";
 import Tutorial from "./components/Tutorial.jsx";
 import QuickNoteMic from "./components/QuickNoteMic.jsx";
+import NocturnalReview from "./components/NocturnalReview.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -396,6 +397,7 @@ export default function App() {
   if (screen === "multi") panelContent = <MultiProject onBack={() => setScreen("home")} />;
   if (screen === "superagent") panelContent = <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
   if (screen === "design") panelContent = <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
+  if (screen === "nocturnal") panelContent = <NocturnalReview onBack={() => setScreen("home")} onOpenProject={(name) => openProject(name, {})} />;
 
   if (panelContent) {
     return (
@@ -515,6 +517,13 @@ export default function App() {
               className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
             >
               <Palette size={18} className="text-accent" />
+            </button>
+            <button
+              onClick={() => setScreen("nocturnal")}
+              title="Review nocturne (#58/#59)"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+            >
+              <Moon size={18} className="text-accent" />
             </button>
           </div>
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
