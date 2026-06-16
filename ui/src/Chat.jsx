@@ -29,6 +29,7 @@ export default function Chat({
   onEditTargetConsumed,
   onChatMode = () => {},
   showThinking = true,
+  tutorialId = null,
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -244,6 +245,7 @@ export default function Chat({
           template: template || undefined,
           sessionId: sessionRef.current ?? undefined,
           editTarget: useEdit ?? undefined,
+          tutorialId: tutorialId ?? undefined,
         }),
       });
       if (!res.ok) {

@@ -14,6 +14,8 @@ import fs from "node:fs";
 import type { Express, Request, Response } from "express";
 import { atomicWriteFileSync } from "./safe-io.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { processTutorialFeedback, loadTutorialAxioms } from "./tutorial-feedback.js";
+import type { FeedbackRating } from "./feedback.js";
 
 export const TUTORIAL_PROGRESS_FILE = ".tutorial-progress.json";
 export const TUTORIAL_COUNT = 10;
@@ -240,6 +242,33 @@ export function registerTutorialRoutes(app: Express): void {
   app.get("/api/tutorial/progress", (_req: Request, res: Response) => {
     const progress = loadProgress(WORKSPACE_DIR);
     res.json({ progress, nextTutorialId: nextTutorialId(progress) });
+  });
+
+  // Retour utilisateur à un checkpoint → axiome tagué [tutoriel-N] (#41 RLHF).
+  // Fire-and-forget : on répond tout de suite, la synthèse tourne en tâche de fond.
+  app.post("/api/tutorial/feedback", (req: Request, res: Response) => {
+    const body = req.body as { tutorialId?: unknown; stepId?: unknown; rating?: unknown; comment?: unknown };
+    const tutorialId = typeof body.tutorialId === "number" ? body.tutorialId : NaN;
+    const stepId = typeof body.stepId === "string" ? body.stepId : "";
+    const rating = body.rating === "like" || body.rating === "dislike" ? (body.rating as FeedbackRating) : null;
+    if (!Number.isFinite(tutorialId) || !stepId || !rating) {
+      res.status(400).json({ error: "tutorialId, stepId et rating (like|dislike) sont requis" });
+      return;
+    }
+    const comment = typeof body.comment === "string" ? body.comment : undefined;
+    void processTutorialFeedback(WORKSPACE_DIR, { tutorialId, stepId, rating, comment });
+    res.json({ ok: true });
+  });
+
+  // Bilan de "connaissance mutuelle" pour la RelationshipCard : tutos terminés
+  // + ce que MangoAI a réellement appris (axiomes tagués tutoriel).
+  app.get("/api/tutorial/relationship", (_req: Request, res: Response) => {
+    const progress = loadProgress(WORKSPACE_DIR);
+    res.json({
+      completed: progress.completedTutorials.length,
+      total: TUTORIAL_COUNT,
+      learned: loadTutorialAxioms(WORKSPACE_DIR),
+    });
   });
 
   // Définition complète d'un tutoriel.

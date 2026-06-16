@@ -34,6 +34,9 @@ export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
   model: string;
   projectDir: string;
+  // Idée #56 Chantier C — présent quand l'utilisateur construit DANS le tutoriel
+  // (transmis par /api/chat). Absent → le bloc `tutorial` est "" (zéro poids).
+  tutorial?: { id: number; stepTitle?: string };
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -144,8 +147,23 @@ Generated backend (api/ subfolder):
 - CORS is already configured to the frontend origin. Do NOT change the cors() call unless the user explicitly needs a different origin.
 - When you add a route that needs a database, prefer Supabase server-side (supabase-js with the service_role key in api/.env — it bypasses RLS safely on the server) over raw SQL.`;
 
+// Idée #56 Chantier C — tutorial posture. When the user is building WITHIN a
+// tutorial, MangoAI must teach while it works: stay concise and encouraging,
+// say in one sentence what it does and why, avoid jargon, favour a readable
+// first result. Frames the whole turn → placed FIRST in every scenario.
+function tutorialRules(t: { id: number; stepTitle?: string }): string {
+  const stepLabel = t.stepTitle ? `, étape « ${t.stepTitle} »` : "";
+  return `
+MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoAI by building for real:
+- Teach while you work: keep answers short and encouraging, state in ONE sentence what you are doing and why.
+- Avoid jargon; prefer a clear, readable first result over a clever but opaque one.
+- Reassure on safety (versions/rollback exist) so the user dares to iterate.
+`;
+}
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
+  tutorial: (ctx) => (ctx.tutorial ? tutorialRules(ctx.tutorial) : ""),
   mode: (ctx) => MODE_RULES[ctx.mode],
   base: () => SYSTEM_APPEND,
   blueprints: () => BLUEPRINTS_RULES,
@@ -237,11 +255,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
+  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
+  mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  finition: ["tutorial", "mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

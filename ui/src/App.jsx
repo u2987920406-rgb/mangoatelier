@@ -535,6 +535,7 @@ export default function App() {
               onEditTargetConsumed={() => setEditTarget(null)}
               showThinking={showThinking}
               onChatMode={handleChatMode}
+              tutorialId={tutorialActive ? tutorialId : null}
             />
             <Preview
               url={previewUrl}

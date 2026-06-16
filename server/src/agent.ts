@@ -98,6 +98,9 @@ export async function* runAgent(
   sessionId?: string,
   model?: ModelChoice,
   mode?: Mode,
+  // Idée #56 Chantier C — present when the user builds within a tutorial; threads
+  // the tutorial posture block into the system prompt (null/undefined otherwise).
+  tutorial?: { id: number; stepTitle?: string } | null,
 ): AsyncGenerator<AgentEvent> {
   const effectiveModel = model ?? DEFAULT_MODEL;
   const effectiveMode = mode ?? DEFAULT_MODE;
@@ -134,7 +137,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },

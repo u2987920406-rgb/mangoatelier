@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { GraduationCap, X, ChevronRight, SkipForward, Check } from "lucide-react";
+import { GraduationCap, X, ChevronRight, ChevronLeft, SkipForward, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import TutorialSpotlight from "./TutorialSpotlight.jsx";
 import TutorialRelationshipCard from "./TutorialRelationshipCard.jsx";
 
@@ -15,6 +15,8 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [card, setCard] = useState(null); // { discovered, completedCount, nextId } à la fin
+  const [fbComment, setFbComment] = useState(""); // commentaire de checkpoint
+  const [fbGivenStep, setFbGivenStep] = useState(null); // stepId déjà noté
 
   // Charge la définition du tuto au montage / changement d'id (reset complet).
   useEffect(() => {
@@ -46,6 +48,26 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
       }).catch(() => {});
     },
     [id],
+  );
+
+  // Repartir d'un commentaire vierge à chaque changement d'étape.
+  useEffect(() => {
+    setFbComment("");
+  }, [stepIndex, id]);
+
+  // Retour à un checkpoint → axiome tagué (#41). Non bloquant : l'utilisateur
+  // continue de naviguer normalement après avoir voté.
+  const sendCheckpointFeedback = useCallback(
+    (stepId, rating) => {
+      setFbGivenStep(stepId);
+      fetch("/api/tutorial/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorialId: id, stepId, rating, comment: fbComment.trim() || undefined }),
+      }).catch(() => {});
+      setFbComment("");
+    },
+    [id, fbComment],
   );
 
   const finishTutorial = useCallback(
@@ -123,6 +145,10 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
     }
   }
 
+  function back() {
+    setStepIndex((i) => Math.max(0, i - 1));
+  }
+
   return (
     <>
       {/* Spotlight sur la cible (rien si la cible est absente du DOM). */}
@@ -156,8 +182,50 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
           </div>
         )}
 
+        {/* Checkpoint : retour utilisateur → MangoAI apprend (double apprentissage) */}
+        {step.checkpoint && (
+          <div className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.04] px-3 py-2.5">
+            {fbGivenStep === step.id ? (
+              <p className="text-[12px] text-accent-soft">Merci — MangoAI le retient ✓</p>
+            ) : (
+              <>
+                <p className="text-[11px] font-medium text-faint">Ton ressenti ? MangoAI apprend de toi.</p>
+                <input
+                  value={fbComment}
+                  onChange={(e) => setFbComment(e.target.value)}
+                  placeholder="Un mot (optionnel) : ce que tu aimes / pas…"
+                  className="mt-1.5 w-full rounded-md border border-edge bg-bg px-2 py-1 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                />
+                <div className="mt-1.5 flex gap-2">
+                  <button
+                    onClick={() => sendCheckpointFeedback(step.id, "like")}
+                    className="flex items-center gap-1 rounded-md border border-edge bg-panel px-2 py-1 text-[11px] text-dim hover:border-accent/50 hover:text-accent transition-colors"
+                  >
+                    <ThumbsUp size={12} /> J'aime
+                  </button>
+                  <button
+                    onClick={() => sendCheckpointFeedback(step.id, "dislike")}
+                    className="flex items-center gap-1 rounded-md border border-edge bg-panel px-2 py-1 text-[11px] text-dim hover:border-accent/50 hover:text-accent transition-colors"
+                  >
+                    <ThumbsDown size={12} /> Bof
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-4 flex items-center gap-2">
+          {stepIndex > 0 && (
+            <button
+              onClick={back}
+              title="Étape précédente"
+              className="flex items-center gap-1 rounded-lg border border-edge bg-panel px-2.5 py-1.5 text-xs text-faint hover:text-dim transition-colors"
+            >
+              <ChevronLeft size={14} /> Précédent
+            </button>
+          )}
           <button
             onClick={advance}
             className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-lg shadow-accent/30 hover:bg-accent-soft transition-colors"
@@ -176,7 +244,7 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
             <button
               onClick={skip}
               title="Passer cette étape"
-              className="flex items-center gap-1 rounded-lg border border-edge bg-panel px-2.5 py-1.5 text-xs text-faint hover:text-dim transition-colors"
+              className="ml-auto flex items-center gap-1 rounded-lg border border-edge bg-panel px-2.5 py-1.5 text-xs text-faint hover:text-dim transition-colors"
             >
               <SkipForward size={13} /> Passer
             </button>

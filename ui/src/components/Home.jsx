@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import {
   ArrowUp,
   BarChart3,
+  Check,
+  ChevronDown,
   Clock,
   FileText,
   FolderOpen,
   GraduationCap,
+  ListChecks,
   Package,
   Search,
   ShoppingCart,
@@ -68,6 +71,25 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
   const [showAll, setShowAll] = useState(false);
   const [taglineIndex, setTaglineIndex] = useState(0);
   const [taglineVisible, setTaglineVisible] = useState(true);
+  // Sélecteur de tutoriels (#56) : rejouer n'importe quel tuto, terminés inclus.
+  const [showTutorials, setShowTutorials] = useState(false);
+  const [tutorialsList, setTutorialsList] = useState([]);
+  const [tutorialsDone, setTutorialsDone] = useState([]);
+
+  function toggleTutorials() {
+    const next = !showTutorials;
+    setShowTutorials(next);
+    if (next && tutorialsList.length === 0) {
+      fetch("/api/tutorials")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setTutorialsList(d?.tutorials ?? []))
+        .catch(() => {});
+      fetch("/api/tutorial/progress")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setTutorialsDone(d?.progress?.completedTutorials ?? []))
+        .catch(() => {});
+    }
+  }
 
   const available = TEMPLATES.filter((t) => t.id === "" || templates.includes(t.id));
   const effectiveName = (nameTouched ? name : slugify(prompt)) || "mon-app";
@@ -123,26 +145,68 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
           {HERO_TAGLINES[taglineIndex]}
         </p>
 
-        {/* Tutoriel (#56) — démarrer ou reprendre */}
-        {onStartTutorial && nextTutorialId != null && (
+        {/* Tutoriel (#56) — démarrer / reprendre + rejouer n'importe lequel */}
+        {onStartTutorial && (
           <div className="animate-fade-up mt-6 w-full">
+            {nextTutorialId != null && (
+              <button
+                onClick={() => onStartTutorial(nextTutorialId)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-accent/40 bg-accent/[0.06] px-4 py-3 text-left hover:border-accent/70 hover:bg-accent/[0.1] transition-colors"
+              >
+                <GraduationCap size={17} className="shrink-0 text-accent-soft" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">
+                    {nextTutorialId === 1 ? "Découvrir MangoAI" : "Tutoriel"}
+                  </p>
+                  <p className="truncate text-sm text-ink">
+                    {nextTutorialId === 1
+                      ? "🎓 Commencer le tutoriel"
+                      : `🎓 Reprendre le tutoriel (${nextTutorialId}/10)`}
+                  </p>
+                </div>
+                <ArrowUp size={14} className="ml-auto shrink-0 rotate-90 text-accent-soft" />
+              </button>
+            )}
+
+            {/* Sélecteur : rejouer n'importe quel tutoriel */}
             <button
-              onClick={() => onStartTutorial(nextTutorialId)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-accent/40 bg-accent/[0.06] px-4 py-3 text-left hover:border-accent/70 hover:bg-accent/[0.1] transition-colors"
+              onClick={toggleTutorials}
+              className="mt-2 flex w-full items-center gap-2 rounded-xl border border-edge bg-panel/60 px-3 py-2 text-xs text-dim hover:border-faint hover:text-ink transition-colors"
             >
-              <GraduationCap size={17} className="shrink-0 text-accent-soft" />
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">
-                  {nextTutorialId === 1 ? "Découvrir MangoAI" : "Tutoriel"}
-                </p>
-                <p className="truncate text-sm text-ink">
-                  {nextTutorialId === 1
-                    ? "🎓 Commencer le tutoriel"
-                    : `🎓 Reprendre le tutoriel (${nextTutorialId}/10)`}
-                </p>
-              </div>
-              <ArrowUp size={14} className="ml-auto shrink-0 rotate-90 text-accent-soft" />
+              <ListChecks size={14} className="text-accent-soft" />
+              Tous les tutoriels
+              <ChevronDown size={13} className={`ml-auto transition-transform ${showTutorials ? "rotate-180" : ""}`} />
             </button>
+
+            {showTutorials && (
+              <div className="mt-2 flex flex-col gap-1 rounded-xl border border-edge bg-panel/40 p-1.5">
+                {tutorialsList.map((t) => {
+                  const done = tutorialsDone.includes(t.id);
+                  const soon = t.stepCount === 0;
+                  return (
+                    <button
+                      key={t.id}
+                      disabled={soon}
+                      onClick={() => onStartTutorial(t.id)}
+                      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors ${
+                        soon
+                          ? "cursor-not-allowed text-faint"
+                          : "text-ink hover:bg-edge-soft"
+                      }`}
+                    >
+                      <span className="w-5 shrink-0 text-center font-mono text-xs text-faint">{t.id}</span>
+                      <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                      {done && <Check size={13} className="shrink-0 text-accent-soft" title="Terminé" />}
+                      {soon ? (
+                        <span className="shrink-0 rounded-full border border-edge px-1.5 text-[10px] text-faint">bientôt</span>
+                      ) : (
+                        <span className="shrink-0 text-[10px] text-faint">{done ? "Rejouer" : "Démarrer"}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

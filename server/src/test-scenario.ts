@@ -47,6 +47,16 @@ check("analytic absent en Élite+haiku (gating modèle)", !eliteHaiku.includes(A
 check("vision Élite = boucle complète", elite.includes(VISION_LOOP) && !elite.includes(VISION_MIN));
 check("vision MVP = allégée", mvp.includes(VISION_MIN) && !mvp.includes(VISION_LOOP));
 
+// Idée #56 Chantier C — bloc tutorial : présent UNIQUEMENT quand ctx.tutorial fourni
+const TUTORIAL = "MODE TUTORIEL actif";
+const eliteTut = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, tutorial: { id: 2 } });
+const mvpTut = assembleSystemPrompt({ mode: "mvp", model: "sonnet", projectDir: dir, tutorial: { id: 1 } });
+check("bloc tutorial absent hors tutoriel (Élite)", !elite.includes(TUTORIAL));
+check("bloc tutorial absent hors tutoriel (MVP)", !mvp.includes(TUTORIAL));
+check("bloc tutorial présent quand ctx.tutorial fourni (Élite)", eliteTut.includes(TUTORIAL) && eliteTut.includes("tutoriel 2"));
+check("bloc tutorial présent quand ctx.tutorial fourni (MVP)", mvpTut.includes(TUTORIAL));
+check("bloc tutorial en TÊTE du prompt", eliteTut.trimStart().startsWith("MODE TUTORIEL actif"));
+
 // Idée 7 — arborescence contextuelle (moodboard), Élite-only (bloc plan)
 check("arborescence contextuelle présente en Élite", elite.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
 check("arborescence contextuelle absente en MVP", !mvp.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { GraduationCap, Sparkles, Heart, ArrowRight, Check } from "lucide-react";
 
 // Idée #56 — Chantier B. Carte de fin de tutoriel : "calibration mutuelle".
@@ -16,6 +17,15 @@ export default function TutorialRelationshipCard({
   onClose,
 }) {
   const pct = Math.round((completedCount / total) * 100);
+
+  // Ce que MangoAI a réellement appris : axiomes tagués [tutoriel-N] (#41).
+  const [learned, setLearned] = useState([]);
+  useEffect(() => {
+    fetch("/api/tutorial/relationship")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setLearned(Array.isArray(d?.learned) ? d.learned : []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -62,10 +72,21 @@ export default function TutorialRelationshipCard({
           <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-faint">
             <Heart size={13} className="text-accent-soft" /> Ce que MangoAI retient de toi
           </div>
-          <p className="mt-1 text-[12px] leading-relaxed text-faint">
-            À chaque 👍 / 👎 et chaque projet, MangoAI affine ton profil et ton style. Plus tu l'utilises, plus
-            son premier jet te ressemble.
-          </p>
+          {learned.length > 0 ? (
+            <ul className="mt-1.5 space-y-1">
+              {learned.slice(0, 5).map((l, i) => (
+                <li key={i} className="flex items-start gap-2 text-[12px] leading-relaxed text-dim">
+                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-accent-soft" />
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[12px] leading-relaxed text-faint">
+              À chaque 👍 / 👎 et chaque projet, MangoAI affine ton profil et ton style. Plus tu l'utilises, plus
+              son premier jet te ressemble.
+            </p>
+          )}
         </div>
 
         {/* CTA */}
