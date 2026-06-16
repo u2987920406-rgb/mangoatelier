@@ -57,6 +57,7 @@ import { loadPreferences, savePreferences, learnPreferences } from "./preference
 import { runCouncil, loadRecoveryPlan, clearRecoveryPlan } from "./orchestrator.js";
 import { registerTutorialRoutes } from "./tutorial.js";
 import { registerNocturnalRoutes } from "./nocturnal.js";
+import { registerRadarRoutes } from "./radar.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -1176,6 +1177,7 @@ registerDesignReviewRoutes(app);
 registerSuperAgentRoutes(app);
 registerTutorialRoutes(app);
 registerNocturnalRoutes(app);
+registerRadarRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);

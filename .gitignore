@@ -13,3 +13,4 @@ server/data/design-reviews.jsonl
 server/data/multi-project-index.json
 server/data/nocturnal.json
 server/data/nocturnal-config.json
+server/data/radar.json
