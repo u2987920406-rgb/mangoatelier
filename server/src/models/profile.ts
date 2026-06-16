@@ -11,6 +11,7 @@
 // et l'ajouter à PROFILES — JAMAIS toucher au core.
 
 import { GENERIC } from "./generic.js";
+import { gemmaProfile } from "./gemma.js";
 import { qwenProfile } from "./qwen.js";
 
 export interface ModelProfile {
@@ -36,7 +37,7 @@ export interface ModelProfile {
 
 // Registre des familles reconnues. L'ordre compte : première correspondance
 // gagne. Un modèle non reconnu retombe sur GENERIC (= comportement actuel exact).
-const PROFILES: ModelProfile[] = [qwenProfile];
+const PROFILES: ModelProfile[] = [qwenProfile, gemmaProfile];
 
 /** Résout la partition d'un modèle ; fallback GENERIC (non-régression garantie). */
 export function resolveProfile(model: string): ModelProfile {
