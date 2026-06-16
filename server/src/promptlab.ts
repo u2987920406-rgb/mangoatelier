@@ -40,18 +40,24 @@ export function registerPromptLabRoutes(app: Express): void {
       let totalChars = 0
 
       try {
-        // A bare single-shot answer so the comparison reflects the raw model
-        // and nothing else: maxTurns 1, no tools, empty system prompt (override
-        // the claude_code preset). includePartialMessages → token-by-token
-        // streaming, matching the previous direct-SDK behaviour.
+        // A direct chat answer so the comparison reflects the raw model and
+        // nothing else. The Agent SDK is an agentic harness: `allowedTools: []`
+        // only gates permission — the built-in tools stay in the model's
+        // context, so it adopts an agent posture ("let me read the files…"),
+        // attempts a tool step and trips error_max_turns. `tools: []` actually
+        // REMOVES every built-in tool, so the model just answers. The system
+        // prompt pins it to one self-contained reply in the user's language;
+        // includePartialMessages → token-by-token streaming, matching the
+        // previous direct-SDK behaviour.
         const q = query({
           prompt,
           options: {
             model: modelKey,
-            maxTurns: 1,
-            allowedTools: [],
+            maxTurns: 2,
+            tools: [],
             includePartialMessages: true,
-            systemPrompt: '',
+            systemPrompt:
+              "You are a helpful AI assistant. Answer the user's request directly and completely in a single message, in the user's language. You have no tools — answer from your own knowledge; never say you will read files, search, or take any action.",
           },
         })
 
