@@ -1,13 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { query } from '@anthropic-ai/claude-agent-sdk'
 import type { Express, Request, Response } from 'express'
 
-const client = new Anthropic()
-
-const MODEL_MAP: Record<string, string> = {
-  haiku: 'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-6',
-  opus: 'claude-opus-4-8',
-}
+// The Lab runs a raw prompt against several models side by side. It goes
+// through the Agent SDK (which reuses the local Claude Code login) rather than
+// the direct Anthropic SDK, so it needs NO ANTHROPIC_API_KEY / pay-as-you-go
+// credits — consistent with the rest of the app's subscription posture.
+const ALLOWED_MODELS = new Set(['haiku', 'sonnet', 'opus'])
 
 export function registerPromptLabRoutes(app: Express): void {
   // POST /api/promptlab/run
@@ -34,8 +32,7 @@ export function registerPromptLabRoutes(app: Express): void {
     }
 
     const runModel = async (modelKey: string) => {
-      const modelId = MODEL_MAP[modelKey]
-      if (!modelId) {
+      if (!ALLOWED_MODELS.has(modelKey)) {
         sendEvent({ type: 'error', model: modelKey, message: `Unknown model: ${modelKey}` })
         return
       }
@@ -43,20 +40,29 @@ export function registerPromptLabRoutes(app: Express): void {
       let totalChars = 0
 
       try {
-        const stream = client.messages.stream({
-          model: modelId,
-          max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }],
+        // A bare single-shot answer so the comparison reflects the raw model
+        // and nothing else: maxTurns 1, no tools, empty system prompt (override
+        // the claude_code preset). includePartialMessages → token-by-token
+        // streaming, matching the previous direct-SDK behaviour.
+        const q = query({
+          prompt,
+          options: {
+            model: modelKey,
+            maxTurns: 1,
+            allowedTools: [],
+            includePartialMessages: true,
+            systemPrompt: '',
+          },
         })
 
-        for await (const event of stream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            const text = event.delta.text
-            totalChars += text.length
-            sendEvent({ type: 'chunk', model: modelKey, text })
+        for await (const message of q) {
+          if (message.type === 'stream_event') {
+            const ev = message.event
+            if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
+              const text = ev.delta.text
+              totalChars += text.length
+              sendEvent({ type: 'chunk', model: modelKey, text })
+            }
           }
         }
 
