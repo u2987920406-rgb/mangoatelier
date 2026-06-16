@@ -226,12 +226,15 @@ function summarizeToolInput(name: string, input: unknown): string {
       return String(i?.path ?? "").slice(0, 100);
     case "Snapshot": {
       const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";
-      if (i?.selector) return `${String(i.selector).slice(0, 80)}${scale}`;
+      // Surface a driven capture (interactive product piloted before the shot).
+      const steps = Array.isArray(i?.inputs) ? (i.inputs as unknown[]) : [];
+      const drive = steps.length ? ` ⟵ ${steps.length} action(s)` : "";
+      if (i?.selector) return `${String(i.selector).slice(0, 80)}${scale}${drive}`;
       if (i?.box) {
         const b = i.box as Record<string, number>;
-        return `zone ${b.width}×${b.height}${scale}`;
+        return `zone ${b.width}×${b.height}${scale}${drive}`;
       }
-      return i?.fullPage ? "page entière" : "aperçu";
+      return `${i?.fullPage ? "page entière" : "aperçu"}${drive}`;
     }
     default:
       return "";
