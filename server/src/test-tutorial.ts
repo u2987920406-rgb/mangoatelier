@@ -51,6 +51,7 @@ check("tuto 1 = freedom 0, tuto 2 = freedom 10", t1?.freedomLevel === 0 && t2?.f
 check("tuto 2 a un prompt pré-écrit (action send)", !!t2 && t2.steps.some((s) => s.action === "send" && !!s.prefilledPrompt));
 check("getTutorial(99) → null", getTutorial(99) === null);
 check("getAllTutorials n'expose pas les steps (stepCount à la place)", metas.every((m) => typeof m.stepCount === "number") && !("steps" in metas[0]));
+check("tous les 10 tutoriels ont au moins 1 étape", getAllTutorials().every((m) => m.stepCount > 0));
 
 console.log("─".repeat(60));
 console.log("tutorial.ts — persistance");

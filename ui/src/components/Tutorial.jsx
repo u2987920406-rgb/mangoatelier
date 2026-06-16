@@ -10,7 +10,24 @@ import TutorialRelationshipCard from "./TutorialRelationshipCard.jsx";
 
 const MODE_LABEL = { mvp: "⚡ MVP", elite: "💎 Élite", finition: "🛡️ Finition" };
 
-export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
+// À quel écran appartient chaque cible data-tour : le tutoriel y bascule
+// automatiquement pour que le spotlight tombe sur un élément réel (#56 — "mettre
+// dans le bon contexte"). Les cibles inconnues ne déclenchent aucune bascule.
+const TARGET_CONTEXT = {
+  hero: "home",
+  "prompt-card": "home",
+  templates: "home",
+  "project-name": "home",
+  header: "workspace",
+  mode: "workspace",
+  model: "workspace",
+  preview: "workspace",
+  memory: "workspace",
+  versions: "workspace",
+  inspect: "workspace",
+};
+
+export default function Tutorial({ id, onComplete, onExit, onStartNext, onContext }) {
   const [tutorial, setTutorial] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -54,6 +71,14 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext }) {
   useEffect(() => {
     setFbComment("");
   }, [stepIndex, id]);
+
+  // Mettre l'app dans le bon contexte (écran) selon la cible de l'étape, pour
+  // que le spotlight ait toujours un élément réel à éclairer.
+  useEffect(() => {
+    const target = tutorial?.steps?.[stepIndex]?.target;
+    const ctx = target ? TARGET_CONTEXT[target] : null;
+    if (ctx) onContext?.(ctx);
+  }, [stepIndex, tutorial, onContext]);
 
   // Retour à un checkpoint → axiome tagué (#41). Non bloquant : l'utilisateur
   // continue de naviguer normalement après avoir voté.

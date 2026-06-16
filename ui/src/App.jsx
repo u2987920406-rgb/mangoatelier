@@ -120,9 +120,21 @@ export default function App() {
     setTutorialActive(true);
   }, []);
 
+  // Bascule l'app sur l'écran requis par l'étape courante du tutoriel.
+  const enterTutorialContext = useCallback((ctx) => {
+    setScreen((s) => {
+      if (ctx === "home") return "home";
+      // "workspace" : on sort de l'accueil/des panneaux plein écran vers l'atelier
+      // (Header/Chat/Preview) pour que ses éléments existent dans le DOM.
+      if (ctx === "workspace") return "workspace";
+      return s;
+    });
+  }, []);
+
   const exitTutorial = useCallback(() => {
     setTutorialActive(false);
     setTutorialId(null);
+    setScreen("home"); // ne pas laisser l'utilisateur échoué dans un atelier vide
     refreshTutorialProgress();
   }, [refreshTutorialProgress]);
 
@@ -141,6 +153,7 @@ export default function App() {
       setTutorialNextId(nextId);
       setTutorialActive(false);
       setTutorialId(null);
+      setScreen("home");
       if (nextId) {
         pushToast("success", `Tutoriel terminé 🎓 — prochain : ${nextId}/10`);
       } else {
@@ -574,6 +587,7 @@ export default function App() {
           onComplete={completeTutorial}
           onExit={exitTutorial}
           onStartNext={startNextTutorial}
+          onContext={enterTutorialContext}
         />
       )}
       <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
