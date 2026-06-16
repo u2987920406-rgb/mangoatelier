@@ -737,11 +737,208 @@ const sharinganTool = tool(
   },
 );
 
+// ── Sharingan-on-image (Idea #51): palette + ambiance from an attached image ──
+// Same design extraction philosophy as sharingan_url, but applied to a local
+// image file (PNG/JPEG/WebP/GIF) deposited by uploads.ts in .assets/.
+// Uses Playwright's canvas API so no extra npm dependency is needed.
+// All quantification/ambiance helpers are PURE (exported) for unit tests.
+
+/** Supported image MIME types for sharingan_image. */
+const IMAGE_MIME: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
+
+/** RGBA pixel data from sampling an image via Playwright canvas (64×64 grid). */
+export interface RgbaPixel {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+/** Quantizes a list of RGBA pixels using 5-bit buckets per channel.
+ *  Returns a map of bucket-key → frequency, ignoring fully-transparent pixels.
+ *  Pure → unit-testable. */
+export function quantizePixels(pixels: RgbaPixel[]): Map<string, number> {
+  const freq = new Map<string, number>();
+  for (const { r, g, b, a } of pixels) {
+    if (a < 10) continue; // ignore near-transparent
+    // 5-bit bucket: shift right by 3 → 0-31 range per channel
+    const key = `${r >> 3},${g >> 3},${b >> 3}`;
+    freq.set(key, (freq.get(key) ?? 0) + 1);
+  }
+  return freq;
+}
+
+/** Converts a quantization bucket key back to a #rrggbb hex string.
+ *  Mid-point of the bucket is used (shift left 3, add 4 for centre).
+ *  Pure → unit-testable. */
+export function bucketKeyToHex(key: string): string {
+  const [rb, gb, bb] = key.split(",").map(Number);
+  const r = Math.min(255, (rb << 3) + 4);
+  const g = Math.min(255, (gb << 3) + 4);
+  const b = Math.min(255, (bb << 3) + 4);
+  return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Picks the top-N most frequent non-black/non-white buckets, returns hex strings.
+ *  Pure → unit-testable. */
+export function topColorsFromBuckets(freq: Map<string, number>, topN = 8): string[] {
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([key]) => bucketKeyToHex(key))
+    .filter((hex) => !_isNearBlack(hex) && !_isNearWhite(hex))
+    .slice(0, topN);
+}
+
+/** Describes the luminosity of a pixel list: "clair" if avg luminance > 0.55,
+ *  "sombre" otherwise. Pure → unit-testable. */
+export function luminosityLabel(pixels: RgbaPixel[]): "clair" | "sombre" {
+  if (pixels.length === 0) return "clair";
+  let sum = 0;
+  for (const { r, g, b } of pixels) {
+    // Relative luminance (perceptual, 0-1)
+    sum += (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  }
+  return sum / pixels.length > 0.55 ? "clair" : "sombre";
+}
+
+/** Describes the saturation of a pixel list: "vif" if avg saturation > 0.25,
+ *  "sourd" otherwise. Pure → unit-testable. */
+export function saturationLabel(pixels: RgbaPixel[]): "vif" | "sourd" {
+  if (pixels.length === 0) return "sourd";
+  let sum = 0;
+  for (const { r, g, b } of pixels) {
+    const max = Math.max(r, g, b) / 255;
+    const min = Math.min(r, g, b) / 255;
+    sum += max === 0 ? 0 : (max - min) / max;
+  }
+  return sum / pixels.length > 0.25 ? "vif" : "sourd";
+}
+
+/** Describes the colour temperature of a pixel list: "chaud" if avg R ≥ avg B,
+ *  "froid" otherwise. Returns "chaud" for an empty list (neutral default).
+ *  Pure → unit-testable. */
+export function temperatureLabel(pixels: RgbaPixel[]): "chaud" | "froid" {
+  if (pixels.length === 0) return "chaud";
+  let sumR = 0, sumB = 0;
+  for (const { r, b } of pixels) { sumR += r; sumB += b; }
+  return sumR / pixels.length >= sumB / pixels.length ? "chaud" : "froid";
+}
+
+/** Combines the three perceptual labels into a short descriptor string.
+ *  Pure → unit-testable. */
+export function ambianceDescriptor(pixels: RgbaPixel[]): string {
+  return `${luminosityLabel(pixels)} · ${saturationLabel(pixels)} · ${temperatureLabel(pixels)}`;
+}
+
+/** Samples an image file via Playwright canvas (64×64 grid) and returns RGBA pixels.
+ *  Uses getBrowser() — NOT pure (browser required), not exported for tests. */
+async function sampleImagePixels(dataUrl: string): Promise<RgbaPixel[]> {
+  const b = await getBrowser();
+  const context = await b.newContext({ viewport: { width: 200, height: 200 } });
+  try {
+    const page = await context.newPage();
+    // Load image into a canvas, sample 64×64 pixels
+    await page.setContent(`<!DOCTYPE html><html><body style="margin:0;background:#fff">
+      <canvas id="c" width="64" height="64"></canvas>
+      <img id="img" style="display:none" src="${dataUrl}">
+    </body></html>`);
+    await page.waitForSelector("#img", { state: "attached" });
+
+    const pixels = await page.evaluate(() => {
+      const img = document.getElementById("img") as HTMLImageElement;
+      const canvas = document.getElementById("c") as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d")!;
+      // Wait for image to be complete (synchronous check — already loaded)
+      ctx.drawImage(img, 0, 0, 64, 64);
+      const data = ctx.getImageData(0, 0, 64, 64).data;
+      const result: { r: number; g: number; b: number; a: number }[] = [];
+      for (let i = 0; i < data.length; i += 4) {
+        result.push({ r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3] });
+      }
+      return result;
+    });
+    return pixels;
+  } finally {
+    await context.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
+const sharinganImageTool = tool(
+  "sharingan_image",
+  "Extracts a structured color palette + perceptual ambiance (luminosity, saturation, temperature) from an attached image file. " +
+    "Use when the user provides a reference image (screenshot, photo, mockup) and wants the design anchored on its REAL colors " +
+    "rather than a visual description only. Complements native vision reading — gives exact hex values and a compact ambiance descriptor. " +
+    "Accepts PNG, JPEG, WebP, GIF from the project's .assets/ folder (deposited by the upload button).",
+  { path: z.string().describe("Absolute or project-relative path to the image file (e.g. .assets/ref.png)") },
+  async (args) => {
+    // Resolve and validate path
+    const ext = path.extname(args.path).toLowerCase();
+    const mime = IMAGE_MIME[ext];
+    if (!mime) {
+      return text(`Format non supporté (${ext || "sans extension"}) — utilise PNG, JPEG, WebP ou GIF.`, true);
+    }
+    const resolved = path.isAbsolute(args.path)
+      ? args.path
+      : projectDir
+        ? path.join(projectDir, args.path)
+        : args.path;
+    if (!fs.existsSync(resolved)) {
+      return text(`Fichier introuvable : ${resolved}`, true);
+    }
+    try {
+      const imgBuf = fs.readFileSync(resolved);
+      const dataUrl = `data:${mime};base64,${imgBuf.toString("base64")}`;
+
+      const pixels = await sampleImagePixels(dataUrl);
+      const freq = quantizePixels(pixels);
+      const palette = topColorsFromBuckets(freq);
+      // Apply dedupeColors as a second-pass normalisation (normalises hex casing,
+      // removes any near-black/white that bucketKeyToHex mid-point landed on).
+      const finalPalette = dedupeColors(palette);
+      const ambiance = ambianceDescriptor(pixels.filter((p) => p.a >= 10));
+
+      const lines = [
+        `# Sharingan image — ${path.basename(resolved)}`,
+        "",
+        "## Palette dominante",
+        finalPalette.length ? finalPalette.join(", ") : "(aucune couleur de design détectée — image trop sombre/claire ?)",
+        "",
+        "## Ambiance perceptuelle",
+        ambiance,
+        "",
+        "## Instructions de génération",
+        "- Utilise ces couleurs hex comme base de la palette CSS (:root custom properties ou Tailwind config).",
+        "- Ajuste les teintes légèrement si le contraste l'exige, mais reste fidèle à l'ambiance capturée.",
+        "- L'ambiance perceptuelle oriente les décisions de fond, typographie et espacement.",
+      ];
+
+      const analysisText = lines.join("\n");
+      const content: ({ type: "image"; data: string; mimeType: string } | { type: "text"; text: string })[] = [];
+      // Embed the original image if within size limits (helps the model cross-reference)
+      if (imgBuf.length <= MAX_IMAGE_BYTES) {
+        content.push({ type: "image" as const, data: imgBuf.toString("base64"), mimeType: mime });
+      }
+      content.push({ type: "text" as const, text: analysisText });
+      return { content };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      return text(`Échec de l'analyse Sharingan image : ${msg}`, true);
+    }
+  },
+);
+
 export const visionServer = createSdkMcpServer({
   name: "vision",
   version: "1.0.0",
   // Core mechanism: always in the prompt, never deferred behind ToolSearch
   // (saves one discovery round-trip per visual turn).
   alwaysLoad: true,
-  tools: [snapshotTool, cloneTool, scrapeTool, sharinganTool],
+  tools: [snapshotTool, cloneTool, scrapeTool, sharinganTool, sharinganImageTool],
 });

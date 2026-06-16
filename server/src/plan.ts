@@ -31,12 +31,14 @@ Then present a 4-6 line summary and ask the user to validate or adjust. Build ON
 // Web research grounds BOTH the visual design AND the domain-specific site
 // structure (which pages/sections/nav the domain's leaders share), so the
 // target tree reflects the state of the art rather than a generic blueprint.
-// Autonomous visual capture of the leaders (Playwright screenshots) stays a
-// planned enhancement — text/structure grounding only in this version.
+// Sharingan (chantier #8, idea #46) is now wired: the agent can call
+// mcp__vision__sharingan_url to capture REAL hex values, fonts and CSS tokens
+// from 2-3 leaders instead of guessing them from text descriptions.
 export const MOODBOARD_RULES = `
 Design references + contextual structure / moodboard (Élite only) — when planning a NEW project, ground BOTH the design AND the site structure in the real state of the art instead of guessing:
-- Use WebSearch to find 3-5 leading products/sites in the SPECIFIC domain (e.g. "sports betting", "recipe app", "SaaS analytics"), and WebFetch a couple of them to read what makes them work.
-- Extract two things into a "Références & arborescence" section of plan.md:
-  (1) CONCRETE design rules (e.g. "dark theme + single accent, sticky top nav, hero with one CTA, social proof band");
-  (2) the CONTEXTUAL INFORMATION ARCHITECTURE — the pages, sections and navigation the domain's leaders consistently share (e.g. for sports betting: live odds board, bet slip, promotions, account/wallet). This domain-specific tree CUSTOMIZES the generic blueprint and drives the target file tree.
-- Extract conventions and structure — never copy content. Keep it brief (a few bullets each); this is grounding, not a research essay. Skip it for tiny projects or quick edits.`;
+- DISCOVER: Use WebSearch to find 3-5 leading products/sites in the SPECIFIC domain (e.g. "sports betting", "recipe app", "SaaS analytics"), and WebFetch a couple to understand what makes them work.
+- CAPTURE (2-3 leaders max — Sharingan is heavy; skip for tiny projects or quick edits): call mcp__vision__sharingan_url on 2-3 of those leaders to extract REAL values: exact palette hex (e.g. #FF6B35), fonts + weights, CSS variables/tokens, and semantic structure (sections, nav, CTAs).
+- Write a "Références & arborescence" section in plan.md with:
+  (1) CONCRETE design rules anchored on the captured data (e.g. "palette: #1A1A2E / #FF6B35 — dark base + warm accent; font: Inter 700 headings + 400 body; sticky top nav; hero with one CTA");
+  (2) the CONTEXTUAL INFORMATION ARCHITECTURE — pages, sections, nav the domain's leaders consistently share (e.g. for sports betting: live odds board, bet slip, promotions, account/wallet). This drives the target file tree.
+- Extract conventions and structure — never copy content. Keep it brief (a few bullets each); this is grounding, not a research essay.`;

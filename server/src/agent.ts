@@ -119,7 +119,7 @@ export async function* runAgent(
         model: effectiveModel,
         maxTurns: 40,
         permissionMode: "acceptEdits",
-        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__vision__scrape_url", ...webTools],
+        allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__vision__scrape_url", "mcp__vision__sharingan_url", "mcp__vision__sharingan_image", ...webTools],
         agents: AGENTS,
         mcpServers: { vision: visionServer },
         ...(analytic ? { thinking: { type: "adaptive", display: "summarized" } as const } : {}),
@@ -164,7 +164,11 @@ export async function* runAgent(
                   ? "Clone web"
                   : block.name === "mcp__vision__scrape_url"
                     ? "Aspire web"
-                    : block.name;
+                    : block.name === "mcp__vision__sharingan_url"
+                      ? "Sharingan"
+                      : block.name === "mcp__vision__sharingan_image"
+                        ? "Sharingan image"
+                        : block.name;
             yield { type: "tool", name, detail: summarizeToolInput(name, block.input) };
           }
         }
@@ -214,7 +218,10 @@ function summarizeToolInput(name: string, input: unknown): string {
       return String(i?.description ?? i?.prompt ?? "").slice(0, 120);
     case "Clone web":
     case "Aspire web":
+    case "Sharingan":
       return String(i?.url ?? "").slice(0, 100);
+    case "Sharingan image":
+      return String(i?.path ?? "").slice(0, 100);
     case "Snapshot": {
       const scale = i?.scale && Number(i.scale) > 1 ? ` ×${i.scale}` : "";
       if (i?.selector) return `${String(i.selector).slice(0, 80)}${scale}`;
