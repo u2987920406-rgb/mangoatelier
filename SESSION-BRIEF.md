@@ -76,6 +76,100 @@ Concept clé : tutoriel bidirectionnel — MangoAI apprend Raf pendant que Raf a
 
 ---
 
+## Taux de complétion de MangoAI (évaluation session)
+
+**Pour un usage quotidien personnel : ~75%**
+
+| Domaine | % | Ce qui manque |
+|---------|---|---------------|
+| Moteur de génération | 95% | Quasi-parfait |
+| Mémoire & apprentissage | 85% | Score par axiome + Hermes sur échecs |
+| Interface utilisateur | 78% | Guidage et polish |
+| Calibration (tutoriel) | 5% | Plan approuvé, rien codé encore |
+| Automation nocturne | 55% | Infrastructure existe, boucle humaine manque |
+| Human-in-the-loop structuré | 20% | 👍/👎 existe, review matinale manque |
+
+Ce qui manque n'est pas du moteur — c'est de connaître Raf. L'ajout de nouvelles fonctions ne cassera pas le cœur grâce à la Coque Souple (ajouter = ajouter un bloc, pas modifier le flux).
+
+---
+
+## Nouvelle Idée Majeure — Automation Nocturne + Review Matinale (Human-in-the-Loop)
+
+**Concept approuvé, à implémenter après le tutoriel.**
+
+### Vision de Raf
+- La nuit : MangoAI génère automatiquement 5 projets (PC laissé allumé)
+- Le matin : Raf ouvre une galerie de review — supprime immédiatement ce qui ne plaît pas
+- Pour chaque projet conservé : questionnaire structuré (cases à cocher + annotations positives/négatives)
+- Validation directe possible → MangoAI enregistre les éléments qui ont produit ce résultat
+- Résultat : boucle d'apprentissage qui tourne chaque nuit, s'améliore chaque matin
+
+### Connexion tutoriel → automation (insight clé)
+Le tutoriel est le "cold start" de toute la machine. Sans calibration préalable, les projets nocturnes sont génériques. Avec le tutoriel, ils partent d'un profil calibré. **Ordre impératif : tutoriel d'abord, automation ensuite.**
+
+```
+Tutoriel → calibration initiale (goûts, style, préférences)
+    ↓
+Automation nocturne → génère 5 projets basés sur ce profil
+    ↓
+Review matinale → Raf coche/supprime/annote (10-15 min)
+    ↓
+Axiomes mis à jour → prochaine nuit meilleure
+    ↓
+Flywheel qui tourne indéfiniment
+```
+
+### Ce qui existe déjà pour ça
+- `cron-scheduler.ts` ✅ — peut planifier la génération nocturne
+- `train-loop.ts` ✅ — génération en batch
+- `feedback.ts` ✅ — capture 👍/👎
+- `metrics.ts` ✅ — enregistre les résultats
+
+### Ce qui manque
+- Galerie de review matinale (vue grille des projets nocturnes)
+- Questionnaire structuré par projet (5-8 questions + cases)
+- Bouton suppression rapide par projet
+- Connexion questionnaire → axiomes (extension de `processFeedback()`)
+
+---
+
+## Notions Théoriques à Intégrer dans MangoAI
+
+Ces concepts de recherche IA sont directement applicables à l'architecture de MangoAI. À garder en tête pour les prochains chantiers.
+
+### RLHF — Reinforcement Learning from Human Feedback
+**Ce que c'est :** Méthode d'entraînement où un humain note les sorties du modèle (👍/👎). Le modèle apprend à maximiser les récompenses humaines.
+**Dans MangoAI aujourd'hui :** `feedback.ts` + `processFeedback()` = RLHF basique déjà implémenté. Chaque 👍/👎 → axiome → profil enrichi.
+**Ce qu'il manque :** Volume. 1 feedback par tour = signal faible. La review matinale (5 projets × questionnaire) = signal fort et structuré.
+
+### RLAIF — Reinforcement Learning from AI Feedback
+**Ce que c'est :** Variante du RLHF où c'est une autre IA (modèle "juge") qui note les sorties à la place de l'humain, permettant un apprentissage à grande échelle sans intervention humaine.
+**Dans MangoAI :** La boucle Hermes (`review.ts`) est déjà du RLAIF — Haiku juge les tours de l'agent principal et met à jour les axiomes. L'`inspection.ts` (build signal) = RLAIF automatique sur la qualité technique.
+**Évolution possible :** Ajouter un "juge esthétique" Haiku qui note automatiquement les projets nocturnes sur 10 critères (avant la review humaine). Pré-filtre les projets les plus faibles → Raf ne voit que les meilleurs.
+
+### Constitutional AI (CAI) — IA Constitutionnelle
+**Ce que c'est :** Technique Anthropic. Un modèle s'auto-critique selon une "constitution" de principes (ex: "sois utile, honnête, inoffensif"). Le modèle génère une sortie, puis la révise lui-même selon ces règles, sans feedback humain à chaque étape.
+**Dans MangoAI :** Les `axiomes.md` SONT une constitution personnelle de Raf. MangoAI s'auto-corrige selon ces règles avant de livrer. C'est du Constitutional AI appliqué au goût personnel.
+**Évolution possible :** Ajouter une étape "auto-critique" explicite dans le flux Elite : avant de livrer le code, l'agent passe le résultat au crible de la constitution (axiomes + profil) et propose ses propres corrections. Coque Souple = idéale pour ça (nouveau bloc `self-critique`).
+
+### Modèle Concurrent (Judge Model)
+**Ce que c'est :** Deux modèles en parallèle — un génère, l'autre juge. Le juge est souvent plus petit/rapide (ex: Haiku juge Opus). Utilisé pour du quality control automatique à grande échelle.
+**Dans MangoAI :** Pattern déjà présent avec `inspection.ts` (build signal) et `review.ts` (Hermes). L'orchestrateur (`orchestrator.ts`) = 5 lentilles = 5 juges concurrents.
+**Évolution possible :** Juge nocturne dédié — Haiku évalue chaque projet généré la nuit sur 5 dimensions (design, fonctionnel, originalité, cohérence profil, qualité code) → score /10 → Raf ne reçoit que les projets > 6/10 le matin. Coût : quelques centimes par nuit.
+
+### Synthèse — Où MangoAI se situe dans ces paradigmes
+
+```
+RLHF    → déjà là (feedback.ts) — à amplifier avec review matinale
+RLAIF   → déjà là (Hermes + inspection) — à étendre avec juge nocturne
+CAI     → déjà là (axiomes = constitution) — à rendre explicite (bloc self-critique)
+Juge    → déjà là (orchestrateur) — à automatiser pour le batch nocturne
+```
+
+MangoAI n'a pas à "adopter" ces techniques — il les pratique déjà intuitivement. Il faut maintenant les rendre explicites, les nommer, et les amplifier.
+
+---
+
 ## Comment reprendre à la maison
 
 1. `git pull origin master` (pour avoir ce brief + le plan du tutoriel)
