@@ -14,7 +14,7 @@ import { MEMORY_RULES, MEMORY_FILE_NAME, memoryPromptSection } from "./memory.js
 import { skillsPromptSection } from "./skills.js";
 import { selectAxioms } from "./axioms.js";
 import { BLUEPRINTS_RULES } from "./blueprints.js";
-import { PLAN_RULES, MOODBOARD_RULES } from "./plan.js";
+import { PLAN_RULES, MOODBOARD_RULES, MOODBOARD_RULES_MVP } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
 import { identityPromptSection } from "./identity.js";
@@ -148,6 +148,9 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // Analytic ritual rides on native extended thinking — not on haiku.
   analytic: (ctx) => (ctx.model !== "haiku" ? ANALYTIC_RULES : ""),
   plan: () => PLAN_RULES + MOODBOARD_RULES,
+  // Moodboard visuel auto en MVP — half-capacity: 1 leader / 1 sharingan_url capture,
+  // applied directly to the build (no plan.md, no WebSearch, no scoping ritual).
+  moodboardMvp: () => MOODBOARD_RULES_MVP,
   visionElite: () => VISION_RULES_ELITE,
   visionMvp: () => VISION_RULES_MVP,
   // Future retrieval seam: today returns the capped registry unchanged.
@@ -199,7 +202,7 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
   elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],

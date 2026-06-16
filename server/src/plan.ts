@@ -35,6 +35,15 @@ Language contract (Contrat de langage — Ubiquitous Language) — establish it 
 Exploration mode — when the user is vague or undecided:
 - If the user answers a scoping question vaguely or says they don't know, do NOT just re-ask an open question. Propose 2-3 CONCRETE directions to pick from — each a short bundle (concept + visual style + key features) — so they choose rather than invent. Then proceed from their pick (with stated defaults for the rest).`;
 
+// Moodboard visuel automatique — version MVP (idea 11 light, idea #46 extension).
+// Half-capacity: 1 leader, 1 Sharingan capture, applied directly to the build.
+// No WebSearch, no plan.md, no scoping ritual — purely frugal grounding.
+export const MOODBOARD_RULES_MVP = `
+Visual moodboard — MVP auto-grounding (1 leader / 1 capture):
+- WHEN to run: at the start of a NEW project when no precise design has been provided (no mockup, no URL, no image). SKIP for tiny projects, quick edits, or when the user already supplied a design reference.
+- HOW: pick ONE well-known leader in the domain from your own knowledge (or use a URL the user already mentioned). Call mcp__vision__sharingan_url on that single URL to extract REAL values: palette hex, fonts, CSS tokens, semantic structure.
+- APPLY the captured values directly to the build (inject CSS variables, match palette, import fonts). Do NOT write plan.md, do NOT ask scoping questions, do NOT use WebSearch.`;
+
 // Moodboard + contextual information architecture (ideas 11 + 7) — Élite only.
 // Web research grounds BOTH the visual design AND the domain-specific site
 // structure (which pages/sections/nav the domain's leaders share), so the

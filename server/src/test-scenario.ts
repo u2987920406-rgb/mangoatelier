@@ -25,6 +25,7 @@ const TESTS = "Automated tests (optional";
 const ANALYTIC = "Deep analysis";
 const VISION_LOOP = "Closed visual loop"; // Élite
 const VISION_MIN = "Visual self-check is minimal"; // MVP
+const MOODBOARD_MVP = "MVP auto-grounding"; // moodboardMvp block (1 leader / 1 capture)
 
 line("═");
 console.log("scenario — gating des blocs par mode (Coque Souple)");
@@ -51,12 +52,18 @@ check("arborescence contextuelle absente en MVP", !mvp.includes("CONTEXTUAL INFO
 check("mode architecte (scoping progressif) présent en Élite", elite.includes("ADAPTIVE & PROGRESSIVE"));
 check("mode architecte absent en MVP", !mvp.includes("ADAPTIVE & PROGRESSIVE"));
 
+// Moodboard MVP (idée #46 extension) — léger en MVP, absent en finition
+const finition = assembleSystemPrompt({ mode: "finition", model: "sonnet", projectDir: dir });
+check("moodboard MVP présent en mode MVP", mvp.includes(MOODBOARD_MVP));
+check("moodboard MVP absent en Élite (couvert par bloc plan complet)", !elite.includes(MOODBOARD_MVP));
+check("moodboard MVP absent en finition (phase freeze)", !finition.includes(MOODBOARD_MVP));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 
 line("═");
 if (failures === 0) {
-  console.log("✅ Gating prouvé : tests/analytic/plan Élite-only, vision adaptée au mode.");
+  console.log("✅ Gating prouvé : tests/analytic/plan Élite-only, moodboard MVP en MVP only, vision adaptée au mode.");
   process.exit(0);
 } else {
   console.log(`❌ ${failures} vérification(s) en échec.`);
