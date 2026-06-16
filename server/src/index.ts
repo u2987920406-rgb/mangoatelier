@@ -36,6 +36,7 @@ import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
 import { processFeedback, checkAndUpdateStreak, resetStreak, processEscalationReference, type FeedbackRating } from "./feedback.js";
 import { listComponents, loadComponent, saveComponent, deleteComponent, type ComponentEntry } from "./components.js";
+import { listReferences, loadReference, saveReference, deleteReference, referenceImagePath, type ReferenceMeta } from "./references.js";
 import { registerPromptLabRoutes } from "./promptlab.js";
 import { registerTokenizerRoutes } from "./tokenizer.js";
 import { registerIdeationRoutes } from "./ideation.js";
@@ -543,6 +544,8 @@ app.get("/api/knowledge/:name", (req, res) => {
     preferences: loadPreferences(WORKSPACE_DIR),
     // Idée #36 — cross-project component library (workspace-level).
     components: listComponents(WORKSPACE_DIR),
+    // Idée #50 — Banque de références perso: mood library (workspace-level).
+    references: listReferences(WORKSPACE_DIR),
     // Idée #42 — personal identity layers (workspace-level, cross-project).
     identity: {
       language: loadLanguage(WORKSPACE_DIR),
@@ -602,6 +605,105 @@ app.post("/api/components", (req, res) => {
 app.delete("/api/components/:name", (req, res) => {
   try {
     deleteComponent(WORKSPACE_DIR, req.params.name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// ── Idée #50 — Banque de références perso (mood library, workspace-level) ────
+
+// Image upload middleware for references (10 MB limit, memory storage)
+const refImageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// List all reference metas
+app.get("/api/references", (_req, res) => {
+  res.json({ references: listReferences(WORKSPACE_DIR) });
+});
+
+// Get a single reference meta
+app.get("/api/references/:slug", (req, res) => {
+  const meta = loadReference(WORKSPACE_DIR, req.params.slug);
+  if (!meta) {
+    res.status(404).json({ error: `Référence "${req.params.slug}" introuvable` });
+    return;
+  }
+  res.json(meta);
+});
+
+// Serve the image file of a reference
+app.get("/api/references/:slug/image", (req, res) => {
+  const imgPath = referenceImagePath(WORKSPACE_DIR, req.params.slug);
+  if (!imgPath) {
+    res.status(404).json({ error: "Pas d'image pour cette référence" });
+    return;
+  }
+  res.sendFile(imgPath);
+});
+
+// Create or update a reference (JSON body)
+app.post("/api/references", (req, res) => {
+  const body = req.body as Partial<ReferenceMeta>;
+  if (!body.title?.trim()) {
+    res.status(400).json({ error: "title requis" });
+    return;
+  }
+  if (!body.kind || !["url", "image", "palette"].includes(body.kind)) {
+    res.status(400).json({ error: "kind doit être url, image ou palette" });
+    return;
+  }
+  const slug = body.title.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+  const now = new Date().toISOString();
+  const existing = loadReference(WORKSPACE_DIR, slug);
+  const meta: ReferenceMeta = {
+    slug,
+    title: body.title.trim(),
+    kind: body.kind,
+    url: body.url ?? existing?.url,
+    image: body.image ?? existing?.image,
+    palette: body.palette ?? existing?.palette ?? [],
+    ambiance: body.ambiance ?? existing?.ambiance,
+    tags: body.tags ?? existing?.tags ?? [],
+    note: body.note ?? existing?.note,
+    usedIn: body.usedIn ?? existing?.usedIn ?? [],
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  try {
+    saveReference(WORKSPACE_DIR, meta);
+    res.json(meta);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Upload an image file for an existing reference
+app.post("/api/references/:slug/image", refImageUpload.single("file"), (req, res) => {
+  const slug = req.params["slug"] as string;
+  const meta = loadReference(WORKSPACE_DIR, slug);
+  if (!meta) {
+    res.status(404).json({ error: `Référence "${slug}" introuvable` });
+    return;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: "Fichier image requis (champ: file)" });
+    return;
+  }
+  // Sanitize the original filename: strip path separators and dangerous chars
+  const safeName = path.basename(req.file.originalname).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const refDir = path.join(WORKSPACE_DIR, ".references", slug);
+  fs.mkdirSync(refDir, { recursive: true });
+  const imgPath = path.join(refDir, safeName);
+  fs.writeFileSync(imgPath, req.file.buffer);
+  const updatedMeta: ReferenceMeta = { ...meta, image: safeName, kind: meta.kind === "palette" ? "image" : meta.kind, updatedAt: new Date().toISOString() };
+  saveReference(WORKSPACE_DIR, updatedMeta);
+  res.json(updatedMeta);
+});
+
+// Delete a reference
+app.delete("/api/references/:slug", (req, res) => {
+  try {
+    deleteReference(WORKSPACE_DIR, req.params.slug);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

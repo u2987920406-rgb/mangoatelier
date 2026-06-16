@@ -24,6 +24,7 @@ import { MIROIR_RULES, miroirPromptSection } from "./miroir.js";
 import { CLARIFICATION_RULES } from "./clarification.js";
 import { hasBackend } from "./backend-generator.js";
 import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
+import { REFERENCES_RULES, referencesPromptSection } from "./references.js";
 import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
 import { superAgentPromptSection } from "./super-agent-builder.js";
 import { preferencesPromptSection } from "./preferences.js";
@@ -205,6 +206,10 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // shared across all projects. Rules + available list injected in every turn
   // so the agent both proposes existing components and saves new ones.
   components: () => COMPONENTS_RULES + componentsPromptSection(WORKSPACE_DIR),
+  // Idée #50 — Banque de références perso: mood library of inspirations
+  // (screenshots / URLs / palettes) reused at the founding cadrage of each new
+  // project. Rules always present; list injected only when references exist.
+  references: () => REFERENCES_RULES + referencesPromptSection(WORKSPACE_DIR),
   // Idée #26 Phase 2 — raw source files from OTHER workspace projects: before
   // recoding a component/hook/util, the agent checks what already exists in the
   // user's other projects and adapts it instead of starting from scratch.
@@ -224,8 +229,8 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
