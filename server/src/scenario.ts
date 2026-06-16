@@ -21,6 +21,7 @@ import { identityPromptSection } from "./identity.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
 import { LEXIQUE_RULES, lexiquePromptSection } from "./lexique.js";
 import { MIROIR_RULES, miroirPromptSection } from "./miroir.js";
+import { CLARIFICATION_RULES } from "./clarification.js";
 import { hasBackend } from "./backend-generator.js";
 import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
 import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
@@ -154,6 +155,10 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // plan.md, and solicits the missing references at the founding moment. Sits
   // right before `plan` so it frames the Mango Plan scoping it feeds into.
   cadrage: () => CADRAGE_RULES,
+  // Idée #52 — proactive clarification: the "grounded in the real" guardrail
+  // made active. Raises genuine contradictions (said vs shown) before coding.
+  // Cross-mode (Élite full + MVP capped at one), absent in Finition (freeze).
+  clarification: () => CLARIFICATION_RULES,
   plan: () => PLAN_RULES + MOODBOARD_RULES,
   // Idée #48 — Le Miroir: the validation GATE that closes the founding cadrage.
   // "Voici ce que j'ai compris de toi" — reflects back the digested intention +
@@ -213,8 +218,8 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],

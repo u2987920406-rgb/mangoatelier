@@ -28,6 +28,7 @@ const VISION_MIN = "Visual self-check is minimal"; // MVP
 const MOODBOARD_MVP = "MVP auto-grounding"; // moodboardMvp block (1 leader / 1 capture)
 const CADRAGE = "Cadrage fondateur — multimodal grounding"; // idée #47, Élite-only
 const MIROIR = "Le Miroir (.miroir.md) — comprehension mirror"; // idée #48, Élite-only
+const CLARIF = "Proactive clarification — contradiction guardrail"; // idée #52, Élite+MVP
 
 line("═");
 console.log("scenario — gating des blocs par mode (Coque Souple)");
@@ -71,6 +72,13 @@ check("cadrage fondateur absent en finition (phase freeze)", !finition.includes(
 check("Le Miroir présent en Élite", elite.includes(MIROIR));
 check("Le Miroir absent en MVP", !mvp.includes(MIROIR));
 check("Le Miroir absent en finition (phase freeze)", !finition.includes(MIROIR));
+
+// Clarification proactive (idée #52) — garde-fou cross-mode : présent en Élite
+// ET en MVP (contradiction franche = 1 question même en mode rapide), absent en
+// finition (freeze, pas de nouveau cadrage à clarifier).
+check("clarification proactive présente en Élite", elite.includes(CLARIF));
+check("clarification proactive présente en MVP", mvp.includes(CLARIF));
+check("clarification proactive absente en finition (phase freeze)", !finition.includes(CLARIF));
 
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
