@@ -65,11 +65,10 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
-  // Tutoriel (#56) : overlay non bloquant. tutorialFreedom est stocké mais pas
-  // encore appliqué (les verrous de liberté UI viennent au Chantier B).
+  // Tutoriel (#56) : overlay guidé. Le niveau de liberté du spotlight est dérivé
+  // de la définition du tuto (côté Tutorial), pas d'un état ici.
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialId, setTutorialId] = useState(null);
-  const [tutorialFreedom, setTutorialFreedom] = useState(0);
   const [tutorialNextId, setTutorialNextId] = useState(1);
   const toastId = useRef(1);
 
@@ -116,9 +115,8 @@ export default function App() {
     refreshTutorialProgress();
   }, [refreshTutorialProgress]);
 
-  const startTutorial = useCallback((tutId, freedom = 0) => {
+  const startTutorial = useCallback((tutId) => {
     setTutorialId(tutId);
-    setTutorialFreedom(freedom);
     setTutorialActive(true);
   }, []);
 
@@ -127,6 +125,16 @@ export default function App() {
     setTutorialId(null);
     refreshTutorialProgress();
   }, [refreshTutorialProgress]);
+
+  // Depuis la RelationshipCard : enchaîner directement sur le tuto suivant.
+  const startNextTutorial = useCallback(
+    (tutId) => {
+      refreshTutorialProgress();
+      setTutorialId(tutId);
+      setTutorialActive(true);
+    },
+    [refreshTutorialProgress],
+  );
 
   const completeTutorial = useCallback(
     (nextId) => {
@@ -562,9 +570,9 @@ export default function App() {
       {tutorialActive && tutorialId != null && (
         <Tutorial
           id={tutorialId}
-          freedom={tutorialFreedom}
           onComplete={completeTutorial}
           onExit={exitTutorial}
+          onStartNext={startNextTutorial}
         />
       )}
       <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />

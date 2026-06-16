@@ -105,7 +105,7 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
 
         {/* Hero */}
         <div className="animate-fade-up text-6xl">🥭</div>
-        <h1 className="animate-fade-up mt-4 text-4xl font-extrabold tracking-tight">
+        <h1 data-tour="hero" className="animate-fade-up mt-4 text-4xl font-extrabold tracking-tight">
           Mango<span className="text-accent-soft">AI</span>
         </h1>
         <p className="animate-fade-up mt-3 text-lg text-dim">
@@ -164,7 +164,7 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
         )}
 
         {/* Prompt card */}
-        <div className="animate-fade-up mt-5 w-full rounded-2xl border border-edge bg-panel/80 p-3 shadow-2xl shadow-black/30 backdrop-blur focus-within:border-accent/60 transition-colors">
+        <div data-tour="prompt-card" className="animate-fade-up mt-5 w-full rounded-2xl border border-edge bg-panel/80 p-3 shadow-2xl shadow-black/30 backdrop-blur focus-within:border-accent/60 transition-colors">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -186,6 +186,7 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
                 setName(slugify(e.target.value) || e.target.value);
               }}
               spellCheck={false}
+              data-tour="project-name"
               placeholder="nom-du-projet"
               className="h-8 w-44 rounded-lg border border-edge bg-bg px-2.5 font-mono text-xs text-dim focus:border-accent focus:text-ink focus:outline-none transition-colors"
               title="Nom du projet (dossier de travail)"
@@ -202,7 +203,7 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
         </div>
 
         {/* Templates */}
-        <div className="animate-fade-up mt-5 flex w-full flex-wrap justify-center gap-2">
+        <div data-tour="templates" className="animate-fade-up mt-5 flex w-full flex-wrap justify-center gap-2">
           {available.map((t) => {
             const active = tpl === t.id;
             return (

@@ -72,7 +72,7 @@ export default function Preview({
   }, [inspecting]);
 
   return (
-    <section className="flex min-w-0 flex-1 flex-col bg-bg">
+    <section data-tour="preview" className="flex min-w-0 flex-1 flex-col bg-bg">
       {/* Browser-style toolbar */}
       <div className="flex h-11 shrink-0 items-center gap-2.5 border-b border-edge px-3.5">
         <span
@@ -109,6 +109,7 @@ export default function Preview({
         <button
           onClick={onToggleInspect}
           disabled={!url}
+          data-tour="inspect"
           className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30 ${
             inspecting
               ? "bg-accent/15 text-accent ring-1 ring-accent/40"

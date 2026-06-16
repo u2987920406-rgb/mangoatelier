@@ -59,7 +59,7 @@ export default function Header({
   const currentMode = MODES.find((m) => m.id === mode) ?? MODES[1];
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel px-4">
+    <header data-tour="header" className="flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel px-4">
       <button
         onClick={onHome}
         className="flex items-center gap-2 font-extrabold tracking-tight hover:opacity-80 transition-opacity"
@@ -104,6 +104,7 @@ export default function Header({
 
         <Dropdown
           width="w-96"
+          dataTour="memory"
           button={
             <>
               <BrainCircuit size={14} className="text-accent-soft" />
@@ -127,6 +128,7 @@ export default function Header({
         </Dropdown>
 
         <Dropdown
+          dataTour="mode"
           button={
             <>
               <currentMode.icon
@@ -155,6 +157,7 @@ export default function Header({
         </Dropdown>
 
         <Dropdown
+          dataTour="model"
           button={
             <>
               <current.icon size={14} className="text-accent-soft" />
@@ -182,6 +185,7 @@ export default function Header({
         <Dropdown
           disabled={versions.length === 0}
           width="w-72"
+          dataTour="versions"
           button={
             <>
               <History size={14} className="text-dim" />
