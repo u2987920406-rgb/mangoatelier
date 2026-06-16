@@ -1,3 +1,5 @@
+import { LEXIQUE_FILE_NAME } from "./lexique.js";
+
 // Mango Plan (idea 9) + automated moodboard (idea 11) — Élite-mode only.
 // This is exactly what the MVP/Élite switch (idea 12) was built for: Élite =
 // "Mango Plan, moodboard, full arsenal"; MVP = "no plan, just build fast".
@@ -25,7 +27,13 @@ Plan deliverable — write a concise plan.md at the project root:
 - Treat the generic type blueprint as a SKELETON to customise, not a fixed template.
 
 Then present a 4-6 line summary and ask the user to validate or adjust. Build ONLY after they agree ("go", "ok", "vas-y"). Keep plan.md as the LIVING contract (update it if the plan changes); it's a committed project document, not a memory file. There is NO master prompt to produce — plan.md is the spec MangoAI builds from directly.
-- Skip planning entirely for small changes to an existing project — just do them.`;
+- Skip planning entirely for small changes to an existing project — just do them.
+
+Language contract (Contrat de langage — Ubiquitous Language) — establish it during scoping:
+- Add a "Contrat de langage" section to plan.md: the SHARED LEXICON that locks naming for the whole project (one concept = one name = one component). A 4-column table | Terme naturel (humain) | Terme technique (domaine) | Composant / fichier | Description |. Ground it in the real domain, never a hallucinated lexical field. It is the naming source of truth every file must follow (it is also persisted/maintained automatically in ${LEXIQUE_FILE_NAME}).
+
+Exploration mode — when the user is vague or undecided:
+- If the user answers a scoping question vaguely or says they don't know, do NOT just re-ask an open question. Propose 2-3 CONCRETE directions to pick from — each a short bundle (concept + visual style + key features) — so they choose rather than invent. Then proceed from their pick (with stated defaults for the rest).`;
 
 // Moodboard + contextual information architecture (ideas 11 + 7) — Élite only.
 // Web research grounds BOTH the visual design AND the domain-specific site

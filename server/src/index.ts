@@ -29,6 +29,7 @@ import { runRelay } from "./eleve.js";
 import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
 import { IDENTITY_LAYERS, loadLanguage, loadThinkingStyle, loadVision, type IdentityLayer } from "./identity.js";
 import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
+import { loadLexique, saveLexique, generateLexique } from "./lexique.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
@@ -161,6 +162,13 @@ app.post("/api/chat", async (req, res) => {
     await ensureRepo(dir);
     historyDir = dir;
     record("user", prompt);
+
+    // Idée #45 Porte A — le contrat de langage se construit TOUT SEUL en
+    // arrière-plan depuis la 1ʳᵉ phrase d'intention (recherche web si le domaine
+    // est inconnu). Fire-and-forget façon review/compaction : non bloquant,
+    // erreurs avalées, ne tourne QUE si .lexique.md est absent/vide. Ne ralentit
+    // JAMAIS la réponse de chat.
+    void generateLexique(dir, prompt).catch(() => {});
 
     // Édition visuelle ciblée (#6) : si le tour vient d'un clic→source, on enrichit
     // la tâche envoyée à l'agent avec le fichier:ligne EXACT + l'extrait (edit
@@ -525,6 +533,8 @@ app.get("/api/knowledge/:name", (req, res) => {
     axioms: loadAxioms(WORKSPACE_DIR),
     designSystem: loadDesignSystem(WORKSPACE_DIR),
     architecture: dir ? loadArchitecture(dir) : "",
+    // Idée #45 — language contract (Ubiquitous Language), project-scoped.
+    lexique: dir ? loadLexique(dir) : "",
     // Idée #36 — cross-project component library (workspace-level).
     components: listComponents(WORKSPACE_DIR),
     // Idée #42 — personal identity layers (workspace-level, cross-project).
@@ -677,6 +687,28 @@ app.put("/api/architecture/:name", (req, res) => {
     const dir = projectDir(name);
     const file = `${dir}/${ARCHITECTURE_FILE_NAME}`;
     fs.writeFileSync(file, content, "utf8");
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Idée #45 — Contrat de langage : lecture / écriture manuelle depuis l'UI
+app.get("/api/lexique/:name", (req, res) => {
+  const name = req.params.name;
+  const dir = projectExists(name) ? projectDir(name) : null;
+  res.json({ content: dir ? loadLexique(dir) : "" });
+});
+
+app.put("/api/lexique/:name", (req, res) => {
+  const name = req.params.name;
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    saveLexique(projectDir(name), content);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

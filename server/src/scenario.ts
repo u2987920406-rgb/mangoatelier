@@ -19,6 +19,7 @@ import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
 import { identityPromptSection } from "./identity.js";
 import { ARCHITECTURE_RULES, architecturePromptSection } from "./architecture.js";
+import { LEXIQUE_RULES, lexiquePromptSection } from "./lexique.js";
 import { hasBackend } from "./backend-generator.js";
 import { COMPONENTS_RULES, componentsPromptSection } from "./components.js";
 import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
@@ -166,6 +167,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // (components, pages, API, data, stack, decisions). Injected only when the
   // file exists (non-empty), so it never pollutes brand-new projects.
   architecture: (ctx) => ARCHITECTURE_RULES + architecturePromptSection(ctx.projectDir),
+  // Idée #45 — language contract (Ubiquitous Language): per-project shared
+  // lexicon (natural term ↔ domain term ↔ component/file). Same "founding
+  // project context" family as architecture, injected right after it. RULES
+  // ride every turn (overridable default); the table only when it exists.
+  lexique: (ctx) => LEXIQUE_RULES + lexiquePromptSection(ctx.projectDir),
   // Chantier #35 — generated Express backend. Injected only when the project
   // has an api/ subfolder (hasBackend check), keeping pure-frontend prompts lean.
   backend: (ctx) => (hasBackend(ctx.projectDir) ? BACKEND_RULES : ""),
@@ -192,11 +198,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "memory", "identity", "skills", "superAgent"],
+  finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
