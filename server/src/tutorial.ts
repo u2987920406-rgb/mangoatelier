@@ -26,7 +26,11 @@ export interface TutorialStep {
   id: string;
   title: string;
   narration: string; // ce que MangoAI dit à cette étape
-  target?: string; // sélecteur CSS du spotlight (utilisé au Chantier B)
+  target?: string; // clé data-tour du spotlight (Chantier B)
+  // Écran à afficher pour cette étape quand la feature vit dans un panneau
+  // plein écran sans cible data-tour (notes, metrics, superagent, multi…). Prime
+  // sur le contexte dérivé de `target`. (Chantier "auto-contexte étendu".)
+  context?: string;
   action: TutorialAction;
   prefilledPrompt?: string; // prompt pré-écrit proposé au composer
   freedomLevel: number; // 0-100, hérité du tuto sauf override
@@ -134,7 +138,7 @@ const TUTORIAL_3: TutorialStep[] = [
     "send",
     20,
     {
-      target: "prompt-card",
+      target: "composer",
       prefilledPrompt: "Fais un audit QA complet de cette landing page : accessibilité (contrastes, alt, aria), responsive mobile, micro-détails (espacements, polices, boutons). Liste les problèmes et corrige-les.",
     },
   ),
@@ -169,7 +173,7 @@ const TUTORIAL_3: TutorialStep[] = [
     "send",
     20,
     {
-      target: "prompt-card",
+      target: "composer",
       prefilledPrompt: "Le titre du hero manque d'impact. Augmente sa taille, passe-le en gras, et ajoute une légère ombre pour le faire ressortir.",
     },
   ),
@@ -232,7 +236,7 @@ const TUTORIAL_4: TutorialStep[] = [
     "send",
     35,
     {
-      target: "prompt-card",
+      target: "composer",
       prefilledPrompt: "Je veux créer un tableau de bord pour suivre mes projets freelance : clients, missions en cours, revenus du mois.",
     },
   ),
@@ -300,6 +304,7 @@ const TUTORIAL_5: TutorialStep[] = [
     "Avant d'écrire du code, une app mémorable a une identité claire : palette, typographie, ton. MangoAI a un outil pour ça — Sharingan. Tu fournis une URL d'inspiration, il extrait l'ADN visuel.",
     "observe",
     45,
+    { context: "workspace" },
   ),
   step(
     "t5-sharingan-url",
@@ -389,6 +394,7 @@ const TUTORIAL_6: TutorialStep[] = [
     "Jusqu'ici, tes apps tournaient en frontend pur. MangoAI peut aussi générer un backend Express complet — routes API, gestion des données, middleware. On va en créer un pour le tableau de bord.",
     "observe",
     55,
+    { context: "workspace" },
   ),
   step(
     "t6-backend-scaffold",
@@ -471,6 +477,7 @@ const TUTORIAL_7: TutorialStep[] = [
     "MangoAI voit tous tes projets ensemble. Il peut trouver un composant créé il y a 3 semaines, le réutiliser, ou chercher « ce bout de code qui gérait les dates » sans que tu te souviennes du nom du projet.",
     "observe",
     65,
+    { context: "workspace" },
   ),
   step(
     "t7-component-library",
@@ -548,6 +555,7 @@ const TUTORIAL_8: TutorialStep[] = [
     "Ton app tourne dans l'aperçu — mais elle n'est accessible qu'ici. MangoAI peut la publier en ligne (Cloudflare Pages) et la pousser sur GitHub en quelques secondes. On le fait maintenant.",
     "observe",
     75,
+    { context: "workspace" },
   ),
   step(
     "t8-build-check",
@@ -562,10 +570,10 @@ const TUTORIAL_8: TutorialStep[] = [
   step(
     "t8-deploy-cloudflare",
     "Déploiement Cloudflare — 1 clic",
-    "Le bandeau de l'atelier contient les boutons de publication. Clique sur « Déployer » — MangoAI build et pousse sur Cloudflare Pages. Dans 30 secondes, une URL publique.",
+    "Le bandeau de l'atelier contient les boutons de publication. Clique sur « Publier » — MangoAI build et pousse sur Cloudflare Pages. Dans 30 secondes, une URL publique.",
     "click",
     75,
-    { target: "header" },
+    { target: "deploy" },
   ),
   step(
     "t8-deploy-wait",
@@ -588,7 +596,7 @@ const TUTORIAL_8: TutorialStep[] = [
     "Dans le même bandeau, clique sur « GitHub ». MangoAI crée un dépôt privé à ton nom, initialise git et pousse le code. Aucune configuration manuelle.",
     "click",
     75,
-    { target: "header" },
+    { target: "github" },
   ),
   step(
     "t8-github-result",
@@ -638,6 +646,7 @@ const TUTORIAL_9: TutorialStep[] = [
     "Au lieu d'écrire, tu peux dicter. Clique sur l'icône micro dans la zone de saisie et parle naturellement — Whisper transcrit et MangoAI répond. Essaie pour ton premier prompt de ce projet.",
     "click",
     88,
+    { target: "mic" },
   ),
   step(
     "t9-voice-prompt",
@@ -667,6 +676,7 @@ const TUTORIAL_9: TutorialStep[] = [
     "MangoAI affiche le bilan de ton parcours : tokens consommés, coût estimé, projets créés, composants réutilisés, feedback donnés. C'est ton tableau de bord de la relation avec MangoAI.",
     "observe",
     88,
+    { context: "metrics" },
   ),
   step(
     "t9-profile-update",

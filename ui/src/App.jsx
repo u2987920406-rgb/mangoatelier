@@ -120,15 +120,11 @@ export default function App() {
     setTutorialActive(true);
   }, []);
 
-  // Bascule l'app sur l'écran requis par l'étape courante du tutoriel.
+  // Bascule l'app sur l'écran requis par l'étape courante du tutoriel : "home",
+  // "workspace" (Header/Chat/Preview) ou n'importe quel panneau plein écran
+  // ("notes", "metrics", "superagent", "multi"…) pour que la feature soit VISIBLE.
   const enterTutorialContext = useCallback((ctx) => {
-    setScreen((s) => {
-      if (ctx === "home") return "home";
-      // "workspace" : on sort de l'accueil/des panneaux plein écran vers l'atelier
-      // (Header/Chat/Preview) pour que ses éléments existent dans le DOM.
-      if (ctx === "workspace") return "workspace";
-      return s;
-    });
+    if (ctx) setScreen(ctx);
   }, []);
 
   const exitTutorial = useCallback(() => {
@@ -362,21 +358,51 @@ export default function App() {
     setPreviewErrors([]);
   }
 
-  if (screen === "promptlab") return <PromptLab onBack={() => setScreen("home")} />;
-  if (screen === "tokenizer") return <Tokenizer onBack={() => setScreen("home")} />;
-  if (screen === "ideation") return <Ideation onBack={() => setScreen("home")} onStartCoding={(desc) => { setPendingPrompt(desc); setScreen("chat"); }} />;
-  if (screen === "veille") return <Veille onBack={() => setScreen("home")} />;
-  if (screen === "docs") return <DocGenerator onBack={() => setScreen("home")} />;
-  if (screen === "versions") return <VersionGraph projectName={projectName} onBack={() => setScreen("chat")} />;
-  if (screen === "qa") return <QAPanel projectName={projectName} onBack={() => setScreen("chat")} />;
-  if (screen === "billing") return <Billing onBack={() => setScreen("home")} />;
-  if (screen === "cron") return <CronManager onBack={() => setScreen("home")} />;
-  if (screen === "metrics") return <MetricsDashboard onBack={() => setScreen("home")} />;
-  if (screen === "notes") return <NotesRAG onBack={() => setScreen("home")} />;
-  if (screen === "ablation") return <AutoAblation onBack={() => setScreen("home")} />;
-  if (screen === "multi") return <MultiProject onBack={() => setScreen("home")} />;
-  if (screen === "superagent") return <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
-  if (screen === "design") return <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
+  // Overlay du tutoriel : monté quel que soit l'écran (y compris sur les panneaux
+  // plein écran), pour que l'auto-contexte puisse y conduire sans le masquer.
+  const tutorialOverlay =
+    tutorialActive && tutorialId != null ? (
+      <Tutorial
+        id={tutorialId}
+        onComplete={completeTutorial}
+        onExit={exitTutorial}
+        onStartNext={startNextTutorial}
+        onContext={enterTutorialContext}
+      />
+    ) : null;
+  const globalChrome = (
+    <>
+      {tutorialOverlay}
+      <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
+      <ConfirmModal config={confirmCfg} onClose={() => setConfirmCfg(null)} />
+    </>
+  );
+
+  let panelContent = null;
+  if (screen === "promptlab") panelContent = <PromptLab onBack={() => setScreen("home")} />;
+  if (screen === "tokenizer") panelContent = <Tokenizer onBack={() => setScreen("home")} />;
+  if (screen === "ideation") panelContent = <Ideation onBack={() => setScreen("home")} onStartCoding={(desc) => { setPendingPrompt(desc); setScreen("chat"); }} />;
+  if (screen === "veille") panelContent = <Veille onBack={() => setScreen("home")} />;
+  if (screen === "docs") panelContent = <DocGenerator onBack={() => setScreen("home")} />;
+  if (screen === "versions") panelContent = <VersionGraph projectName={projectName} onBack={() => setScreen("chat")} />;
+  if (screen === "qa") panelContent = <QAPanel projectName={projectName} onBack={() => setScreen("chat")} />;
+  if (screen === "billing") panelContent = <Billing onBack={() => setScreen("home")} />;
+  if (screen === "cron") panelContent = <CronManager onBack={() => setScreen("home")} />;
+  if (screen === "metrics") panelContent = <MetricsDashboard onBack={() => setScreen("home")} />;
+  if (screen === "notes") panelContent = <NotesRAG onBack={() => setScreen("home")} />;
+  if (screen === "ablation") panelContent = <AutoAblation onBack={() => setScreen("home")} />;
+  if (screen === "multi") panelContent = <MultiProject onBack={() => setScreen("home")} />;
+  if (screen === "superagent") panelContent = <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
+  if (screen === "design") panelContent = <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
+
+  if (panelContent) {
+    return (
+      <>
+        {panelContent}
+        {globalChrome}
+      </>
+    );
+  }
 
   return (
     <>
@@ -581,17 +607,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {tutorialActive && tutorialId != null && (
-        <Tutorial
-          id={tutorialId}
-          onComplete={completeTutorial}
-          onExit={exitTutorial}
-          onStartNext={startNextTutorial}
-          onContext={enterTutorialContext}
-        />
-      )}
-      <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
-      <ConfirmModal config={confirmCfg} onClose={() => setConfirmCfg(null)} />
+      {globalChrome}
     </>
   );
 }

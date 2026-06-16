@@ -25,6 +25,11 @@ const TARGET_CONTEXT = {
   memory: "workspace",
   versions: "workspace",
   inspect: "workspace",
+  deploy: "workspace",
+  github: "workspace",
+  backend: "workspace",
+  mic: "workspace",
+  composer: "workspace",
 };
 
 export default function Tutorial({ id, onComplete, onExit, onStartNext, onContext }) {
@@ -72,11 +77,14 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext, onContex
     setFbComment("");
   }, [stepIndex, id]);
 
-  // Mettre l'app dans le bon contexte (écran) selon la cible de l'étape, pour
-  // que le spotlight ait toujours un élément réel à éclairer.
+  // Mettre l'app dans le bon contexte (écran) pour l'étape courante : un
+  // `context` explicite (écran plein écran : notes, metrics, superagent, multi…)
+  // prime, sinon on dérive l'écran de la cible data-tour. Ainsi le spotlight a
+  // toujours un élément réel, ou la feature visée est rendue à l'écran.
   useEffect(() => {
-    const target = tutorial?.steps?.[stepIndex]?.target;
-    const ctx = target ? TARGET_CONTEXT[target] : null;
+    const s = tutorial?.steps?.[stepIndex];
+    if (!s) return;
+    const ctx = s.context || (s.target ? TARGET_CONTEXT[s.target] : null);
     if (ctx) onContext?.(ctx);
   }, [stepIndex, tutorial, onContext]);
 

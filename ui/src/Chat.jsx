@@ -519,6 +519,7 @@ export default function Chat({
           <button
             onClick={toggleMic}
             disabled={busy || transcribing}
+            data-tour="mic"
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
               listening ? "animate-pulse text-err" : transcribing ? "animate-pulse text-accent" : "text-faint hover:text-ink"
             }`}
@@ -575,6 +576,7 @@ export default function Chat({
           </div>
           <textarea
             ref={inputRef}
+            data-tour="composer"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onInput={autoGrow}

@@ -225,6 +225,7 @@ export default function Header({
           <button
             onClick={onGithub}
             disabled={pushingGithub}
+            data-tour="github"
             className="flex h-9 items-center gap-1.5 rounded-lg border border-edge bg-panel px-3 text-[13px] font-medium text-dim hover:border-faint hover:text-ink disabled:opacity-60 transition-colors"
             title={githubUrl ? `Re-pousser sur ${githubUrl}` : "Pousser le projet sur GitHub (dépôt privé)"}
           >
@@ -259,6 +260,7 @@ export default function Header({
           <Dropdown
             width="w-64"
             align="right"
+            dataTour="deploy"
             button={
               <>
                 {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
@@ -331,6 +333,7 @@ function BackendButton({ status, onScaffold, onStart, onStop }) {
     return (
       <button
         onClick={onScaffold}
+        data-tour="backend"
         className="flex h-9 items-center gap-1.5 rounded-lg border border-edge bg-panel px-3 text-[13px] font-medium text-dim hover:border-faint hover:text-ink transition-colors"
         title="Ajouter un backend Express à ce projet"
       >
@@ -344,6 +347,7 @@ function BackendButton({ status, onScaffold, onStart, onStop }) {
     return (
       <button
         onClick={onStop}
+        data-tour="backend"
         className="flex h-9 items-center gap-1.5 rounded-lg border border-ok/40 bg-ok/10 px-3 text-[13px] font-medium text-ok hover:bg-ok/20 transition-colors"
         title={`Backend actif : ${url} — cliquer pour arrêter`}
       >
@@ -357,6 +361,7 @@ function BackendButton({ status, onScaffold, onStart, onStop }) {
   return (
     <button
       onClick={onStart}
+      data-tour="backend"
       className="flex h-9 items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/10 px-3 text-[13px] font-medium text-warn hover:bg-warn/20 transition-colors"
       title="Démarrer le backend Express (api/)"
     >
