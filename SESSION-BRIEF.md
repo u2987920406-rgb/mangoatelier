@@ -364,6 +364,45 @@ Les deux ensemble = un système qui s'améliore sur deux axes en parallèle : la
 
 ---
 
+## Portabilité & Protection — Chantiers futurs
+
+### Chantier "Clé USB" — MangoAI installable par n'importe qui
+Aujourd'hui MangoAI nécessite Node.js, Python, Ollama et un terminal. Pour qu'un non-développeur puisse l'utiliser :
+
+**Ce qu'il faut créer : un launcher/installeur**
+```
+MangoAI.exe (double-clic)
+      ↓
+Vérifie Node.js → installe si absent
+Vérifie Ollama → installe si absent
+Interface de setup guidée (clés API, préférences)
+Lance serveur + ouvre navigateur automatiquement
+```
+Outil recommandé : **Tauri** ou **pkg** — empaquette tout en un seul .exe.
+Effort estimé : 1-2 semaines. Transforme MangoAI en vrai produit grand public.
+
+### Chantier Protection du code
+**Combinaison recommandée pour la distribution B2B :**
+1. TypeScript compilé → déjà fait au build
+2. **Bytecode Node.js** (bytenode) → code compilé en .jsc, illisible
+3. **Empaquetage binaire** (pkg/Tauri) → tout dans un .exe, code inaccessible
+4. **Clé d'activation par client** → chaque instance liée à un acheteur, refuse de tourner sans clé
+5. **Workspace chiffré** → données personnelles du client chiffrées localement
+
+**La vérité honnête sur le piratage :**
+Aucune protection n'est inviolable — les grands studios se font cracker en 24h. Mais la vraie protection de MangoAI est structurelle, pas technique :
+
+| Ce qu'un pirate peut voler | Ce qu'il ne peut pas voler |
+|---|---|
+| Le code source | Les axiomes de Raf |
+| L'architecture | La mémoire utilisateur |
+| Les composants UI | Le profil calibré |
+| Les routes API | Le goût encodé |
+
+Le code sans le profil = moteur sans carburant. MangoAI vierge est générique. **La valeur est dans ce que le système a appris de son utilisateur — et ça ne se copie pas.**
+
+---
+
 ## Préférences et règles importantes
 
 - Toujours répondre en français
