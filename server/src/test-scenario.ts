@@ -26,6 +26,7 @@ const ANALYTIC = "Deep analysis";
 const VISION_LOOP = "Closed visual loop"; // Élite
 const VISION_MIN = "Visual self-check is minimal"; // MVP
 const MOODBOARD_MVP = "MVP auto-grounding"; // moodboardMvp block (1 leader / 1 capture)
+const CADRAGE = "Cadrage fondateur — multimodal grounding"; // idée #47, Élite-only
 
 line("═");
 console.log("scenario — gating des blocs par mode (Coque Souple)");
@@ -57,6 +58,12 @@ const finition = assembleSystemPrompt({ mode: "finition", model: "sonnet", proje
 check("moodboard MVP présent en mode MVP", mvp.includes(MOODBOARD_MVP));
 check("moodboard MVP absent en Élite (couvert par bloc plan complet)", !elite.includes(MOODBOARD_MVP));
 check("moodboard MVP absent en finition (phase freeze)", !finition.includes(MOODBOARD_MVP));
+
+// Cadrage fondateur multimodal (idée #47) — chef d'orchestre Élite-only :
+// présent en Élite, absent en MVP (a son moodboard léger) et en finition (freeze).
+check("cadrage fondateur présent en Élite", elite.includes(CADRAGE));
+check("cadrage fondateur absent en MVP", !mvp.includes(CADRAGE));
+check("cadrage fondateur absent en finition (phase freeze)", !finition.includes(CADRAGE));
 
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));

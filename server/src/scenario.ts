@@ -14,7 +14,7 @@ import { MEMORY_RULES, MEMORY_FILE_NAME, memoryPromptSection } from "./memory.js
 import { skillsPromptSection } from "./skills.js";
 import { selectAxioms } from "./axioms.js";
 import { BLUEPRINTS_RULES } from "./blueprints.js";
-import { PLAN_RULES, MOODBOARD_RULES, MOODBOARD_RULES_MVP } from "./plan.js";
+import { CADRAGE_RULES, PLAN_RULES, MOODBOARD_RULES, MOODBOARD_RULES_MVP } from "./plan.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { DESIGN_SYSTEM_RULES, designSystemPromptSection } from "./design-system.js";
 import { identityPromptSection } from "./identity.js";
@@ -147,6 +147,12 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   finition: () => FINITION_RULES,
   // Analytic ritual rides on native extended thinking — not on haiku.
   analytic: (ctx) => (ctx.model !== "haiku" ? ANALYTIC_RULES : ""),
+  // Idée #47 — cadrage fondateur multimodal: the CONDUCTOR of the founding
+  // phase (Élite only). Orchestrates intention + language contract (#45) + web
+  // refs via Sharingan (#46) + attached images/PDF (#51) into one grounded
+  // plan.md, and solicits the missing references at the founding moment. Sits
+  // right before `plan` so it frames the Mango Plan scoping it feeds into.
+  cadrage: () => CADRAGE_RULES,
   plan: () => PLAN_RULES + MOODBOARD_RULES,
   // Moodboard visuel auto en MVP — half-capacity: 1 leader / 1 sharingan_url capture,
   // applied directly to the build (no plan.md, no WebSearch, no scoping ritual).
@@ -201,7 +207,7 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "plan", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "visionMvp", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.

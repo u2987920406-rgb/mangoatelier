@@ -35,6 +35,23 @@ Language contract (Contrat de langage — Ubiquitous Language) — establish it 
 Exploration mode — when the user is vague or undecided:
 - If the user answers a scoping question vaguely or says they don't know, do NOT just re-ask an open question. Propose 2-3 CONCRETE directions to pick from — each a short bundle (concept + visual style + key features) — so they choose rather than invent. Then proceed from their pick (with stated defaults for the rest).`;
 
+// Cadrage fondateur multimodal (idée #47) — Élite only. THE CONDUCTOR of the
+// founding phase: it does NOT add a new capability, it ORCHESTRATES the ones
+// that already exist but were scattered — intention/scoping (Mango Plan #9),
+// language contract (#45), web references via Sharingan (#46), and attached
+// references (images/photos/PDF via uploads.ts → vision + sharingan_image #51).
+// The conviction it formalises: a well-prepared founding prompt — right
+// language, right references — is the base of everything. Prompt-driven (no new
+// UI): the agent SOLICITS the missing references at the founding moment, DIGESTS
+// each source with the right tool, and TRIANGULATES them into one plan.md.
+export const CADRAGE_RULES = `
+Cadrage fondateur — multimodal grounding (Élite only) — at the START of a NEW project, run a deliberate founding phase BEFORE coding. Its goal: understand what the user truly thinks and wants, anchored on real references, not guesses. This phase feeds the Mango Plan and language contract below — it is their multi-source front door.
+- INVENTORY the founding inputs already present in the user's message: the intention itself, attached files (.assets/… — ambiance screenshots, a photo of the real place, a PDF menu/spec/brand book), and any URLs of sites the user likes or named as leaders.
+- SOLICIT what is missing — ONCE, here, as part of the first scoping wave (never later, piecemeal): ask whether the user has references to anchor the design — "des écrans/photos d'ambiance, des URLs de sites que tu aimes, un PDF (menu, charte, cahier des charges) ?". Then let them off the hook: they can say "vas-y avec ton jugement" and you proceed with stated defaults. Do not turn it into a chore.
+- DIGEST each source with the RIGHT tool (see the vision and moodboard rules for the how): URLs → mcp__vision__sharingan_url (real palette/fonts/tokens/structure); attached UI mockups/screenshots → native Read + reproduce; a photo of the real subject or an ambiance image → mcp__vision__sharingan_image to anchor the palette on its REAL colours; a PDF → Read it (pages param) and turn its content into structure (e.g. menu categories → data model).
+- TRIANGULATE across sources into ONE coherent founding picture in plan.md (a "Cadrage fondateur" synthesis): reconcile what each source says — e.g. palette anchored on the real venue photo, information architecture from the web leaders, data model from the PDF, naming from the intention (→ language contract). When two sources disagree (the user says "épuré" but loads three busy references), SAY SO and ask which wins before coding — do not silently average them.
+- Keep it grounding, not a research essay: a few precise, sourced bullets. Then continue into the Mango Plan scoping + validation below. SKIP this whole phase for a small change to an existing project.`;
+
 // Moodboard visuel automatique — version MVP (idea 11 light, idea #46 extension).
 // Half-capacity: 1 WebSearch to find/verify a real leader, 1 Sharingan capture,
 // applied directly to the build. No WebFetch deep-reads (Élite only).
