@@ -23,6 +23,7 @@ import MultiProject from "./components/MultiProject.jsx";
 import SuperAgentBuilder from "./components/SuperAgentBuilder.jsx";
 import DesignReview from "./components/DesignReview.jsx";
 import Tutorial from "./components/Tutorial.jsx";
+import QuickNoteMic from "./components/QuickNoteMic.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -373,6 +374,7 @@ export default function App() {
   const globalChrome = (
     <>
       {tutorialOverlay}
+      {!tutorialActive && <QuickNoteMic onToast={pushToast} />}
       <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
       <ConfirmModal config={confirmCfg} onClose={() => setConfirmCfg(null)} />
     </>

@@ -53,3 +53,33 @@ export async function askOllama(
     clearTimeout(timer)
   }
 }
+
+// Modèle d'embeddings local (différent d'un modèle de chat) — à pull une fois
+// (`ollama pull nomic-embed-text`). Surchargeable via NOTES_EMBED_MODEL.
+const DEFAULT_EMBED_MODEL = process.env.NOTES_EMBED_MODEL ?? 'nomic-embed-text'
+
+/** Vecteur d'embedding d'un texte via Ollama `/api/embeddings`. Lève si Ollama
+ * est injoignable, renvoie une erreur HTTP (ex. modèle d'embedding absent), ou
+ * dépasse le délai — l'appelant décide du repli (recherche par mots-clés). */
+export async function embedOllama(text: string, opts: OllamaOptions = {}): Promise<number[]> {
+  const model = opts.model ?? DEFAULT_EMBED_MODEL
+  const timeoutMs = opts.timeoutMs ?? 30_000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: text, keep_alive: '10m' }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`Ollama embeddings HTTP ${res.status}`)
+    const data = (await res.json()) as { embedding?: number[] }
+    if (!Array.isArray(data.embedding) || data.embedding.length === 0) {
+      throw new Error('Ollama embeddings: empty vector')
+    }
+    return data.embedding
+  } finally {
+    clearTimeout(timer)
+  }
+}

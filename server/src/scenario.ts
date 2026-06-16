@@ -37,6 +37,9 @@ export type PromptContext = {
   // Idée #56 Chantier C — présent quand l'utilisateur construit DANS le tutoriel
   // (transmis par /api/chat). Absent → le bloc `tutorial` est "" (zéro poids).
   tutorial?: { id: number; stepTitle?: string };
+  // Idée #61 vague 2 — notes personnelles pertinentes à la requête du tour,
+  // pré-calculées (async) par agent.ts puis injectées telles quelles. "" si aucune.
+  notesSection?: string;
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -164,6 +167,10 @@ MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoAI
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   tutorial: (ctx) => (ctx.tutorial ? tutorialRules(ctx.tutorial) : ""),
+  // Idée #61 vague 2 — notes personnelles pertinentes (recherche sémantique
+  // Ollama avec repli mots-clés), pré-calculées par agent.ts. "" quand aucune
+  // note ne correspond → zéro poids pour les projets sans notes.
+  notes: (ctx) => ctx.notesSection ?? "",
   mode: (ctx) => MODE_RULES[ctx.mode],
   base: () => SYSTEM_APPEND,
   blueprints: () => BLUEPRINTS_RULES,
@@ -255,8 +262,8 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
-  mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
+  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["tutorial", "mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],

@@ -3,6 +3,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
+import { relevantNotesSection } from "./notes-rag.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -116,6 +117,15 @@ export async function* runAgent(
   // 1 capture — half-capacity, no WebFetch deep-reads reserved for Élite).
   // Finition is frozen: no web research allowed.
   const webTools = effectiveMode === "elite" ? ["WebSearch", "WebFetch"] : effectiveMode === "mvp" ? ["WebSearch"] : [];
+  // Idée #61 vague 2 — recall des notes personnelles pertinentes à ce tour
+  // (sémantique Ollama, repli mots-clés ; "" si aucune note). Best-effort : ne
+  // doit jamais empêcher un tour de démarrer.
+  let notesSection = "";
+  try {
+    notesSection = await relevantNotesSection(prompt);
+  } catch {
+    notesSection = "";
+  }
   try {
     const q = query({
       prompt,
@@ -137,7 +147,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },
