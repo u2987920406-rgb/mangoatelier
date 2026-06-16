@@ -225,7 +225,7 @@ La colonne **Composant/fichier** verrouille la structure et branche le lexique s
 
 **Deux portes d'entrée** (comme chat vs atelier) :
 - **Porte A — background naturel** : l'utilisateur parle normalement à Mango ; le contrat se construit **tout seul en arrière-plan** à partir de la phrase d'intention. Si Mango ne maîtrise pas le champ lexical du domaine → **recherche web approfondie** (`claudeWebResearch`) car c'est la base de tout le projet. Plus fluide, zéro friction.
-- **Porte B — questionnaire rigoureux** : une fenêtre dédiée (esprit PromptLab) où l'utilisateur **prépare son prompt** via un questionnaire très ficelé. Plus long, mais idéal pour qui **ne sait pas encore précisément ce qu'il veut** mais a des idées vagues — Mango en dérive un contrat solide avant le vrai prompt.
+- **Porte B — cadrage assisté, FUSIONNÉ dans Mango Plan (#9)** (décision 2026-06-16) : pas de fenêtre séparée. Mango Plan fait déjà l'essentiel (dialogue de scoping adaptatif en vagues + échappatoire « vas-y avec ton jugement » + recherche web des leaders via `MOODBOARD_RULES`). On **greffe** dessus : (1) le contrat de langage devient une **section de `plan.md`** (le contrat vivant existant) ; (2) un **mode exploration pour les indécis** — réponse vague → Mango propose 2-3 directions concrètes (concept + style + features) à choisir plutôt que reposer une question ouverte, en branchant l'idéation visuelle #37. Évite une 3ᵉ surface et le formulaire rigide qui fait fuir la cible visée (« ne sait pas ce qu'il veut »).
 
 **Garde-fous** : (1) **auto-généré, pas un formulaire** à remplir à la main (validation 30 s) ; (2) **vivant** — nouveau composant créé → ligne ajoutée auto (via #38) sinon doc morte ; (3) **ancré sur le réel** (domaine + composants réellement créés), pas un champ lexical halluciné.
 
@@ -235,7 +235,7 @@ La colonne **Composant/fichier** verrouille la structure et branche le lexique s
 |-------|---------|--------|--------|
 | **1 — Fondation background** | Génération auto du contrat depuis l'intention + **recherche web** si domaine inconnu (`claudeWebResearch`) ; persistance en artefact projet (`lexique.md` ou section dédiée) ; affichage simple. La Porte A fonctionnelle. | ⚖️ Sonnet 4.6 | M |
 | **2 — Contrat vivant + injecté** | Injection du contrat dans les 3 scénarios (`scenario.ts`, bloc « Contrat de langage ») → l'agent verrouille le vocabulaire ; **maintien vivant** (nouveau composant → ligne auto, via #38) ; résolution *terme naturel → composant* exploitée par les retours flous (#5/#43). | 🧠 Opus 4.8 | M |
-| **3 — Porte B + édition UI** | Panneau « Contrat de langage » (voir/éditer le tableau, réutilise le pattern d'édition des super-agents) **+ questionnaire rigoureux guidé** pour l'utilisateur au but vague. | ⚖️ Sonnet 4.6 | L |
+| **3 — Cadrage assisté (DANS Mango Plan, pas de surface séparée)** | Contrat de langage = section de `plan.md` ; **mode exploration pour indécis** (propositions concrètes cliquables + idéation visuelle #37) ; **bonus : moodboard VISUEL réel via Sharingan #8** (`MOODBOARD_RULES` note la capture des leaders comme "planned enhancement" — Sharingan, livré depuis, le rend faisable : palette/typo/layout réels au lieu de texte) ; panneau d'édition léger du lexique (réutilise le pattern d'édition des super-agents). | ⚖️ Sonnet 4.6 | L |
 
 ---
 

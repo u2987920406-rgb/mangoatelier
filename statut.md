@@ -77,7 +77,7 @@
 | 42 | MangoAI cerveau personnel (3 couches identité) | ✅ FAIT | — | — |
 | 43 | Escalade UX/UI par signal humain | ✅ FAIT | — | — |
 | 44 | Orchestration « conseil d'experts » (rattrapage projet dévié, lecture seule) | 💡 idée | 🧠 Opus 4.8 | M |
-| 45 | Contrat de langage du projet (lexique bidirectionnel humain↔technique, 2 portes + recherche web) | 💡 idée · plan 3 phases | 🧠 Opus 4.8 | M |
+| 45 | Contrat de langage du projet (lexique bidirectionnel humain↔technique ; Porte A background + Porte B fusionnée dans Mango Plan #9 ; bonus moodboard visuel via Sharingan #8) | 💡 idée · plan 3 phases | 🧠 Opus 4.8 | M |
 
 ### Roadmap haute couture — 11 chantiers
 
