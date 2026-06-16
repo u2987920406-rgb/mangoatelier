@@ -80,6 +80,11 @@
 | 45 | Contrat de langage du projet (lexique bidirectionnel humain↔technique ; Porte A background + Porte B fusionnée dans Mango Plan #9) | 💡 idée · plan 3 phases | 🧠 Opus 4.8 | M |
 | 46 | Moodboard VISUEL réel via Sharingan #8 (capture auto des leaders dans Mango Plan, comble le "planned enhancement" de MOODBOARD_RULES) | 💡 idée | ⚖️ Sonnet 4.6 | S |
 | 47 | Cadrage fondateur multimodal (chef d'orchestre : intention + contrat #45 + références web #46 + pièces jointes images/PDF via `uploads.ts` → `plan.md`) | 💡 idée | 🧠 Opus 4.8 | L |
+| 48 | Le Miroir — « voici ce que j'ai compris de toi » : récap visuel validable avant de coder | 💡 idée | 🧠 Opus 4.8 | M |
+| 49 | Cadrage qui apprend de toi — héritage cross-projet des préférences récurrentes (#42 + #A) | 💡 idée | ⚖️ Sonnet 4.6 | M |
+| 50 | Banque de références perso (mood library réutilisable — `.assets`, esprit #36) | 💡 idée | ⚖️ Sonnet 4.6 | M |
+| 51 | Sharingan-sur-image — extraire palette/ambiance d'une photo jointe comme d'une URL (`vision.ts`) | 💡 idée | ⚖️ Sonnet 4.6 | S |
+| 52 | Clarification proactive — Mango signale les contradictions au cadrage (#9 + #43) | 💡 idée | 🧠 Opus 4.8 | S |
 
 ### Roadmap haute couture — 11 chantiers
 
