@@ -86,6 +86,7 @@
 | 51 | Sharingan-sur-image — extraire palette/ambiance d'une photo jointe comme d'une URL (`vision.ts`) | ✅ FAIT | — | — |
 | 52 | Clarification proactive — Mango signale les contradictions au cadrage (#9 + #43) | ✅ FAIT | — | — |
 | 53 | **Carte des capacités** — synthèse vivante de TOUTES les compétences de Mango (blocs prompt `scenario.ts`, outils MCP, skills, super-agents, modes, Mango Plan, contrat de langage, extraction…) avec leur POIDS (tokens/latence) → vue d'ensemble après l'audit #13 pour arbitrer par phase/mode : réintégrer ou retirer une capacité selon son coût | 💡 idée · pour plus tard (après audit #13) | 🧠 Opus 4.8 | L |
+| 54 | **Élève local Gemma 4** — intégrer **Gemma 4 12B** (unifié, ~6,7 Go en Q4, donc plus léger que Qwen 14B actuel ≈ 9 Go, **vision+audio natifs**, contexte **256K**, function calling agentique, Apache 2.0) comme Élève **sélectionnable** via le moteur switchable `llm-engine.ts` + entrée sélecteur UI + **benchmark Qwen vs Gemma 4** sur tâches réelles (code/vision/indexation) → décider sur données l'Élève par défaut. **E4B (4,5 Go)** en repli ultra-léger. (`ollama pull` lancé par l'utilisateur.) | 💡 idée · **intégration ce soir** | ⚖️ Sonnet 4.6 | S |
 
 ### Roadmap haute couture — 11 chantiers
 
