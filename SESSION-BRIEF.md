@@ -276,6 +276,52 @@ Une marque classique = perception (logo, réputation). MangoAI à 5 ans = la mar
 
 ---
 
+## Radar IA Hebdomadaire — Idée validée le 16 juin 2026
+
+**Concept :** un scan automatique hebdomadaire des avancées IA, filtré par pertinence MangoAI, résumé par Haiku, présenté comme un brief le lundi matin. Raf reste dans la boucle pour décider quoi intégrer — c'est du RLHF appliqué à l'évolution du moteur lui-même.
+
+### Sources à surveiller
+- Anthropic blog + changelog → nouveaux modèles Claude, API, pricing
+- OpenAI / Google / Mistral → modèles compétiteurs, benchmarks
+- Hugging Face trending → modèles open-source Ollama-compatibles
+- GitHub Ollama releases → nouveaux modèles supportés localement
+- Reddit r/LocalLLaMA → communauté qui teste tout en premier
+- The Batch (Andrew Ng) → synthèse hebdo sérieuse
+
+### Flux automatisé
+```
+Cron hebdo (lundi 6h)
+      ↓
+Fetch APIs publiques (Anthropic, HuggingFace, GitHub)
+      ↓
+Haiku filtre : "pertinent pour MangoAI ?"
+      ↓
+Résumé structuré : nouveautés modèles / API / outils / prix
+      ↓
+Vue "Radar IA" dans MangoAI ou notification
+      ↓
+Raf décide quoi intégrer → mise à jour moteur
+```
+
+### Ce qui existe déjà
+- `cron-scheduler.ts` ✅ — planification hebdo
+- `llm-engine.ts` ✅ — Haiku pour filtrer et résumer
+- Panneau Knowledge ✅ — pour afficher le rapport
+
+### Ce qui manque
+- Scraper léger (fetch vers APIs publiques)
+- Prompt de filtrage "pertinence MangoAI"
+- Vue "Radar IA" dans l'interface
+
+### Effort estimé : 3-4h — après le tutoriel et l'automation nocturne
+
+### Pourquoi c'est de l'auto-amélioration
+Le tutoriel + la review matinale = MangoAI apprend Raf.
+Le Radar IA = MangoAI reste au niveau des meilleurs modèles disponibles.
+Les deux ensemble = un système qui s'améliore sur deux axes en parallèle : la connaissance de l'utilisateur ET la qualité du moteur.
+
+---
+
 ## Préférences et règles importantes
 
 - Toujours répondre en français
