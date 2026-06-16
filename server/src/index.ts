@@ -52,6 +52,7 @@ import { registerMultiProjectRoutes } from "./multi-project.js";
 import { registerAutoAblationRoutes } from "./auto-ablation.js";
 import { registerDesignReviewRoutes } from "./design-review.js";
 import { registerSuperAgentRoutes } from "./super-agent-builder.js";
+import { loadPreferences, savePreferences, learnPreferences } from "./preferences.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -538,6 +539,8 @@ app.get("/api/knowledge/:name", (req, res) => {
     lexique: dir ? loadLexique(dir) : "",
     // Idée #48 — Le Miroir: validated comprehension snapshot, project-scoped.
     miroir: dir ? loadMiroir(dir) : "",
+    // Idée #49 — Cadrage qui apprend de toi: learned recurring preferences (workspace-level).
+    preferences: loadPreferences(WORKSPACE_DIR),
     // Idée #36 — cross-project component library (workspace-level).
     components: listComponents(WORKSPACE_DIR),
     // Idée #42 — personal identity layers (workspace-level, cross-project).
@@ -754,6 +757,35 @@ app.put("/api/design-system", (req, res) => {
   try {
     saveDesignSystem(WORKSPACE_DIR, content);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// ── Idée #49 — Préférences apprises cross-projet ─────────────────────────────
+
+app.get("/api/preferences", (_req, res) => {
+  res.json({ content: loadPreferences(WORKSPACE_DIR) });
+});
+
+app.put("/api/preferences", (req, res) => {
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    savePreferences(WORKSPACE_DIR, content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post("/api/preferences/learn", async (_req, res) => {
+  try {
+    await learnPreferences(WORKSPACE_DIR);
+    res.json({ ok: true, content: loadPreferences(WORKSPACE_DIR) });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
