@@ -19,7 +19,15 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { runRelay, defaultRelayDeps } from "./eleve.js";
-import { AXIOMS_FILE_NAME, loadAxioms, removeLastAxiom } from "./axioms.js";
+import {
+  AXIOMS_FILE_NAME,
+  loadAxioms,
+  removeLastAxiom,
+  removeAxiomAt,
+  computeAblationVerdict,
+  countCodeAxioms,
+  PRUNE_MIN_AXIOMS,
+} from "./axioms.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { AUDIT_TASKS, type AuditTask } from "./audit-tasks.js";
 import { verifyEffect } from "./audit-verify.js";
@@ -30,6 +38,7 @@ const MAX_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? 2);
 const SOURCE = path.resolve(process.cwd(), "..", "workspace", "test-pipeline");
 const AUDIT_LOG = path.join(WORKSPACE_DIR, ".audit.jsonl");
 const ABLATE = process.argv.includes("--ablate");
+const PRUNE_SCAN = process.argv.includes("--prune-scan");
 
 const line = (c = "─") => console.log(c.repeat(64));
 
@@ -290,6 +299,137 @@ async function ablationScan(): Promise<void> {
   }
 }
 
+// ── Prune Scan (Clapet v4.0) ─────────────────────────────────────────────────
+//
+// For EACH axiom in the registry: runs the held-out suite WITH the full
+// registry vs WITHOUT that axiom, computes the real-yield delta, and returns
+// an ablation verdict (keep / neutral / prune).
+//
+// GATING: only emits prune recommendations when the registry has at least
+// PRUNE_MIN_AXIOMS code axioms.  Below the threshold the signal is too noisy
+// and the scan exits early with a friendly message.  This is EXPECTED today
+// (the registry is nearly empty): the infrastructure is ready and will
+// activate once there is enough fuel.
+//
+// SAFETY: after every per-axiom test run the EXACT raw bytes of the registry
+// are restored.  --prune-scan is purely READ / RECOMMEND — it never deletes
+// anything.  "prune" is a candidate flag for human review, not an action.
+async function pruneScan(): Promise<void> {
+  const axiomsPath = path.join(WORKSPACE_DIR, AXIOMS_FILE_NAME);
+  if (!fs.existsSync(axiomsPath)) {
+    console.log("⚠ Registre d'axiomes vide — rien à analyser. Lance d'abord un scan normal.");
+    return;
+  }
+
+  // Read RAW bytes — do NOT use loadAxioms (it trims/caps and would break the
+  // byte-identical restore that is mandatory after each ablation test).
+  const rawOriginal = fs.readFileSync(axiomsPath, "utf8");
+
+  // ── GATING ────────────────────────────────────────────────────────────────
+  const codeCount = countCodeAxioms(rawOriginal);
+  if (codeCount < PRUNE_MIN_AXIOMS) {
+    console.log(
+      `Clapet v4 prêt — ${codeCount} axiome(s) de code, seuil ${PRUNE_MIN_AXIOMS} non atteint → rien à élaguer pour l'instant.`,
+    );
+    console.log(
+      `(infrastructure posée et dormante — elle s'activera quand le registre atteindra ${PRUNE_MIN_AXIOMS} axiomes BUILD/ARCH/DATA/PERF)`,
+    );
+    return;
+  }
+
+  // ── Parse axioms to know how many we'll iterate ───────────────────────────
+  // We parse via the exported countCodeAxioms helper — but we also need the
+  // full list.  We re-parse locally here (parseAxioms is private; we extract
+  // the list from removeAxiomAt behaviour).
+  const totalBlocks = (rawOriginal.match(/^\s*AXIOME-/gim) ?? []).length;
+  if (totalBlocks === 0) {
+    console.log("⚠ Aucun axiome parsé dans le registre.");
+    return;
+  }
+
+  console.log(`\nClapet v4.0 — Prune Scan (${totalBlocks} axiomes, ${codeCount} de code)`);
+  console.log(`Élève : ${ELEVE_MODEL}  ·  Suite : ${AUDIT_TASKS.length} tâches held-out`);
+  console.log(`RAPPEL : "prune" = RECOMMANDATION seulement — aucun axiome ne sera supprimé automatiquement.\n`);
+
+  // ── Run suite ONCE with the full registry as baseline ─────────────────────
+  process.stdout.write("▶ Référence (registre complet)… ");
+  const baseResults = await runSuite("Référence");
+  const baseHealth = aggregate(baseResults);
+  console.log(`   → rendement réel ${baseHealth.effectPct}%  build ${baseHealth.builtPct}%`);
+
+  // ── Per-axiom ablation loop ───────────────────────────────────────────────
+  interface PruneRow {
+    index: number;
+    header: string;
+    cat: string;
+    maturity: string;
+    scope: string;
+    yieldWith: number;
+    yieldWithout: number;
+    delta: number;
+    verdict: "keep" | "neutral" | "prune";
+  }
+  const rows: PruneRow[] = [];
+
+  for (let i = 0; i < totalBlocks; i++) {
+    const { without, removed } = removeAxiomAt(rawOriginal, i);
+    if (!removed) continue;
+
+    const header = removed.split("\n")[0].trim();
+    const catMatch = /AXIOME-([A-Z0-9]+)/i.exec(header);
+    const cat = catMatch?.[1]?.toUpperCase() ?? "?";
+    const maturity = /confirm/i.test(header) ? "confirmé" : /candidat/i.test(header) ? "candidat" : "?";
+    const scopeMatch = /scope\s*:\s*(global|project|local)/i.exec(header);
+    const scope = scopeMatch?.[1]?.toLowerCase() ?? "global";
+
+    process.stdout.write(`   · [${i}] ${header.slice(0, 50)}… `);
+
+    let withoutHealth: Health;
+    try {
+      fs.writeFileSync(axiomsPath, without); // temporarily remove axiom i
+      const withoutResults = await runSuite(`SANS axiome ${i}`);
+      withoutHealth = aggregate(withoutResults);
+    } finally {
+      fs.writeFileSync(axiomsPath, rawOriginal); // ALWAYS restore exact bytes
+    }
+
+    const { delta, verdict } = computeAblationVerdict(baseHealth.effectPct, withoutHealth.effectPct);
+    const mark = verdict === "prune" ? "⚠ CANDIDAT ÉLAGAGE" : verdict === "neutral" ? "≈ neutre" : "✓ utile";
+    console.log(`rendement sans: ${withoutHealth.effectPct}%  delta: ${delta > 0 ? "+" : ""}${delta.toFixed(1)}  → ${mark}`);
+
+    rows.push({ index: i, header, cat, maturity, scope, yieldWith: baseHealth.effectPct, yieldWithout: withoutHealth.effectPct, delta, verdict });
+  }
+
+  // ── Summary table ─────────────────────────────────────────────────────────
+  line("═");
+  console.log("RÉSUMÉ PRUNE SCAN");
+  line();
+  console.log(`${"Idx".padEnd(4)} ${"Cat".padEnd(7)} ${"Maturité".padEnd(10)} ${"Scope".padEnd(8)} ${"Avec%".padEnd(6)} ${"Sans%".padEnd(6)} ${"Delta".padEnd(7)} Verdict`);
+  line();
+  for (const r of rows) {
+    const row = [
+      String(r.index).padEnd(4),
+      r.cat.padEnd(7),
+      r.maturity.padEnd(10),
+      r.scope.padEnd(8),
+      String(r.yieldWith).padEnd(6),
+      String(r.yieldWithout).padEnd(6),
+      (r.delta >= 0 ? `+${r.delta.toFixed(1)}` : r.delta.toFixed(1)).padEnd(7),
+      r.verdict === "prune" ? "⚠ CANDIDAT ÉLAGAGE" : r.verdict === "neutral" ? "≈ neutre" : "✓ utile",
+    ].join(" ");
+    console.log(row);
+  }
+  line();
+
+  const pruneCount = rows.filter((r) => r.verdict === "prune").length;
+  if (pruneCount > 0) {
+    console.log(`\n${pruneCount} axiome(s) candidat(s) à l'élagage — revue HUMAINE requise avant toute suppression.`);
+    console.log(`(le clapet est anti-OUBLI, pas anti-CORRECTION — aucune suppression automatique)`);
+  } else {
+    console.log(`\n✓ Aucun axiome candidat à l'élagage — le registre est utile dans son ensemble.`);
+  }
+}
+
 // ── Entrée ───────────────────────────────────────────────────────────────────
 (async () => {
   if (!fs.existsSync(path.join(SOURCE, "node_modules"))) {
@@ -297,7 +437,8 @@ async function ablationScan(): Promise<void> {
     console.error("  L'audit a besoin d'un projet Vite installé (workspace/test-pipeline).");
     process.exit(1);
   }
-  console.log(`Audit Scan — Élève ${ELEVE_MODEL}${ABLATE ? " — mode ABLATION" : ""}`);
-  if (ABLATE) await ablationScan();
+  console.log(`Audit Scan — Élève ${ELEVE_MODEL}${ABLATE ? " — mode ABLATION" : PRUNE_SCAN ? " — mode PRUNE SCAN" : ""}`);
+  if (PRUNE_SCAN) await pruneScan();
+  else if (ABLATE) await ablationScan();
   else await normalScan();
 })();

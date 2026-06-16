@@ -42,19 +42,87 @@ export function ensureErrorRelay(dir: string): void {
 // clique l'aperçu RÉEL qu'il voit, le DOM réel répond — pas de Playwright, pas
 // de vision. Le builder bascule le mode via postMessage("mangoai-builder").
 const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
-      // MangoAI inspect relay - click -> source (file:line) for visual editing
+      // MangoAI inspect relay - hover highlight + click -> source (file:line)
       (function () {
         var ON = false;
+        // Hover throttle state
+        var _rafPending = false;
+        var _lastEl = null;
+        var _lastRectKey = "";
+
         function setMode(on) {
           ON = on;
           document.documentElement.style.cursor = on ? "crosshair" : "";
+          if (!on) {
+            // Clear hover overlay when mode turns off
+            _lastEl = null;
+            _lastRectKey = "";
+            try {
+              window.parent.postMessage(
+                { source: "mangoai-preview", type: "inspect-hover", rect: null },
+                "*"
+              );
+            } catch (_) {}
+          }
         }
+
         window.addEventListener("message", function (e) {
           var d = e.data;
           if (!d || d.source !== "mangoai-builder") return;
           if (d.type === "inspect-on") setMode(true);
           else if (d.type === "inspect-off") setMode(false);
         });
+
+        // Hover: emit inspect-hover per frame, deduplicated
+        window.addEventListener("mousemove", function (e) {
+          if (!ON) return;
+          if (_rafPending) return;
+          _rafPending = true;
+          requestAnimationFrame(function () {
+            _rafPending = false;
+            if (!ON) return;
+            var node = e.target;
+            var el = node && node.closest ? node.closest("[data-mango-src]") : null;
+            var ref = el || node;
+            // Dedup: skip if same element and same position
+            var rectKey = "";
+            if (ref) {
+              var rr = ref.getBoundingClientRect();
+              rectKey = rr.left + "," + rr.top + "," + rr.width + "," + rr.height;
+            }
+            if (ref === _lastEl && rectKey === _lastRectKey) return;
+            _lastEl = ref;
+            _lastRectKey = rectKey;
+            if (!ref) return;
+            var r = ref.getBoundingClientRect();
+            try {
+              window.parent.postMessage(
+                {
+                  source: "mangoai-preview",
+                  type: "inspect-hover",
+                  rect: { x: r.left, y: r.top, width: r.width, height: r.height },
+                  tag: ref.tagName ? ref.tagName.toLowerCase() : "?",
+                  src: el ? el.getAttribute("data-mango-src") : null,
+                },
+                "*"
+              );
+            } catch (_) {}
+          });
+        }, true);
+
+        // Clear overlay when the mouse leaves the iframe document
+        document.addEventListener("mouseleave", function () {
+          if (!ON) return;
+          _lastEl = null;
+          _lastRectKey = "";
+          try {
+            window.parent.postMessage(
+              { source: "mangoai-preview", type: "inspect-hover", rect: null },
+              "*"
+            );
+          } catch (_) {}
+        });
+
         window.addEventListener(
           "click",
           function (e) {
@@ -78,7 +146,16 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
                 "*"
               );
             } catch (_) {}
-            setMode(false); // un clic = une sélection
+            // Clear hover overlay immediately after pick
+            _lastEl = null;
+            _lastRectKey = "";
+            try {
+              window.parent.postMessage(
+                { source: "mangoai-preview", type: "inspect-hover", rect: null },
+                "*"
+              );
+            } catch (_) {}
+            setMode(false); // one click = one selection
           },
           true
         );

@@ -29,6 +29,9 @@ export default function Preview({
   const [device, setDevice] = useState("desktop");
   const iframeRef = useRef(null);
 
+  // Hover overlay state: rect (in iframe-viewport coords) + tag/src label
+  const [hoverInfo, setHoverInfo] = useState(null); // { rect, tag, src } | null
+
   // Relais clic→source (#5) : on (dé)active le mode inspection dans l'aperçu via
   // postMessage. Re-déclenché quand l'iframe se recharge (reloadKey/url) pour que
   // le mode survive à un rechargement. Cross-origin : la cible "*" est volontaire.
@@ -45,6 +48,28 @@ export default function Preview({
     const t = setTimeout(send, 400);
     return () => clearTimeout(t);
   }, [inspecting, reloadKey, url]);
+
+  // Listen for inspect-hover messages from the iframe.
+  // Coords are relative to the iframe viewport = relative to the wrapper (iframe fills it).
+  useEffect(() => {
+    const onMessage = (e) => {
+      const d = e.data;
+      if (!d || d.source !== "mangoai-preview") return;
+      if (d.type !== "inspect-hover") return;
+      if (!inspecting || !d.rect) {
+        setHoverInfo(null);
+        return;
+      }
+      setHoverInfo({ rect: d.rect, tag: d.tag ?? "?", src: d.src ?? null });
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [inspecting]);
+
+  // Clear overlay when inspection mode is turned off
+  useEffect(() => {
+    if (!inspecting) setHoverInfo(null);
+  }, [inspecting]);
 
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-bg">
@@ -267,7 +292,7 @@ export default function Preview({
       <div className="flex min-h-0 flex-1 p-4">
         {url ? (
           <div
-            className={`flex overflow-hidden rounded-xl border border-edge bg-white shadow-2xl shadow-black/40 transition-all ${
+            className={`relative flex overflow-hidden rounded-xl border border-edge bg-white shadow-2xl shadow-black/40 transition-all ${
               device === "mobile" ? "mx-auto w-[390px]" : "w-full"
             }`}
           >
@@ -278,6 +303,36 @@ export default function Preview({
               title="Aperçu de l'app générée"
               className="h-full w-full border-0"
             />
+            {/* Click-to-Segment overlay: hover highlight (#27) */}
+            {inspecting && hoverInfo && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+              >
+                {/* Highlight box */}
+                <div
+                  className="absolute rounded-sm border border-accent bg-accent/10 ring-1 ring-accent/40 transition-all duration-75"
+                  style={{
+                    left: hoverInfo.rect.x,
+                    top: hoverInfo.rect.y,
+                    width: hoverInfo.rect.width,
+                    height: hoverInfo.rect.height,
+                  }}
+                >
+                  {/* Label chip: clamped below the box if rect is near the top */}
+                  <div
+                    className={`absolute left-0 flex max-w-[calc(100%+4rem)] items-center gap-1 whitespace-nowrap rounded border border-accent/30 bg-panel px-1.5 py-0.5 font-mono text-[10px] leading-4 text-accent shadow-sm ${
+                      hoverInfo.rect.y >= 22 ? "-top-[22px]" : "top-[calc(100%+2px)]"
+                    }`}
+                  >
+                    <span className="font-semibold">&lt;{hoverInfo.tag}&gt;</span>
+                    {hoverInfo.src && (
+                      <span className="text-dim">{hoverInfo.src}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="m-auto flex flex-col items-center gap-3 text-faint">

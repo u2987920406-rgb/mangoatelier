@@ -59,8 +59,8 @@
 | 24 | Générateur de tests automatiques | ✅ FAIT | — | — |
 | 25 | MCP Figma intégré | 🗑️ RETIRÉ | — | — |
 | 26 | Mode multi-projets & composition | ✅ FAIT | — | — |
-| 27 | Click-to-Segment (SAM + VLM) | 💤 à phaser | ⚖️ Sonnet 4.6 | S |
-| 28 | Clapet v4.0 — auto-élagage ablation | 💤 palier maturité | ⚖️ Sonnet 4.6 | M |
+| 27 | Click-to-Segment (overlay natif, sans SAM/VLM) | ✅ FAIT | — | — |
+| 28 | Clapet v4.0 — auto-élagage ablation | ✅ FAIT | — | — |
 | 29 | Packaging bêta sans source | 💤 Phase B | 🧠 Opus 4.8 | XL |
 | 30 | Mode Architecte v2 (PromptArchitect) | ✅ FAIT | — | — |
 | 31 | Cloner depuis une URL (clone_url) | ✅ FAIT | — | — |
