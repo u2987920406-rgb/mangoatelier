@@ -22,6 +22,7 @@ import AutoAblation from "./components/AutoAblation.jsx";
 import MultiProject from "./components/MultiProject.jsx";
 import SuperAgentBuilder from "./components/SuperAgentBuilder.jsx";
 import DesignReview from "./components/DesignReview.jsx";
+import Tutorial from "./components/Tutorial.jsx";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -64,6 +65,12 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  // Tutoriel (#56) : overlay non bloquant. tutorialFreedom est stocké mais pas
+  // encore appliqué (les verrous de liberté UI viennent au Chantier B).
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialId, setTutorialId] = useState(null);
+  const [tutorialFreedom, setTutorialFreedom] = useState(0);
+  const [tutorialNextId, setTutorialNextId] = useState(1);
   const toastId = useRef(1);
 
   const pushToast = useCallback((kind, text, linkUrl) => {
@@ -96,6 +103,44 @@ export default function App() {
   useEffect(() => {
     refreshProjects();
   }, [refreshProjects]);
+
+  // Progression du tutoriel (#56) : détermine le prochain tuto à proposer.
+  const refreshTutorialProgress = useCallback(() => {
+    fetch("/api/tutorial/progress")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setTutorialNextId(d ? d.nextTutorialId : 1))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refreshTutorialProgress();
+  }, [refreshTutorialProgress]);
+
+  const startTutorial = useCallback((tutId, freedom = 0) => {
+    setTutorialId(tutId);
+    setTutorialFreedom(freedom);
+    setTutorialActive(true);
+  }, []);
+
+  const exitTutorial = useCallback(() => {
+    setTutorialActive(false);
+    setTutorialId(null);
+    refreshTutorialProgress();
+  }, [refreshTutorialProgress]);
+
+  const completeTutorial = useCallback(
+    (nextId) => {
+      setTutorialNextId(nextId);
+      setTutorialActive(false);
+      setTutorialId(null);
+      if (nextId) {
+        pushToast("success", `Tutoriel terminé 🎓 — prochain : ${nextId}/10`);
+      } else {
+        pushToast("success", "Tous les tutoriels sont terminés 🎉");
+      }
+    },
+    [pushToast],
+  );
 
   // Auto-start the preview of the opened project. 404 for not-yet-created
   // projects is fine — the agent starts it on the first message.
@@ -316,7 +361,13 @@ export default function App() {
     <>
       {screen === "home" ? (
         <>
-          <Home projects={projects} templates={templates} onOpen={openProject} />
+          <Home
+            projects={projects}
+            templates={templates}
+            onOpen={openProject}
+            onStartTutorial={startTutorial}
+            nextTutorialId={tutorialNextId}
+          />
           <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
             <button
               onClick={() => setSidePanelOpen(true)}
@@ -507,6 +558,14 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+      {tutorialActive && tutorialId != null && (
+        <Tutorial
+          id={tutorialId}
+          freedom={tutorialFreedom}
+          onComplete={completeTutorial}
+          onExit={exitTutorial}
+        />
       )}
       <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
       <ConfirmModal config={confirmCfg} onClose={() => setConfirmCfg(null)} />

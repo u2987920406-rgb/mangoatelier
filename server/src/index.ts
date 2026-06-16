@@ -55,6 +55,7 @@ import { registerDesignReviewRoutes } from "./design-review.js";
 import { registerSuperAgentRoutes } from "./super-agent-builder.js";
 import { loadPreferences, savePreferences, learnPreferences } from "./preferences.js";
 import { runCouncil, loadRecoveryPlan, clearRecoveryPlan } from "./orchestrator.js";
+import { registerTutorialRoutes } from "./tutorial.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -1169,6 +1170,7 @@ registerAutoAblationRoutes(app);
 registerMultiProjectRoutes(app);
 registerDesignReviewRoutes(app);
 registerSuperAgentRoutes(app);
+registerTutorialRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);

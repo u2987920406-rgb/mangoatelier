@@ -5,6 +5,7 @@ import {
   Clock,
   FileText,
   FolderOpen,
+  GraduationCap,
   Package,
   Search,
   ShoppingCart,
@@ -58,7 +59,7 @@ function slugify(text) {
 
 const PROJECTS_VISIBLE = 6;
 
-export default function Home({ projects, templates, onOpen }) {
+export default function Home({ projects, templates, onOpen, onStartTutorial, nextTutorialId }) {
   const [prompt, setPrompt] = useState("");
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
@@ -121,6 +122,29 @@ export default function Home({ projects, templates, onOpen }) {
         >
           {HERO_TAGLINES[taglineIndex]}
         </p>
+
+        {/* Tutoriel (#56) — démarrer ou reprendre */}
+        {onStartTutorial && nextTutorialId != null && (
+          <div className="animate-fade-up mt-6 w-full">
+            <button
+              onClick={() => onStartTutorial(nextTutorialId)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-accent/40 bg-accent/[0.06] px-4 py-3 text-left hover:border-accent/70 hover:bg-accent/[0.1] transition-colors"
+            >
+              <GraduationCap size={17} className="shrink-0 text-accent-soft" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">
+                  {nextTutorialId === 1 ? "Découvrir MangoAI" : "Tutoriel"}
+                </p>
+                <p className="truncate text-sm text-ink">
+                  {nextTutorialId === 1
+                    ? "🎓 Commencer le tutoriel"
+                    : `🎓 Reprendre le tutoriel (${nextTutorialId}/10)`}
+                </p>
+              </div>
+              <ArrowUp size={14} className="ml-auto shrink-0 rotate-90 text-accent-soft" />
+            </button>
+          </div>
+        )}
 
         {/* Accès rapide — dernier projet */}
         {lastProject && (
