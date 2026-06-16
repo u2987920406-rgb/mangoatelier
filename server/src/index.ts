@@ -54,6 +54,7 @@ import { registerAutoAblationRoutes } from "./auto-ablation.js";
 import { registerDesignReviewRoutes } from "./design-review.js";
 import { registerSuperAgentRoutes } from "./super-agent-builder.js";
 import { loadPreferences, savePreferences, learnPreferences } from "./preferences.js";
+import { runCouncil, loadRecoveryPlan, clearRecoveryPlan } from "./orchestrator.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -708,6 +709,39 @@ app.delete("/api/references/:slug", (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// ── Idée #44 — Conseil d'experts (rattrapage projet dévié, lecture seule) ────
+
+// Convoque le conseil : N lentilles diagnostiquent en lecture seule → plan de
+// reprise priorisé sauvegardé en .recovery-plan.md. N'écrit jamais de code.
+app.post("/api/council/:name", async (req, res) => {
+  const name = req.params.name;
+  const { problem } = req.body as { problem?: string };
+  if (!projectExists(name)) {
+    res.status(404).json({ error: `Projet "${name}" introuvable` });
+    return;
+  }
+  try {
+    const result = await runCouncil(name, typeof problem === "string" ? problem : "");
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Plan de reprise courant (s'il existe)
+app.get("/api/council/:name", (req, res) => {
+  const name = req.params.name;
+  const dir = projectExists(name) ? projectDir(name) : null;
+  res.json({ plan: dir ? loadRecoveryPlan(dir) : "" });
+});
+
+// Efface le plan de reprise (rattrapage terminé)
+app.delete("/api/council/:name", (req, res) => {
+  const name = req.params.name;
+  if (projectExists(name)) clearRecoveryPlan(projectDir(name));
+  res.json({ ok: true });
 });
 
 // ── Skills API ───────────────────────────────────────────────────────────────

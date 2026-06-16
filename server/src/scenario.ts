@@ -28,6 +28,7 @@ import { REFERENCES_RULES, referencesPromptSection } from "./references.js";
 import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.js";
 import { superAgentPromptSection } from "./super-agent-builder.js";
 import { preferencesPromptSection } from "./preferences.js";
+import { recoveryPromptSection } from "./orchestrator.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition";
@@ -222,6 +223,11 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // contexte de haut niveau. Returns "" when no agent matches → no pollution
   // for projects without a dedicated expert.
   superAgent: (ctx) => superAgentPromptSection(path.basename(ctx.projectDir)),
+  // Idée #44 — conseil d'experts (rattrapage): when a council has run on a
+  // deviated project, an active recovery plan (.recovery-plan.md) is injected so
+  // the SINGLE builder applies it sequentially, one step per turn. Zero weight
+  // ("") until a council has produced a plan → never pollutes healthy projects.
+  recovery: (ctx) => recoveryPromptSection(ctx.projectDir),
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -229,8 +235,8 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
-  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
-  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  elite: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
+  mvp: ["mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
