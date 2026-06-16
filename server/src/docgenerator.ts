@@ -1,11 +1,9 @@
-// Documentation generator: reads project files and generates markdown doc via Claude.
-import Anthropic from "@anthropic-ai/sdk";
+// Documentation generator: reads project files and generates markdown doc via LLM.
 import fs from "node:fs";
 import path from "node:path";
 import type { Express, Request, Response } from "express";
 import { WORKSPACE_DIR } from "./projects.js";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { askLLM, resolveProvider } from "./llm-engine.js";
 
 const MAX_FILES = 20;
 const MAX_LINES = 500;
@@ -65,17 +63,16 @@ async function generateDocumentation(
 
   const userPrompt = `Projet : **${projectName}**\n\nVoici les fichiers sources :\n\n${fileBlocks}`;
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4000,
-    system:
-      "Tu es un expert en documentation technique. Génère une documentation complète et professionnelle en Markdown pour le projet analysé. Structure : ## Vue d'ensemble, ## Architecture, ## Composants clés, ## API & Endpoints, ## Guide d'utilisation rapide.",
-    messages: [{ role: "user", content: userPrompt }],
+  const system =
+    "Tu es un expert en documentation technique. Génère une documentation complète et professionnelle en Markdown pour le projet analysé. Structure : ## Vue d'ensemble, ## Architecture, ## Composants clés, ## API & Endpoints, ## Guide d'utilisation rapide.";
+
+  const text = await askLLM(system, userPrompt, {
+    provider: resolveProvider(process.env.DOC_PROVIDER),
+    maxTokens: 4000,
   });
 
-  const block = message.content[0];
-  if (block.type !== "text") throw new Error("Unexpected response type from Claude");
-  return block.text;
+  if (!text) throw new Error("Unexpected empty response from LLM");
+  return text;
 }
 
 function saveDocumentation(projectDir: string, content: string): void {
@@ -114,7 +111,7 @@ export function registerDocGeneratorRoutes(app: Express): void {
 
       send({
         type: "progress",
-        text: `${files.length} fichier(s) trouvé(s). Génération de la documentation via Claude...`,
+        text: `${files.length} fichier(s) trouvé(s). Génération de la documentation via LLM...`,
       });
 
       const doc = await generateDocumentation(projectName, files);

@@ -3,10 +3,8 @@
 // et l'enregistre dans .axioms.md avec le tag validé-utilisateur ou à-éviter.
 import path from "node:path";
 import fs from "node:fs";
-import Anthropic from "@anthropic-ai/sdk";
+import { askLLM, resolveProvider } from "./llm-engine.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
-
-const client = new Anthropic();
 
 export type FeedbackRating = "like" | "dislike";
 
@@ -64,17 +62,10 @@ AXIOME-${axiomCat}-XX [candidat] [${tag}]
 - Règle d'or: (ce qu'il faut faire à la place)
 - Source: 👎 utilisateur (${today}) — projet ${projectName}`;
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 400,
-    messages: [{ role: "user", content: prompt }],
+  const axiomText = await askLLM('', prompt, {
+    provider: resolveProvider(process.env.FEEDBACK_PROVIDER),
+    maxTokens: 400,
   });
-
-  const axiomText = response.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    .trim();
 
   if (!axiomText.startsWith("AXIOME-")) return;
 
@@ -105,17 +96,10 @@ AXIOME-UX-XX [candidat] [validé-utilisateur]
 - Règle d'or: (ce que l'utilisateur préfère visuellement)
 - Source: 🎯 escalade utilisateur (${today}) — projet ${projectName}`;
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 400,
-    messages: [{ role: "user", content: prompt }],
+  const axiomText = await askLLM('', prompt, {
+    provider: resolveProvider(process.env.FEEDBACK_PROVIDER),
+    maxTokens: 400,
   });
-
-  const axiomText = response.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    .trim();
 
   if (!axiomText.startsWith("AXIOME-")) return;
 

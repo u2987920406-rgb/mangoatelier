@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Express, Request, Response } from 'express'
 import { WORKSPACE_DIR } from './projects.js'
+import { askLLM, resolveProvider } from './llm-engine.js'
 
 interface QAResult {
   projectName: string
@@ -102,22 +102,14 @@ async function runQAAnalysis(projectName: string): Promise<QAResult> {
     throw new Error(`No analyzable files found in project "${projectName}"`)
   }
 
-  const client = new Anthropic()
+  const system =
+    'Tu es un expert QA senior. Analyse le code fourni et retourne UNIQUEMENT un JSON valide (sans markdown) avec : score (0-100), issues (tableau de {severity: critical|warning|info, file, description}), suggestions (tableau de strings), strengths (tableau de strings). Sois concis et précis.'
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
-    system:
-      'Tu es un expert QA senior. Analyse le code fourni et retourne UNIQUEMENT un JSON valide (sans markdown) avec : score (0-100), issues (tableau de {severity: critical|warning|info, file, description}), suggestions (tableau de strings), strengths (tableau de strings). Sois concis et précis.',
-    messages: [
-      {
-        role: 'user',
-        content: `Analyse ce projet :\n${filesContent}`,
-      },
-    ],
+  const raw = await askLLM(system, `Analyse ce projet :\n${filesContent}`, {
+    provider: resolveProvider(process.env.QA_PROVIDER),
+    maxTokens: 2000,
   })
 
-  const raw = response.content[0].type === 'text' ? response.content[0].text : ''
   let parsed: { score: number; issues: QAIssue[]; suggestions: string[]; strengths: string[] }
   try {
     parsed = JSON.parse(raw)

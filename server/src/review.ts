@@ -205,7 +205,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
           // Workspace root so both the project memory and the profile are in
           // scope; the system prompt forbids touching anything else.
           cwd: WORKSPACE_DIR,
-          model: "haiku",
+          model: process.env.REVIEW_MODEL ?? "haiku",
           maxTurns: 12,
           permissionMode: "acceptEdits",
           allowedTools: ["Read", "Write", "Edit"],

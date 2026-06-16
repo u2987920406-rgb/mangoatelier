@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Express } from 'express'
+import { askLLM, resolveProvider } from './llm-engine.js'
 
 interface CronTask {
   id: string
@@ -48,16 +48,12 @@ function shouldRun(task: CronTask): boolean {
 }
 
 async function executeTask(task: CronTask): Promise<string> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const systemPrompt = `Tu es MangoAI, un agent autonome. Le projet cible est "${task.projectName}". Exécute la tâche demandée de façon concise et utile.`
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: task.prompt }]
+  const result = await askLLM(systemPrompt, task.prompt, {
+    provider: resolveProvider(process.env.CRON_PROVIDER),
+    maxTokens: 500,
   })
-  const block = response.content[0]
-  return block.type === 'text' ? block.text : '(résultat vide)'
+  return result || '(résultat vide)'
 }
 
 async function startScheduler(): Promise<void> {

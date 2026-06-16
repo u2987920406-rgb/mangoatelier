@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
 import type { Express, Request, Response } from 'express'
+import { askLLM, resolveProvider } from './llm-engine.js'
 
 interface IdeationResult {
   wireframe: string      // ASCII art de la page principale (max 50 chars de large)
@@ -23,27 +23,16 @@ export function registerIdeationRoutes(app: Express): void {
       return
     }
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
     const userMessage = `Description de l'application : ${description.trim()}${type && type !== '' ? `\nType d'application : ${type}` : ''}`
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30_000)
-
     try {
-      const response = await client.messages.create(
-        {
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1500,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userMessage }],
-        },
-        { signal: controller.signal }
-      )
-
-      clearTimeout(timeout)
-
-      const raw = response.content[0]?.type === 'text' ? response.content[0].text : ''
+      // askLLM enforces its own 30s timeout (timeoutMs) for ollama/openai providers,
+      // raising an AbortError caught below; claude (default) is bounded by maxTurns:1.
+      const raw = await askLLM(SYSTEM_PROMPT, userMessage, {
+        provider: resolveProvider(process.env.IDEATION_PROVIDER),
+        maxTokens: 1500,
+        timeoutMs: 30_000,
+      })
 
       let result: IdeationResult
       try {
@@ -61,7 +50,6 @@ export function registerIdeationRoutes(app: Express): void {
 
       res.json(result)
     } catch (err: unknown) {
-      clearTimeout(timeout)
       if (err instanceof Error && err.name === 'AbortError') {
         res.status(504).json({ error: 'Ideation timed out after 30s' })
       } else {
