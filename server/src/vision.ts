@@ -26,6 +26,13 @@ const VIEWPORT = { width: 1280, height: 800 };
 const FULL_PAGE_MAX_HEIGHT = 6000;
 const MAX_IMAGE_BYTES = 4_000_000; // Hermes' proactive 4 MB embed cap
 const IDLE_CLOSE_MS = 60_000;
+// Idea #53 follow-up: a snapshot can drive an interactive app (canvas game…)
+// with a short input sequence before capturing, so the image shows an
+// interacted state (movement, combat) instead of the idle first frame. Capped
+// so a sequence can never hang a turn.
+const MAX_INPUT_STEPS = 24; // steps per snapshot sequence
+const MAX_INPUT_MS_TOTAL = 8_000; // total hold/wait budget per snapshot
+const MAX_STEP_MS = 2_000; // ceiling on a single hold/wait
 
 // One agent turn at a time (agentBusy upstream) → simple module state.
 let projectDir: string | null = null;
@@ -121,12 +128,45 @@ const snapshotTool = tool(
   "snapshot",
   "Captures the live preview of the app as an image you can SEE (the rendered result, not the code). " +
     "Use it to verify your visual work: first a global snapshot, then — if a zone looks wrong, dense or unreadable " +
-    "(table, chart, small text, alignment) — a zoomed crop of that zone via `selector` or `box` with `scale` 2-3.",
+    "(table, chart, small text, alignment) — a zoomed crop of that zone via `selector` or `box` with `scale` 2-3. " +
+    "For an INTERACTIVE app (canvas game, anything needing keys/clicks to leave its idle screen), pass `inputs`: a short " +
+    "sequence of key presses/holds, clicks and waits played BEFORE the capture, so the image shows movement/combat/an " +
+    "interacted state instead of the inert first frame. To start a game whose Start button is a DOM element, click it with " +
+    "`clickText` (e.g. 'JOUER') or `clickSelector` — more reliable than guessing pixel coordinates — then drive with keys " +
+    "(e.g. hold ArrowRight 600ms to move, press z to attack). Keys go to the canvas; a focused text/number input would otherwise eat them.",
   {
     selector: z
       .string()
       .optional()
       .describe("CSS selector of one element to capture (crop + zoom on it)"),
+    inputs: z
+      .array(
+        z.object({
+          key: z
+            .string()
+            .optional()
+            .describe("Keyboard key to send (Playwright name: ArrowRight, Enter, w, z, ' ' for space)"),
+          hold: z
+            .number()
+            .optional()
+            .describe("Hold the key for this many ms (max 2000); omit for a single tap"),
+          click: z
+            .object({ x: z.number(), y: z.number() })
+            .optional()
+            .describe("Click at these viewport pixel coordinates (1280×800 base)"),
+          clickSelector: z
+            .string()
+            .optional()
+            .describe("Click a DOM element by CSS selector (robust — prefer this over `click` to press a Start/Play button)"),
+          clickText: z
+            .string()
+            .optional()
+            .describe("Click the first element containing this text (e.g. 'JOUER', 'Start') — robust for buttons without a stable selector"),
+          wait: z.number().optional().describe("Wait this many ms before the next step (max 2000)"),
+        }),
+      )
+      .optional()
+      .describe("Input sequence played on the preview BEFORE capturing (max 24 steps, ~8s total) — drive a game/interactive app into a meaningful state"),
     box: z
       .object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() })
       .optional()
@@ -161,6 +201,51 @@ const snapshotTool = tool(
         await page.goto(previewUrl, { waitUntil: "load", timeout: 10_000 });
         await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => {});
         await page.waitForTimeout(300); // settle animations/HMR
+
+        // Drive an interactive app before capturing. Most games listen on
+        // window keydown, which catches bubbled events whatever has focus, so a
+        // body/canvas focus is enough — no click needed (a stray click could be
+        // read as a game action). Each step is isolated: a bad key is skipped,
+        // never aborts the snapshot; held keys are always released.
+        if (args.inputs?.length) {
+          await page
+            .evaluate(() => (document.querySelector("canvas") ?? document.body)?.focus?.())
+            .catch(() => {});
+          let spent = 0;
+          for (const step of args.inputs.slice(0, MAX_INPUT_STEPS)) {
+            if (spent >= MAX_INPUT_MS_TOTAL) break;
+            try {
+              if (step.clickSelector) {
+                await page.locator(step.clickSelector).first().click({ timeout: 2_000 });
+              } else if (step.clickText) {
+                await page.getByText(step.clickText, { exact: false }).first().click({ timeout: 2_000 });
+              } else if (step.click) {
+                await page.mouse.click(step.click.x, step.click.y);
+              } else if (step.key) {
+                if (step.hold && step.hold > 0) {
+                  const ms = Math.min(step.hold, MAX_STEP_MS);
+                  await page.keyboard.down(step.key);
+                  try {
+                    await page.waitForTimeout(ms);
+                  } finally {
+                    await page.keyboard.up(step.key).catch(() => {});
+                  }
+                  spent += ms;
+                } else {
+                  await page.keyboard.press(step.key);
+                }
+              }
+              if (step.wait && step.wait > 0) {
+                const w = Math.min(step.wait, MAX_STEP_MS);
+                await page.waitForTimeout(w);
+                spent += w;
+              }
+            } catch {
+              /* skip a bad step, keep the sequence going */
+            }
+          }
+          await page.waitForTimeout(150); // let the final frame render
+        }
 
         const jpeg = { type: "jpeg" as const, quality: 80 };
         let buf: Buffer;
@@ -203,7 +288,9 @@ const snapshotTool = tool(
             {
               type: "text" as const,
               text:
-                `Snapshot de ${zone} (scale ${effScale}) — budget restant : ${budget - used}/${budget}. ` +
+                `Snapshot de ${zone} (scale ${effScale})` +
+                `${args.inputs?.length ? ` après ${args.inputs.length} action(s) jouée(s)` : ""}` +
+                ` — budget restant : ${budget - used}/${budget}. ` +
                 `Analyse l'image puis résume textuellement ce que tu constates.`,
             },
           ],
