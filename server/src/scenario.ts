@@ -93,7 +93,8 @@ const VISION_RULES_ELITE = `${VISION_INPUTS}
 - Skip the loop entirely for non-visual changes (logic, data, config) and trivial tweaks.`;
 
 const VISION_RULES_MVP = `${VISION_INPUTS}
-- Visual self-check is minimal in this mode: take at most ONE global snapshot to confirm a major visual change rendered, and only if useful. No zoom iterations, no patch→re-snapshot loop — the snapshot budget is tight on purpose. Skip snapshots entirely for non-visual or trivial changes.`;
+- Visual self-check is minimal in this mode: take at most ONE global snapshot to confirm a major visual change rendered, and only if useful. No zoom iterations, no patch→re-snapshot loop — the snapshot budget is tight on purpose. Skip snapshots entirely for non-visual or trivial changes.
+- If that single control snapshot would only catch the idle/title screen of an interactive product (canvas game, app behind a Start/menu), spend the ONE snapshot wisely: pass a SHORT \`inputs\` sequence to enter the product first — a robust click on the Start/Play control (\`clickText\` like "JOUER"/"Start" or \`clickSelector\`, never guessed coordinates) + one brief move (\`hold\` a direction ~400ms) — then capture the actual product. Keep it to that single drive-then-shoot; no loop, no second snapshot.`;
 
 // Idea 17 — real backend via Supabase (the main functional gap vs Lovable).
 // Kept tight on purpose: a few lines added to every turn's system prompt, the
