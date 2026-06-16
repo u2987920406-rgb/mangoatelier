@@ -109,8 +109,10 @@ export async function* runAgent(
   // self-gates on the model — the two stay in sync.)
   const analytic = (effectiveMode === "elite" || effectiveMode === "finition") && effectiveModel !== "haiku";
   // Mango Plan + moodboard (ideas 9/11) are Élite-only — and the moodboard
-  // needs the web. MVP stays lean (no plan, no web research) for speed/quota.
-  const webTools = effectiveMode === "elite" ? ["WebSearch", "WebFetch"] : [];
+  // needs the web. MVP gets WebSearch only for the auto-moodboard (1 search,
+  // 1 capture — half-capacity, no WebFetch deep-reads reserved for Élite).
+  // Finition is frozen: no web research allowed.
+  const webTools = effectiveMode === "elite" ? ["WebSearch", "WebFetch"] : effectiveMode === "mvp" ? ["WebSearch"] : [];
   try {
     const q = query({
       prompt,
