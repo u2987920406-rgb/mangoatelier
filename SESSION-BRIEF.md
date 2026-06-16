@@ -180,6 +180,49 @@ MangoAI n'a pas à "adopter" ces techniques — il les pratique déjà intuitive
 
 ---
 
+## Améliorations Notes & Voix — Identifiées le 16 juin 2026
+
+Ces améliorations ont été discutées après la session principale. À implémenter après le Chantier A du tutoriel.
+
+### Ce qui existe déjà (mais sous-exploité)
+- `server/src/notes-rag.ts` — CRUD notes + recherche mot-clé + RAG basique ✅
+- `ui/src/components/NotesRAG.jsx` — interface complète ✅
+- `server/src/transcribe.ts` — Whisper local (Python) déjà câblé ✅
+- **Gap critique : aucun bouton micro dans l'UI des notes**
+
+### Améliorations prioritaires (dans l'ordre)
+
+**1. Bouton micro dans NotesRAG** *(2-3h — quickwin le plus visible)*
+- Ajouter enregistrement audio dans `NotesRAG.jsx`
+- Envoyer le buffer à `/api/transcribe` (route existante)
+- Sauvegarder la transcription comme note automatiquement
+- Optionnel : Haiku reformule proprement si dicté en vrac
+
+**2. Micro flottant global** *(+1h)*
+- Accessible depuis n'importe quel écran (pas seulement les notes)
+- Capture une idée à tout moment sans quitter l'interface
+
+**3. Tags automatiques** *(1h)*
+- Haiku génère les tags en lisant le contenu à la création
+- L'utilisateur n'a plus à les taper manuellement
+
+**4. Embeddings Ollama + injection Coque Souple** *(5h — game changer)*
+- Remplacer recherche mot-clé par recherche sémantique via Ollama `/api/embeddings`
+- Ajouter bloc `"notes"` dans `scenario.ts` — les 3 notes les plus pertinentes s'injectent automatiquement dans le contexte de génération
+- Résultat : les notes deviennent une mémoire active, pas un carnet passif
+
+**5. Notes par projet** *(2h)*
+- Aujourd'hui les notes sont globales. Attacher optionnellement une note à un projet spécifique.
+
+**6. Édition de notes** *(30min)*
+- Aujourd'hui : ajouter ou supprimer seulement. Ajouter la modification en place.
+
+### Valeur concrète (avant/après embeddings + injection)
+- **Avant** : MangoAI génère générique, tu ré-expliques tes préférences à chaque projet
+- **Après** : tes notes s'injectent silencieusement → le 1er résultat est déjà calibré à ton goût
+
+---
+
 ## Préférences et règles importantes
 
 - Toujours répondre en français
