@@ -276,6 +276,48 @@ Une marque classique = perception (logo, réputation). MangoAI à 5 ans = la mar
 
 ---
 
+## Chantier PRIORITAIRE — Indépendance fournisseur LLM (2-3h)
+
+**Objectif : changer de modèle IA en 5 secondes, sans toucher une ligne de code.**
+
+### Situation aujourd'hui
+`llm-engine.ts` a déjà `resolveProvider()` et Qwen local tourne via Ollama. Mais certaines parties supposent Claude (noms de modèles, paramètres). Résultat : ~80% prêt, pas encore plug-and-play.
+
+### Ce qu'il faut faire (2-3h)
+Normaliser `llm-engine.ts` pour que **une seule variable `.env`** pilote tout — génération principale, Hermes, feedback, radar, tags auto — sans exception.
+
+```env
+LLM_PROVIDER=deepseek   # ou openai, mistral, groq, ollama
+LLM_MODEL=deepseek-chat
+```
+
+### Résultat après ce dev
+
+| Provider | Commande | Délai de bascule |
+|---|---|---|
+| DeepSeek V3 | `LLM_PROVIDER=deepseek` | 5 secondes |
+| GPT-4o | `LLM_PROVIDER=openai` | 5 secondes |
+| Mistral Large | `LLM_PROVIDER=mistral` | 5 secondes |
+| Groq (Llama 3.3) | `LLM_PROVIDER=groq` | 5 secondes |
+| Qwen local | `LLM_PROVIDER=ollama` | 5 secondes |
+
+**MangoAI ne sait même pas sur quel modèle il tourne. Le moteur est aveugle au fournisseur.**
+
+### Pourquoi c'est prioritaire
+- Indépendance totale d'Anthropic dès demain si besoin
+- DeepSeek V3 API = qualité Sonnet à 10x moins cher (~0.27$/M tokens vs 3$/M)
+- Si un nouveau modèle sort (DeepSeek V4, Gemini 2, etc.) → branché en 5 min
+- Prerequis pour le Radar IA (tester différents modèles sur les tâches légères)
+
+### Ordre recommandé
+1. **Ce chantier en premier** — 2-3h, impact immédiat
+2. Tutoriel (Chantier A)
+3. Notes & Voix
+4. Automation nocturne
+5. Radar IA
+
+---
+
 ## Radar IA Hebdomadaire — Idée validée le 16 juin 2026
 
 **Concept :** un scan automatique hebdomadaire des avancées IA, filtré par pertinence MangoAI, résumé par Haiku, présenté comme un brief le lundi matin. Raf reste dans la boucle pour décider quoi intégrer — c'est du RLHF appliqué à l'évolution du moteur lui-même.
