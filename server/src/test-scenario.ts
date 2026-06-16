@@ -27,6 +27,7 @@ const VISION_LOOP = "Closed visual loop"; // Élite
 const VISION_MIN = "Visual self-check is minimal"; // MVP
 const MOODBOARD_MVP = "MVP auto-grounding"; // moodboardMvp block (1 leader / 1 capture)
 const CADRAGE = "Cadrage fondateur — multimodal grounding"; // idée #47, Élite-only
+const MIROIR = "Le Miroir (.miroir.md) — comprehension mirror"; // idée #48, Élite-only
 
 line("═");
 console.log("scenario — gating des blocs par mode (Coque Souple)");
@@ -64,6 +65,12 @@ check("moodboard MVP absent en finition (phase freeze)", !finition.includes(MOOD
 check("cadrage fondateur présent en Élite", elite.includes(CADRAGE));
 check("cadrage fondateur absent en MVP", !mvp.includes(CADRAGE));
 check("cadrage fondateur absent en finition (phase freeze)", !finition.includes(CADRAGE));
+
+// Le Miroir (idée #48) — porte de validation Élite-only : présent en Élite,
+// absent en MVP et en finition (freeze, pas de nouveau cadrage).
+check("Le Miroir présent en Élite", elite.includes(MIROIR));
+check("Le Miroir absent en MVP", !mvp.includes(MIROIR));
+check("Le Miroir absent en finition (phase freeze)", !finition.includes(MIROIR));
 
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));

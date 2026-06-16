@@ -30,6 +30,7 @@ import { loadDesignSystem, saveDesignSystem } from "./design-system.js";
 import { IDENTITY_LAYERS, loadLanguage, loadThinkingStyle, loadVision, type IdentityLayer } from "./identity.js";
 import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { loadLexique, saveLexique, generateLexique } from "./lexique.js";
+import { loadMiroir, saveMiroir } from "./miroir.js";
 import { backendServerStatus, hasBackend, installBackendDeps, scaffoldBackend, startBackendServer, stopBackendServer } from "./backend-generator.js";
 import multer from "multer";
 import { transcribeAudio } from "./transcribe.js";
@@ -535,6 +536,8 @@ app.get("/api/knowledge/:name", (req, res) => {
     architecture: dir ? loadArchitecture(dir) : "",
     // Idée #45 — language contract (Ubiquitous Language), project-scoped.
     lexique: dir ? loadLexique(dir) : "",
+    // Idée #48 — Le Miroir: validated comprehension snapshot, project-scoped.
+    miroir: dir ? loadMiroir(dir) : "",
     // Idée #36 — cross-project component library (workspace-level).
     components: listComponents(WORKSPACE_DIR),
     // Idée #42 — personal identity layers (workspace-level, cross-project).
@@ -709,6 +712,28 @@ app.put("/api/lexique/:name", (req, res) => {
   }
   try {
     saveLexique(projectDir(name), content);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// Idée #48 — Le Miroir : lecture / correction manuelle depuis l'UI
+app.get("/api/miroir/:name", (req, res) => {
+  const name = req.params.name;
+  const dir = projectExists(name) ? projectDir(name) : null;
+  res.json({ content: dir ? loadMiroir(dir) : "" });
+});
+
+app.put("/api/miroir/:name", (req, res) => {
+  const name = req.params.name;
+  const { content } = req.body as { content?: string };
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content (string) requis" });
+    return;
+  }
+  try {
+    saveMiroir(projectDir(name), content);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
