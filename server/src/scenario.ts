@@ -32,7 +32,7 @@ import { recoveryPromptSection } from "./orchestrator.js";
 import { SELF_CRITIQUE_RULES } from "./self-critique.js";
 
 export type PromptContext = {
-  mode: "mvp" | "elite" | "finition" | "nocturne";
+  mode: "mvp" | "elite" | "finition" | "nocturne" | "esthetique";
   model: string;
   projectDir: string;
   // Idée #56 Chantier C — présent quand l'utilisateur construit DANS le tutoriel
@@ -86,6 +86,8 @@ Mode 🌙 Génération nocturne — full autonomy, polished design:
 - You build ALONE, at night: NOBODY is available to answer. Take EVERY scoping, product and design decision yourself with your best judgement — never ask a question, never wait for validation, never present a plan for approval. Just decide and ship a complete, polished app.
 - Design bar = Élite: deploy the FULL visual moodboard below (real web leaders + Sharingan capture) to ground a genuine, distinctive visual identity. This is the whole point of this mode — do NOT settle for a generic default look.
 - You MAY write plan.md as an internal design doc to organise yourself, but it is NEVER a gate: do not stop to have it validated, just build.`,
+  esthetique: `
+Mode ✨ Esthétique — high-fidelity graphic polish phase (the project is built and works; now make it BEAUTIFUL). This is a polish phase, NOT a construction phase: the graphic-polish protocol below governs this turn.`,
 } as const;
 
 // Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
@@ -143,6 +145,20 @@ Finition protocol (apply rigorously this turn — you are now a Lead QA, not a b
 - TESTS — broaden unit tests on the critical pure logic (happy path + the edge cases above), per the tests rules below.
 - RECORD THE BACKLOG (mandatory final step) — list every out-of-scope item you deliberately did NOT do (a missing feature, a real-content/URL decision, a heavier refactor you flagged) AND append them to the project memory file ${MEMORY_FILE_NAME} under a "## TODO — décisions en attente" heading (in French, "- [ ] ..." items; merge with any existing TODO, never duplicate). IMPORTANT: the general rule above that you only edit ${MEMORY_FILE_NAME} when the user explicitly asks does NOT apply to this step — recording the finition backlog is a standing instruction of THIS phase, do it without being asked. If there is genuinely nothing pending, write nothing. Use Read then Edit/Write on the file directly.
 - Deliver a short French summary of what was hardened, then point the user to the TODO you recorded for what still needs their decision.`;
+
+// Chantier #68 — Graphic polish high-fidelity pass: the aesthetic twin of the
+// finition phase. Where finition hardens robustness, esthetique polishes BEAUTY.
+const GRAPHIC_POLISH_RULES = `
+Graphic polish — high-fidelity aesthetic pass (apply rigorously this turn — you are now a Visual Lead, not a builder):
+- FEATURE FREEZE — add NO new feature, page or scope. This mode embellishes existing UI; it does NOT build. If a request implies a genuinely new feature, say so briefly and ask the user to switch back to MVP/Élite.
+- MICRO-INTERACTIONS — craft subtle, intentional hover effects: "pop"/scale on interactive elements, shadow lift on cards/buttons, smooth focus states with visible ring. Use consistent durations (150-250ms) and easing (ease-out, cubic-bezier) across all interactions.
+- ANIMATIONS & SCROLLING — add appear animations (fade-in/slide-in) for content entering the viewport, smooth nav/menu transitions, page-load choreography. Keep everything fluid; avoid jarring or instant jumps.
+- DEPTH & HIERARCHY — apply coherent shadow/elevation scale (xs→xl tokens), rhythmic spacing (4px/8px grid), fine typographic hierarchy: size scale, weights, line-height, letter-spacing. Every level should feel intentional.
+- GRANULAR DESIGN TOKENS PER COMPONENT — define dedicated palettes per component type (buttons, inputs, cards, badges), consistent border-radius tokens, full state coverage (hover/active/focus/disabled). Centralise via CSS custom properties or Tailwind config; avoid one-off magic values.
+- MANDATORY VISUAL VERIFICATION via the snapshot loop (mcp__vision__snapshot): (1) global snapshot to see the current state, (2) identify zones that look flat, inconsistent or unpolished, (3) apply targeted graphic fixes, (4) re-snapshot to confirm improvement. Repeat until the budget runs out or the render is satisfying. Then always state in one or two sentences what you visually checked and improved (that text summary survives context compaction; images do not).
+- CONSISTENCY — respect the project's existing design-system, component conventions and language contract. Polish, do not rewrite.
+- PROPORTIONALITY — no over-animation; respect prefers-reduced-motion; preserve contrast ratios for accessibility.
+- PROACTIVE CLOSURE (mandatory final step) — after completing the polish pass, deliver: (1) a short French summary of the visual refinements applied (file by file), (2) exactly 3 concrete suggestions for additional visual optimisations the user could pursue next.`;
 
 // Chantier #35 — Generated backend (Express alongside the React/Vite frontend).
 // Injected only when the project already has an api/ folder (hasBackend check
@@ -274,13 +290,16 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // ci-dessus. Rend explicite ce que la Coque Souple fait déjà implicitement.
   // Bloc prompt-only : zéro fichier, zéro réseau.
   selfCritique: () => SELF_CRITIQUE_RULES,
+  // Chantier #68 — graphic polish protocol: the aesthetic twin of finition.
+  // Governs the esthetique mode — high-fidelity visual polish pass.
+  graphicPolish: () => GRAPHIC_POLISH_RULES,
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
 // Élite runs the full arsenal; MVP omits the analytic ritual and Mango Plan
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
-const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne", string[]> = {
+const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique", string[]> = {
   elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "superAgent"],
   mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
@@ -292,6 +311,11 @@ const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne", string[]> = {
   // architecte questionneur (PLAN_RULES → remplacé par moodboardNocturne), ainsi
   // que tutorial (pas de tuto la nuit) et tests (build rapide ciblé design).
   nocturne: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "moodboardNocturne", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  // Esthétique (#68) — polish graphique haute fidélité : projet fonctionnel,
+  // on l'embellit. Mène avec le protocole graphicPolish, garde tout l'arsenal
+  // qualité (analytic + visionElite + design-system) SANS nouveau scope/plan
+  // (pas de cadrage/clarification/Miroir) ni tests ni tutorial.
+  esthetique: ["mode", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

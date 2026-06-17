@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Server, Shield, Triangle, Zap } from "lucide-react";
+import { ArrowLeft, BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Server, Shield, Sparkles, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -29,6 +29,8 @@ const MODES = [
   { id: "elite", label: "Élite", hint: "Qualité max — analyse + vérif visuelle", icon: Gem },
   // Finition (after ~80%): hardening & QA pass — no new features, delegates to qa.
   { id: "finition", label: "Finition", hint: "Durcissement & QA — pas de nouvelle feature", icon: Shield },
+  // Esthetique (#68): high-fidelity graphic polish — micro-interactions, animations, design tokens.
+  { id: "esthetique", label: "Esthétique", hint: "Raffinement graphique — micro-interactions, animations, finitions", icon: Sparkles },
 ];
 
 export default function Header({

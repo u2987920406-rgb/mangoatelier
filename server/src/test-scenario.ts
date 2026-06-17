@@ -112,6 +112,22 @@ check("self-critique absent en MVP", !mvp.includes(SELF_CRITIQUE));
 check("self-critique absent en finition", !finition.includes(SELF_CRITIQUE));
 check("self-critique absent en nocturne", !nocturne.includes(SELF_CRITIQUE));
 
+// Mode esthétique (#68) — polish graphique haute fidélité : graphicPolish +
+// vision complète + analytic présents ; pas de nouveau scope (cadrage/miroir/plan)
+// ni tutorial ni tests. Et le graphicPolish est absent des autres modes.
+const GRAPHIC_POLISH = "Graphic polish — high-fidelity aesthetic pass";
+const esthetique = assembleSystemPrompt({ mode: "esthetique", model: "sonnet", projectDir: dir });
+check("esthetique — graphic polish PRÉSENT", esthetique.includes(GRAPHIC_POLISH));
+check("esthetique — vision complète (boucle fermée) présente", esthetique.includes(VISION_LOOP));
+check("esthetique — analytic présent (sonnet)", esthetique.includes(ANALYTIC));
+check("esthetique — cadrage ABSENT (pas de nouveau scope)", !esthetique.includes(CADRAGE));
+check("esthetique — Miroir ABSENT (pas de porte de validation)", !esthetique.includes(MIROIR));
+check("esthetique — scoping architecte ABSENT (ADAPTIVE & PROGRESSIVE)", !esthetique.includes("ADAPTIVE & PROGRESSIVE"));
+check("esthetique — tutorial ABSENT", !esthetique.includes(TUTORIAL));
+check("esthetique — graphic polish ABSENT en Élite", !elite.includes(GRAPHIC_POLISH));
+check("esthetique — graphic polish ABSENT en MVP", !mvp.includes(GRAPHIC_POLISH));
+check("esthetique — graphic polish ABSENT en finition", !finition.includes(GRAPHIC_POLISH));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 

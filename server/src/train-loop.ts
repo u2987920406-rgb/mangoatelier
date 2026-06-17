@@ -77,7 +77,11 @@ export const TASK_KINDS: TaskKind[] = ["webapp", "slides", "cv", "doc", "devis",
 // Les kinds dashboard/multipage/wizard sont plus difficiles (multi-composants,
 // état complexe, routing) pour stresser l'Élève et déclencher davantage d'escalades.
 export function composeTask(kind: TaskKind, domain: string, style: string): string {
-  const ux = `Direction artistique/UX imposée : ${style}.`;
+  // style vide ("") = lot "free style" : pas de DA imposée → l'agent conçoit
+  // lui-même la charte (sert à juger l'apport réel du moodboard Sharingan).
+  const ux = style
+    ? `Direction artistique/UX imposée : ${style}.`
+    : `Aucune direction artistique imposée : conçois TOI-MÊME une identité visuelle soignée et distinctive — sers-toi du moodboard pour ancrer une vraie charte graphique (couleurs, typographie, ambiance) sur des leaders réels du domaine.`;
   switch (kind) {
     case "webapp":
       return `Crée une petite web app React pour ${domain} (1 fonctionnalité claire et utile, données factices). ${ux}`;
@@ -108,18 +112,20 @@ export interface GenPrompt {
   projectType: string;
 }
 
-/** Tire des combinaisons UNIQUES (kind×domain×style). Cap = nb de combos. */
-export function generateUniquePrompts(n: number): GenPrompt[] {
+/** Tire des combinaisons UNIQUES (kind×domain×style). Cap = nb de combos.
+ * opts.freeStyle = aucune DA imposée (style "") → unicité sur kind×domain. */
+export function generateUniquePrompts(n: number, opts: { freeStyle?: boolean } = {}): GenPrompt[] {
   const seen = new Set<string>();
   const out: GenPrompt[] = [];
-  const maxCombos = TASK_KINDS.length * DOMAINS.length * STYLES.length;
+  const styleCount = opts.freeStyle ? 1 : STYLES.length;
+  const maxCombos = TASK_KINDS.length * DOMAINS.length * styleCount;
   const target = Math.min(n, maxCombos);
   let guard = 0;
   while (out.length < target && guard < maxCombos * 20) {
     guard++;
     const kind = pick(TASK_KINDS);
     const domain = pick(DOMAINS);
-    const style = pick(STYLES);
+    const style = opts.freeStyle ? "" : pick(STYLES);
     const key = `${kind}|${domain}|${style}`;
     if (seen.has(key)) continue;
     seen.add(key);

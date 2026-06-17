@@ -304,14 +304,14 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
 
 /** Génère un lot de `count` projets, les garde et les juge. Séquentiel (les
  * builds se disputeraient npm/disque en parallèle). Met à jour l'état `running`. */
-export async function runNocturnalBatch(count: number): Promise<void> {
+export async function runNocturnalBatch(count: number, opts: { freeStyle?: boolean } = {}): Promise<void> {
   if (running) return;
   running = true;
   const batchId = genId();
   const n = Math.max(1, Math.min(count || 5, 10));
   progress = { current: 0, total: n, label: "Préparation…" };
   try {
-    const prompts = generateUniquePrompts(n);
+    const prompts = generateUniquePrompts(n, opts);
     const entries = loadEntries();
     for (let i = 0; i < prompts.length; i++) {
       progress = { current: i + 1, total: n, label: prompts[i].task.slice(0, 60) };
@@ -412,9 +412,11 @@ export function registerNocturnalRoutes(app: Express): void {
       res.status(409).json({ error: "Un lot est déjà en cours" });
       return;
     }
-    const count = Number((req.body as { count?: unknown })?.count) || 3;
-    void runNocturnalBatch(count); // fire-and-forget : on poll via GET
-    res.json({ started: true, count: Math.max(1, Math.min(count, 10)) });
+    const body = req.body as { count?: unknown; freeStyle?: unknown };
+    const count = Number(body?.count) || 3;
+    const freeStyle = Boolean(body?.freeStyle);
+    void runNocturnalBatch(count, { freeStyle }); // fire-and-forget : on poll via GET
+    res.json({ started: true, count: Math.max(1, Math.min(count, 10)), freeStyle });
   });
 
   app.delete("/api/nocturnal/:id", (req: Request, res: Response) => {
