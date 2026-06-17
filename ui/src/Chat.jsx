@@ -45,6 +45,10 @@ export default function Chat({
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const fileRef = useRef(null);
+  // Live mirrors of the current project + busy state, read by the post-turn
+  // history poll (#73): a setTimeout closure captures stale values otherwise.
+  const projectNameRef = useRef(projectName);
+  const busyRef = useRef(busy);
   const [listening, setListening] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const mediaRecorderRef = useRef(null);
@@ -184,6 +188,27 @@ export default function Chat({
     });
   };
 
+  // Keep the refs in sync so the post-turn poll sees current values.
+  useEffect(() => { projectNameRef.current = projectName; }, [projectName]);
+  useEffect(() => { busyRef.current = busy; }, [busy]);
+
+  // After a turn, background agents (review 🧠, patrol 🛡️ — idea #73) append
+  // status lines to the persisted history AFTER the SSE stream has closed, so
+  // they aren't in our in-memory messages. Re-fetch the history a couple of
+  // times to surface them. Guards: only if still on the same project and idle
+  // (a new turn in flight owns the messages); never wipe to empty on a hiccup.
+  const refetchHistory = (pName) => {
+    if (pName !== projectNameRef.current || busyRef.current) return;
+    fetch(`/api/history/${encodeURIComponent(pName)}`)
+      .then((r) => (r.ok ? r.json() : { messages: [] }))
+      .then((d) => {
+        if (pName !== projectNameRef.current || busyRef.current) return;
+        const loaded = (d.messages ?? []).map((m) => ({ id: uid(), role: m.role, text: m.text }));
+        if (loaded.length > 0) setMessages(loaded);
+      })
+      .catch(() => {});
+  };
+
   // Sends the auto-prompt (fix request or Home's initial idea) once idle
   useEffect(() => {
     if (!autoPrompt || busy) return;
@@ -289,6 +314,11 @@ export default function Chat({
     } finally {
       setBusy(false);
       onAgentDone();
+      // Surface the background agents' status lines (review + patrol #73) once
+      // they've had time to finish, without keeping the stream open.
+      const pName = projectName;
+      setTimeout(() => refetchHistory(pName), 6000);
+      setTimeout(() => refetchHistory(pName), 14000);
     }
   }
 

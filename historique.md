@@ -639,3 +639,51 @@ Armée de sous-agents spécialisés, super-skills cascade, mémoire procédurale
 - Bandeau d'information dans le workspace quand `projectName === "__mirror__"`
 
 `tsc` 0, build UI vert (465 kB).
+
+---
+
+## 📅 Session 2026-06-18 — #73 L'armée automatique ✅
+
+### Concept
+Des sous-agents spécialisés convoqués AUTOMATIQUEMENT par détection de contexte (pattern matching fichiers modifiés + type de projet), en parallèle, fire-and-forget, dont le résultat agrégé est injecté dans le chat. L'armée **patrouille** — elle ne répond pas à un ordre. Pattern de référence : `spawnBackgroundReview` (review.ts).
+
+### Architecture — `server/src/patrol.ts` (nouveau)
+- **Registre extensible** `PATROLLERS: Patroller[]`. Chaque patrouilleur = `{ id, label, emoji, triggers(ctx): boolean, system }`. Ajouter un patrouilleur = pousser un objet.
+- **`PatrolContext`** = `{ projectDir, projectType, changedFiles, fileContents: Map }`. `buildPatrolContext` lit jusqu'à 12 fichiers modifiés, tronque à 4000 car. ; les triggers s'évaluent sur la liste BRUTE `changedFiles` (un fichier supprimé matche encore par son nom), le contenu lu est fourni à part (read sauté si absent).
+- **Cerveau injectable** `PatrolDeps.ask` ; défaut = `askLLM(provider: resolveProvider(PATROL_PROVIDER), maxTokens: 600)` → abonnement Claude **$0**, jamais `new Anthropic()`.
+- **`runPatroller`** : construit le user prompt (type + fichiers + code borné), consigne « audite UNIQUEMENT sous ton angle, sinon réponds EXACTEMENT "RAS" » ; `clean = "" || /^RAS\b/i` ; un throw → finding clean/report vide (jamais d'exception propagée).
+- **`aggregatePatrol`** : filtre les non-clean, `null` si tout RAS, sinon `🛡️ Patrouille automatique (k/n)` + un bloc par patrouilleur signalant.
+- **`runPatrolOnce`** (cœur testable) : build ctx → filtre triggers → `Promise.all(runPatroller)` → agrège → `appendHistory({role:"status"})` si message.
+- **`spawnPatrol`** (fire-and-forget) : kill-switch `PATROL_ENABLED=0`, verrou `patrolRunning` **SÉPARÉ** de `reviewRunning` (review + patrouille en parallèle), `changedFiles` passé en paramètre (testable sans repo).
+
+### Les 5 patrouilleurs
+| id | trigger | angle |
+|----|---------|-------|
+| ♿ a11y | fichier UI (`.jsx/.tsx/.html/.vue/.svelte`) + type ∈ {dashboard,jeu,slides,vitrine,webapp,fullstack} | alt, aria-label, contraste, hiérarchie h*, div-onClick, labels, focus |
+| 🔒 security | chemin `server·api·route·auth·.env·supabase·db·sql` OU backend `^(server\|api\|routes?)/` OU contenu sensible (dangerouslySetInnerHTML, createClient, signIn, password, api_key, secret) ; **indépendant du type** | secrets, injection, CORS, authz, eval, path traversal, XSS |
+| 🔍 seo | type ∈ {vitrine,webapp,fullstack} ET (vitrine OU index.html OU page racine) | title/meta, OG/Twitter, h1 unique, lang, sémantique, dimensions images |
+| ⚡ perf | `.jsx/.tsx` + type ∉ {slides,autre} | useEffect deps, mémoïsation, props recréées, keys stables, re-render cascade — **statique, pas de runtime** |
+| 📦 bundle | `package.json` modifié OU import de package node_modules (regex `(from\|import\|require)\s*\(?\s*['"][^./]`) ; type ∉ {slides,autre} | libs lourdes (moment, lodash barrel, chart.js, three, framer-motion, @mui, firebase, axios), barrel imports, lazy manquant |
+
+**BundleProfiler = heuristique statique, PAS de build réel** (tranché) : un `npm run build` casserait le fire-and-forget léger, entrerait en concurrence avec le preview, et un build raté polluerait le rapport.
+
+### Détection du delta — `server/src/versions.ts`
+Nouveau `changedFilesInLastCommit(dir)` : `git diff --name-only HEAD~1 HEAD` (tour normal), fallback `git show --name-only --format= HEAD` (root-commit). git renvoie des chemins **posix** même sur Windows → feed direct des regex (NE PAS `path.normalize`). Ne throw jamais.
+
+### Câblage — `server/src/index.ts`
+- Capture du delta après le commit réussi : `patrolFiles.current = await changedFilesInLastCommit(dir)`.
+- `spawnPatrol(historyDir, projectType, patrolFiles.current)` dans le `finally`, à côté de `spawnBackgroundReview`, même garde (tour livré sans erreur) + delta non vide. `historyDir`=null en **mode Miroir** → patrouille sautée (pas d'audit sur l'UI de Mango).
+
+### Visibilité — `ui/src/Chat.jsx`
+Le status injecté arrive APRÈS la fermeture du stream SSE. `Chat.jsx` re-fetch `/api/history` à **6 s + 14 s** après le tour (refs `projectNameRef`/`busyRef` pour éviter les closures périmées ; ne tire que si même projet & idle ; jamais d'écrasement à vide). Corrige au passage l'invisibilité du `🧠` de la review.
+
+### Piège écarté
+Mutex d'écriture `appendHistory` jugé **inutile** : la fonction est 100 % synchrone (`loadHistory` + `atomicWriteFileSync`, aucun `await` interne) → deux callbacks fire-and-forget ne peuvent pas s'entrelacer dans l'event loop single-thread de Node. Le rendre async aurait cassé tous les appelants synchrones.
+
+### Config `.env`
+`PATROL_ENABLED` (défaut ON, kill-switch `=0`) · `PATROL_PROVIDER` (défaut claude/abonnement). Documenté dans `.env.example`.
+
+### Tests
+`test-patrol.ts` **33/33** : triggers purs (les 5, cas positifs + négatifs discriminants), `buildPatrolContext` (lecture/troncature/fichier absent sauté), `runPatroller` (RAS/rapport/throw), `aggregatePatrol` (tout-RAS→null, mix→compte k/n + masquage), `runPatrolOnce` bout-en-bout (injection historique), `changedFilesInLastCommit` (root-commit + tour normal, vrai repo git tmpdir). Non-régression `test-scenario.ts` 52/52. `tsc` 0, build UI vert (472 kB).
+
+⚠ **e2e live non encore exercé** : vérifier sur app lancée que `🛡️ Patrouille automatique` apparaît dans le chat sous ~14 s après un tour qui touche un fichier UI.

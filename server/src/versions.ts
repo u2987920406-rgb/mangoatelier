@@ -72,6 +72,26 @@ export async function commitVersion(dir: string, message: string): Promise<Versi
   return parseLine(out.trim());
 }
 
+/** Files changed by the last commit — the delta of the turn that just finished.
+ * Used by the patrol (#73) to decide which patrollers to wake. git returns posix
+ * paths even on Windows, relative to the repo root (= projectDir), so they feed
+ * the patrollers' regex directly — do NOT normalize them. Falls back to listing
+ * the whole tree for the root commit (no HEAD~1 yet). Never throws. */
+export async function changedFilesInLastCommit(dir: string): Promise<string[]> {
+  if (!hasRepo(dir)) return [];
+  try {
+    let out: string;
+    try {
+      out = await git(dir, ["diff", "--name-only", "HEAD~1", "HEAD"]);
+    } catch {
+      out = await git(dir, ["show", "--name-only", "--format=", "HEAD"]);
+    }
+    return out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 /** Newest first. Empty array if the project has no repo yet. */
 export async function listVersions(dir: string): Promise<Version[]> {
   if (!hasRepo(dir)) return [];

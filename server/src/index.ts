@@ -15,12 +15,13 @@ import { computeInsights } from "./metrics-insights.js";
 import { inferProjectType } from "./blueprints.js";
 import { previewStatus, startPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
-import { commitVersion, ensureRepo } from "./versions.js";
+import { commitVersion, ensureRepo, changedFilesInLastCommit } from "./versions.js";
 import { ensureErrorRelay, ensureInspectRelay } from "./relay.js";
 import { ensureClickSourcePlugin, readSourceSnippet, buildVisualEditPrompt, type EditTarget } from "./clicksource.js";
 import { deployProject, isDeployTarget } from "./deploy.js";
 import { githubConfigured, pushToGitHub } from "./github.js";
 import { spawnBackgroundReview } from "./review.js";
+import { spawnPatrol } from "./patrol.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { saveUpload } from "./uploads.js";
 import { setVisionContext, snapZone, visionStatus } from "./vision.js";
@@ -136,6 +137,8 @@ app.post("/api/chat", async (req, res) => {
   const lastResult: { current: { costUsd: number; numTurns: number } | null } = { current: null };
   // Élève relay outcome (jalon D), folded into this turn's metrics line.
   const relayMeta: { current: { resolvedBy: "eleve" | "maitre" | "none"; attempts: number } | null } = { current: null };
+  // Files changed by this turn's commit (#73 patrol delta), filled after commit.
+  const patrolFiles: { current: string[] } = { current: [] };
   const turnStart = Date.now();
   const record = (role: ChatEntry["role"], text: string) =>
     turn.push({ role, text, ts: new Date().toISOString() });
@@ -316,6 +319,8 @@ app.post("/api/chat", async (req, res) => {
       if (version) {
         record("status", `📌 Version sauvegardée (${version.hash})`);
         send({ type: "version", ...version });
+        // Capture the turn's delta for the patrol (#73) — spawned in `finally`.
+        patrolFiles.current = await changedFilesInLastCommit(dir).catch(() => []);
       }
     }
   } catch (err) {
@@ -334,6 +339,12 @@ app.post("/api/chat", async (req, res) => {
       // response, so it never costs the user any latency.
       if (turn.some((e) => e.role === "agent") && !turn.some((e) => e.role === "error")) {
         spawnBackgroundReview(historyDir, turn);
+        // L'armée automatique (#73) : patrouilleurs spécialisés réveillés par le
+        // delta du tour, en parallèle de la review (verrou séparé). historyDir est
+        // null en mode Miroir → patrouille sautée (pas d'audit sur l'UI de Mango).
+        if (patrolFiles.current.length > 0) {
+          spawnPatrol(historyDir, projectType, patrolFiles.current);
+        }
       }
       // Hermes context_compressor transposed: compact between turns, in the
       // background, once the context crosses the threshold.
