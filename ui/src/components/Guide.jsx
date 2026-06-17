@@ -1,4 +1,5 @@
 import { BarChart3, BrainCircuit, MousePointerClick, Rocket, Sparkles, Wand2 } from "lucide-react";
+import { NEUTRAL } from "../neutral.js";
 
 // In-app user guide (idea 5): what MangoAI can do, and WHEN to use each thing.
 // Static content rendered in a header dropdown (like Mémoire/Métriques) — no
@@ -18,7 +19,9 @@ const GROUPS = [
     icon: BrainCircuit,
     title: "Choisir le cerveau & le mode",
     items: [
-      ["Modèle", "Haiku = rapide/simple · Sonnet = équilibré (défaut) · Opus = puissant/cher · 🎓 Élève local = gratuit (Gemma), Claude en secours."],
+      ["Modèle", NEUTRAL
+        ? "Haiku = rapide/simple · Sonnet = équilibré (défaut) · Opus = puissant/cher · Local = gratuit (bascule automatique si besoin)."
+        : "Haiku = rapide/simple · Sonnet = équilibré (défaut) · Opus = puissant/cher · 🎓 Élève local = gratuit (Gemma), Claude en secours."],
       ["Mode ⚡ MVP / 💎 Élite", "MVP = droit au but, rapide, économe. Élite = analyse, plan, vérif visuelle, tests auto, recherche web. Bascule selon l'enjeu."],
     ],
   },
@@ -49,13 +52,15 @@ const GROUPS = [
       ["Exporter", "Télécharge tout le code source en .zip (sans les secrets ni node_modules)."],
     ],
   },
-  {
+  // Groupe "Suivre" = observabilité interne (métriques Élève) — masqué en mode neutre,
+  // cohérent avec le masquage du panneau Métriques (Header).
+  ...(NEUTRAL ? [] : [{
     icon: BarChart3,
     title: "Suivre",
     items: [
       ["Métriques 📊", "Coût, tours, taux d'erreur, tendance par semaine, drivers de coût par type, et l'émancipation de l'Élève local."],
     ],
-  },
+  }]),
 ];
 
 export default function Guide() {

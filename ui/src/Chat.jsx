@@ -28,6 +28,7 @@ export default function Chat({
   editTarget,
   onEditTargetConsumed,
   onChatMode = () => {},
+  onToast = () => {},
   showThinking = true,
   tutorialId = null,
 }) {
@@ -329,6 +330,7 @@ export default function Chat({
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
+      onToast("error", "Micro indisponible — autorisation refusée ou aucun micro détecté.");
       return;
     }
     audioChunksRef.current = [];
@@ -343,9 +345,17 @@ export default function Chat({
         const form = new FormData();
         form.append("audio", blob, "record.webm");
         const res = await fetch("/api/transcribe", { method: "POST", body: form });
-        const data = await res.json();
-        if (data.text) setInput((prev) => (prev ? prev + " " + data.text : data.text));
-      } catch {}
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          onToast("error", err.error ? `Transcription échouée : ${err.error}` : `Transcription échouée (HTTP ${res.status}).`);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          if (data.text?.trim()) setInput((prev) => (prev ? prev + " " + data.text : data.text));
+          else onToast("error", "Rien n'a été transcrit — réessaie en parlant plus distinctement.");
+        }
+      } catch {
+        onToast("error", "Transcription échouée — serveur injoignable ?");
+      }
       setTranscribing(false);
     };
     recorder.start();

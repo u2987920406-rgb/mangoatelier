@@ -12,7 +12,7 @@ function relativeDate(iso) {
   return `il y a ${d} j`;
 }
 
-export default function NotesRAG({ onBack }) {
+export default function NotesRAG({ onBack, onToast = () => {} }) {
   const [notes, setNotes] = useState([]);
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
@@ -70,6 +70,7 @@ export default function NotesRAG({ onBack }) {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
+      onToast("error", "Micro indisponible — autorisation refusée ou aucun micro détecté.");
       return;
     }
     audioChunksRef.current = [];
@@ -86,9 +87,17 @@ export default function NotesRAG({ onBack }) {
         const form = new FormData();
         form.append("audio", blob, "record.webm");
         const res = await fetch("/api/transcribe", { method: "POST", body: form });
-        const data = await res.json();
-        if (data.text) setContent((prev) => (prev ? prev + " " + data.text : data.text));
-      } catch {}
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          onToast("error", err.error ? `Transcription échouée : ${err.error}` : `Transcription échouée (HTTP ${res.status}).`);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          if (data.text?.trim()) setContent((prev) => (prev ? prev + " " + data.text : data.text));
+          else onToast("error", "Rien n'a été transcrit — réessaie en parlant plus distinctement.");
+        }
+      } catch {
+        onToast("error", "Transcription échouée — serveur injoignable ?");
+      }
       setTranscribing(false);
     };
     recorder.start();

@@ -8,6 +8,7 @@ import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
 import SidePanel from "./components/SidePanel.jsx";
 import QuickNoteMic from "./components/QuickNoteMic.jsx";
+import { NEUTRAL } from "./neutral.js";
 
 // Panneaux lourds chargés à la demande (code-splitting)
 const PromptLab       = lazy(() => import("./components/PromptLab.jsx"));
@@ -406,7 +407,7 @@ export default function App() {
   if (screen === "billing") panelContent = <Billing onBack={() => setScreen("home")} />;
   if (screen === "cron") panelContent = <CronManager onBack={() => setScreen("home")} />;
   if (screen === "metrics") panelContent = <MetricsDashboard onBack={() => setScreen("home")} />;
-  if (screen === "notes") panelContent = <NotesRAG onBack={() => setScreen("home")} />;
+  if (screen === "notes") panelContent = <NotesRAG onBack={() => setScreen("home")} onToast={pushToast} />;
   if (screen === "ablation") panelContent = <AutoAblation onBack={() => setScreen("home")} />;
   if (screen === "multi") panelContent = <MultiProject onBack={() => setScreen("home")} />;
   if (screen === "superagent") panelContent = <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
@@ -493,13 +494,15 @@ export default function App() {
             >
               <Clock size={18} className="text-accent" />
             </button>
-            <button
-              onClick={() => setScreen("metrics")}
-              title="Dashboard d'évolution"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
-            >
-              <BarChart2 size={18} className="text-accent" />
-            </button>
+            {!NEUTRAL && (
+              <button
+                onClick={() => setScreen("metrics")}
+                title="Dashboard d'évolution"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+              >
+                <BarChart2 size={18} className="text-accent" />
+              </button>
+            )}
             <button
               onClick={() => setScreen("notes")}
               title="Notes & RAG"
@@ -507,13 +510,15 @@ export default function App() {
             >
               <BookOpen size={18} className="text-accent" />
             </button>
-            <button
-              onClick={() => setScreen("ablation")}
-              title="Auto-Ablation"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
-            >
-              <Scissors size={18} className="text-accent" />
-            </button>
+            {!NEUTRAL && (
+              <button
+                onClick={() => setScreen("ablation")}
+                title="Auto-Ablation"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
+              >
+                <Scissors size={18} className="text-accent" />
+              </button>
+            )}
             <button
               onClick={() => setScreen("multi")}
               title="Multi-Projet"
@@ -609,6 +614,7 @@ export default function App() {
               onEditTargetConsumed={() => setEditTarget(null)}
               showThinking={showThinking}
               onChatMode={handleChatMode}
+              onToast={pushToast}
               tutorialId={tutorialActive ? tutorialId : null}
             />
             <Preview

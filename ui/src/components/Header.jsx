@@ -3,6 +3,7 @@ import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
 import Guide from "./Guide.jsx";
+import { NEUTRAL, t } from "../neutral.js";
 
 // Static-host targets for one-click publish (idea 18). Each maps to a CLI in
 // server/src/deploy.ts; the id is sent as { target } to POST /api/deploy.
@@ -18,7 +19,8 @@ const MODELS = [
   { id: "opus", label: "Opus", hint: "Puissant, plus cher", icon: Brain },
   // Phase Ultime jalon D — 3e cerveau : le modèle local (Gemma via Ollama) traite
   // la tâche à coût zéro, Claude n'intervient qu'en secours (escalade objective).
-  { id: "eleve", label: "Élève local", hint: "Gemma local (gratuit) — Claude en secours", icon: GraduationCap },
+  // En mode neutre (Phase B), le jargon interne est remplacé par un libellé produit.
+  { id: "eleve", label: t("Élève local", "Local"), hint: t("Gemma local (gratuit) — Claude en secours", "Modèle local gratuit"), icon: GraduationCap },
 ];
 
 // Effort mode (idea 12) — orthogonal to the model: which rigour, not which brain.
@@ -115,17 +117,19 @@ export default function Header({
           <Knowledge projectName={projectName} />
         </Dropdown>
 
-        <Dropdown
-          width="w-96"
-          button={
-            <>
-              <BarChart3 size={14} className="text-accent-soft" />
-              Métriques
-            </>
-          }
-        >
-          <Metrics />
-        </Dropdown>
+        {!NEUTRAL && (
+          <Dropdown
+            width="w-96"
+            button={
+              <>
+                <BarChart3 size={14} className="text-accent-soft" />
+                Métriques
+              </>
+            }
+          >
+            <Metrics />
+          </Dropdown>
+        )}
 
         <Dropdown
           dataTour="mode"

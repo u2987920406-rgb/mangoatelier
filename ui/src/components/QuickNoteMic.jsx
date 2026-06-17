@@ -35,7 +35,13 @@ export default function QuickNoteMic({ onToast }) {
         const form = new FormData();
         form.append("audio", blob, "record.webm");
         const tr = await fetch("/api/transcribe", { method: "POST", body: form });
-        const { text } = await tr.json();
+        if (!tr.ok) {
+          const err = await tr.json().catch(() => ({}));
+          onToast?.("error", err.error ? `Transcription échouée : ${err.error}` : `Transcription échouée (HTTP ${tr.status}).`);
+          setSaving(false);
+          return;
+        }
+        const { text } = await tr.json().catch(() => ({}));
         if (text?.trim()) {
           await fetch("/api/notes", {
             method: "POST",
