@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import {
   ArrowUp,
   BarChart3,
+  Box,
   Check,
   ChevronDown,
   Clock,
   FileText,
   FolderOpen,
+  Gamepad2,
   GraduationCap,
   ListChecks,
   Package,
@@ -21,6 +23,8 @@ const TEMPLATES = [
   { id: "ecommerce", label: "E-commerce", icon: ShoppingCart, hint: "Boutique en ligne" },
   { id: "dashboard", label: "Dashboard", icon: BarChart3, hint: "Tableau de bord" },
   { id: "blog", label: "Blog", icon: FileText, hint: "Articles & posts" },
+  { id: "phaser", label: "Jeu 2D", icon: Gamepad2, hint: "Phaser 3 — sprites, physique, niveaux" },
+  { id: "threejs", label: "Jeu 3D", icon: Box, hint: "Three.js — WebGL, modèles, effets" },
 ];
 
 const SUGGESTIONS = [
