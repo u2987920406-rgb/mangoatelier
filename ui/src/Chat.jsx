@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { ArrowUp, Bookmark, BrainCircuit, FileCode, FolderOpen, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
 import NocturnalReviewForm from "./components/NocturnalReviewForm.jsx";
+import DiffSlider from "./components/DiffSlider.jsx";
 
 let nextId = 1;
 const uid = () => nextId++;
@@ -326,6 +327,9 @@ export default function Chat({
     switch (ev.type) {
       case "status":
         push({ role: "status", text: ev.text });
+        break;
+      case "diff":
+        push({ role: "diff", before: ev.before, after: ev.after });
         break;
       case "preview":
         onPreviewUrl(ev.url);
@@ -859,6 +863,8 @@ function Message({ m, showThinking = true, onFeedback }) {
           {m.text}
         </div>
       );
+    case "diff":
+      return <DiffSlider before={m.before} after={m.after} />;
     case "error":
       return (
         <div className="animate-fade-up self-stretch rounded-xl border border-err/50 bg-err/10 px-3.5 py-2.5 text-sm text-err whitespace-pre-wrap break-words">

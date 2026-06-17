@@ -24,7 +24,8 @@ import { spawnBackgroundReview } from "./review.js";
 import { spawnPatrol } from "./patrol.js";
 import { interruptCompaction, maybeCompactSession } from "./compaction.js";
 import { saveUpload } from "./uploads.js";
-import { setVisionContext, snapZone, visionStatus } from "./vision.js";
+import { setVisionContext, snapZone, visionStatus, getPreviewUrl } from "./vision.js";
+import { shouldCaptureDiff, captureDiff } from "./vision-diff.js";
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { generateLexique } from "./lexique.js";
@@ -227,6 +228,15 @@ app.post("/api/chat", async (req, res) => {
     // per-turn budget for the chosen effort mode, purge last turn's snapshots.
     setVisionContext(dir, url, chosenMode);
 
+    // Idée #80 — capture avant/après (modes vision seulement). Le "before" est
+    // pris MAINTENANT (rien n'a encore changé) ; le "after" après le commit.
+    // ~2 s de latence, acceptée dans ces modes soignés. Best-effort → null.
+    let diffBefore: string | null = null;
+    const diffTs = Date.now();
+    if (!isMirror && shouldCaptureDiff(chosenMode) && getPreviewUrl()) {
+      diffBefore = await captureDiff(dir, getPreviewUrl()!, "before", diffTs).catch(() => null);
+    }
+
     // Runs one agent turn. Returns "session-not-found" when resuming a session
     // the SDK no longer knows (e.g. the project folder was moved/renamed) so
     // the caller can retry with a fresh conversation. The failed "result"
@@ -322,6 +332,16 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "version", ...version });
         // Capture the turn's delta for the patrol (#73) — spawned in `finally`.
         patrolFiles.current = await changedFilesInLastCommit(dir).catch(() => []);
+        // Idée #80 — le tour a changé quelque chose : capture le "after" (Vite HMR
+        // a déjà rafraîchi) et envoie le diff avant/après au chat en SSE live.
+        if (diffBefore && getPreviewUrl()) {
+          await new Promise((r) => setTimeout(r, 800)); // laisse Vite HMR rafraîchir
+          const diffAfter = await captureDiff(dir, getPreviewUrl()!, "after", diffTs).catch(() => null);
+          if (diffAfter) {
+            const base = `/api/projects/${encodeURIComponent(projectName)}/diff`;
+            send({ type: "diff", before: `${base}/${diffBefore}`, after: `${base}/${diffAfter}` });
+          }
+        }
       }
     }
   } catch (err) {

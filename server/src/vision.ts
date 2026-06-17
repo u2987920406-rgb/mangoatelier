@@ -106,6 +106,32 @@ export function visionStatus(): { used: number; budget: number } {
   return { used, budget };
 }
 
+/** URL de la preview liée au tour courant (null si aucune). Lecture seule —
+ * idée #80 (capture avant/après) en a besoin sans toucher au contexte vision. */
+export function getPreviewUrl(): string | null {
+  return previewUrl;
+}
+
+/** Capture pleine fenêtre d'une URL INTERNE de confiance (la preview locale) en
+ * JPEG q80. Réutilise getBrowser(). Contrairement à captureExternal, PAS de garde
+ * isCloneableUrl (qui bloque localhost) — l'URL vient de la preview de l'app, pas
+ * de l'utilisateur. Lève si le navigateur est indisponible → l'appelant catch.
+ * Utilisé par la capture avant/après (#80), hors de la boucle MCP. */
+export async function capturePreview(url: string): Promise<Buffer> {
+  const b = await getBrowser();
+  const context = await b.newContext({ viewport: VIEWPORT });
+  try {
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: "load", timeout: 10_000 });
+    await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => {});
+    await page.waitForTimeout(300); // settle animations / HMR
+    return await page.screenshot({ type: "jpeg", quality: 80 });
+  } finally {
+    await context.close().catch(() => {});
+    touchIdleTimer();
+  }
+}
+
 // The browser is a subprocess (jalon 1 isolation stance): a Playwright crash
 // surfaces as a tool error, never as a server crash. Closed after idle so a
 // finished turn doesn't keep Edge in memory.

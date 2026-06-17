@@ -10,6 +10,7 @@ import { appendHistory, loadHistory } from "./history.js";
 import { projectDir, projectExists } from "./projects.js";
 import { ASSETS_DIR_NAME } from "./uploads.js";
 import { SNAPSHOTS_DIR_NAME } from "./vision.js";
+import { safeDiffPath } from "./vision-diff.js";
 import { commitVersion, listVersions, rollbackTo } from "./versions.js";
 
 export function registerProjectIORoutes(app: Express, isAgentBusy: () => boolean): void {
@@ -21,6 +22,21 @@ export function registerProjectIORoutes(app: Express, isAgentBusy: () => boolean
       return;
     }
     res.json({ messages: loadHistory(projectDir(name)) });
+  });
+
+  // Idée #80 — sert une image de diff avant/après (.diffs/<phase>-<ts>.jpg).
+  app.get("/api/projects/:name/diff/:file", (req: Request, res: Response) => {
+    const name = req.params["name"] as string;
+    if (!projectExists(name)) {
+      res.status(404).end();
+      return;
+    }
+    const imgPath = safeDiffPath(projectDir(name), req.params["file"] as string);
+    if (!imgPath || !fs.existsSync(imgPath)) {
+      res.status(404).end();
+      return;
+    }
+    res.sendFile(imgPath);
   });
 
   // List all project files (relative paths, sorted, excluding heavy/useless dirs)
