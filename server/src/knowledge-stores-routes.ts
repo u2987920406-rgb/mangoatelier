@@ -12,6 +12,12 @@ import { loadArchitecture, ARCHITECTURE_FILE_NAME } from "./architecture.js";
 import { loadLexique, saveLexique } from "./lexique.js";
 import { loadMiroir, saveMiroir } from "./miroir.js";
 import { loadPreferences, savePreferences, learnPreferences } from "./preferences.js";
+import {
+  resolveConstellations,
+  loadConstellationsConfig,
+  saveConstellationsConfig,
+  isDefaultConstellation,
+} from "./constellations.js";
 import { listComponents } from "./components.js";
 import { listReferences } from "./references.js";
 import { projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
@@ -38,6 +44,15 @@ export function registerKnowledgeStoresRoutes(app: Express): void {
       components: listComponents(WORKSPACE_DIR),
       // Idée #50 — Banque de références perso: mood library (workspace-level).
       references: listReferences(WORKSPACE_DIR),
+      // Idée #74 — constellations effectives (défauts + overrides), avec origine.
+      constellations: resolveConstellations(WORKSPACE_DIR).map((c) => ({
+        id: c.id,
+        label: c.label,
+        emoji: c.emoji,
+        keywords: c.keywords,
+        rules: c.rules,
+        isDefault: isDefaultConstellation(c.id),
+      })),
       // Idée #42 — personal identity layers (workspace-level, cross-project).
       identity: {
         language: loadLanguage(WORKSPACE_DIR),
@@ -188,6 +203,38 @@ export function registerKnowledgeStoresRoutes(app: Express): void {
       res.json({ ok: true, content: loadPreferences(WORKSPACE_DIR) });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // ── Idée #74 — Constellations (super-skills par composition) ─────────────────
+  // `resolved` = liste effective (défauts + overrides) pour l'affichage lecture ;
+  // `config` = texte brut du .constellations.json pour l'éditeur JSON léger.
+  app.get("/api/constellations", (req: Request, res: Response) => {
+    res.json({
+      resolved: resolveConstellations(WORKSPACE_DIR).map((c) => ({
+        id: c.id,
+        label: c.label,
+        emoji: c.emoji,
+        keywords: c.keywords,
+        rules: c.rules,
+        isDefault: isDefaultConstellation(c.id),
+      })),
+      config: loadConstellationsConfig(WORKSPACE_DIR),
+    });
+  });
+
+  app.put("/api/constellations", (req: Request, res: Response) => {
+    const { content } = req.body as { content?: string };
+    if (typeof content !== "string") {
+      res.status(400).json({ error: "content (string) requis" });
+      return;
+    }
+    try {
+      saveConstellationsConfig(WORKSPACE_DIR, content);
+      res.json({ ok: true });
+    } catch (err) {
+      // JSON invalide / pas un tableau → 400 (erreur de saisie utilisateur).
+      res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
     }
   });
 }

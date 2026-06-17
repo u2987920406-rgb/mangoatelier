@@ -5,6 +5,9 @@ import { subscriptionEnv } from "./llm-engine.js";
 import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
 import { relevantNotesSection } from "./notes-rag.js";
+import { constellationsSection } from "./constellations.js";
+import { inferProjectType } from "./blueprints.js";
+import { WORKSPACE_DIR } from "./projects.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -141,6 +144,15 @@ export async function* runAgent(
   } catch {
     notesSection = "";
   }
+  // Idée #74 — constellations: un signal de contexte détecté sur la demande
+  // injecte un pack de règles coordonnées AVANT la génération. Détection pure et
+  // synchrone (sur le prompt), "" quand rien ne se déclenche. Best-effort.
+  let constellationsBlock = "";
+  try {
+    constellationsBlock = constellationsSection(prompt, inferProjectType(prompt), WORKSPACE_DIR);
+  } catch {
+    constellationsBlock = "";
+  }
   try {
     const q = query({
       prompt,
@@ -166,7 +178,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, clientMode }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, clientMode }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },

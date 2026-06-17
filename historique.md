@@ -686,4 +686,32 @@ Mutex d'écriture `appendHistory` jugé **inutile** : la fonction est 100 % sync
 ### Tests
 `test-patrol.ts` **33/33** : triggers purs (les 5, cas positifs + négatifs discriminants), `buildPatrolContext` (lecture/troncature/fichier absent sauté), `runPatroller` (RAS/rapport/throw), `aggregatePatrol` (tout-RAS→null, mix→compte k/n + masquage), `runPatrolOnce` bout-en-bout (injection historique), `changedFilesInLastCommit` (root-commit + tour normal, vrai repo git tmpdir). Non-régression `test-scenario.ts` 52/52. `tsc` 0, build UI vert (472 kB).
 
-⚠ **e2e live non encore exercé** : vérifier sur app lancée que `🛡️ Patrouille automatique` apparaît dans le chat sous ~14 s après un tour qui touche un fichier UI.
+### E2e live ✅
+Script jetable + vrai `askLLM` (abonnement $0) sur un composant à défauts flagrants → `🛡️ Patrouille automatique (2/3)` : a11y (4 points, dont ratio de contraste calculé 1,27:1) + perf (4 points), bundle déclenché par `import react` → RAS masqué, security non déclenché. Rapport injecté dans `.chat-history.json` et servi par `GET /api/history` (la donnée exacte que le polling de `Chat.jsx` consomme). Banc nettoyé.
+
+---
+
+## 📅 Session 2026-06-18 (suite) — #74 Super-skills par composition ✅
+
+### Concept
+Un signal détecté sur la DEMANDE du tour (ex. « crée un formulaire ») active une **constellation** = un pack de règles coordonnées (validation + a11y + responsive + états + tests) injecté AVANT la génération. **Pendant amont de #73** : #73 audite *après* le tour (rapport), #74 guide *pendant* la construction (règles injectées) — frontières distinctes, zéro recouvrement.
+
+### Architecture — `server/src/constellations.ts` (nouveau)
+- **Type** `Constellation { id, label, emoji, keywords[], projectTypes?, rules, enabled? }`.
+- **`DEFAULT_CONSTELLATIONS`** (registre extensible) : 1 livrée en v1 — **📝 Formulaire** (validation/a11y/états/mobile/robustesse/tests). Choix utilisateur : prouver le mécanisme avec une constellation soignée, enrichir ensuite via JSON.
+- **Détection pure** : `detectConstellations(prompt, projectType, ws)` — matching **mot entier** (regex `(^|non-alnum)kw(non-alnum|$)`) sur le prompt **normalisé NFD** (sans accents, minuscule). Anti faux-positif : « information » ne déclenche pas « form ». Déclenchement par keyword OU `projectType ∈ projectTypes`. Capé `MAX_ACTIVE=3`.
+- **`constellationsSection`** (modèle `relevantNotesSection`) : règles des constellations déclenchées, capé `SECTION_MAX_CHARS=4000`, "" si aucune → zéro poids.
+
+### Config utilisateur — `.constellations.json` (workspace, éditable)
+- `loadCustomConstellations` : tolérant (fichier absent ou JSON invalide → [], entrée sans `id` filtrée ; reste optionnel pour permettre un override partiel).
+- `resolveConstellations` : merge **champ-par-champ** défauts + overrides par `id` (même id → surcharge les champs fournis ; id nouveau → ajout) ; retire les `enabled:false`. Un `{id:"form", enabled:false}` désactive sans perdre les règles.
+- `saveConstellationsConfig` : valide JSON + tableau (sinon throw → route 400), écrit atomiquement.
+
+### Câblage
+- **`agent.ts`** : imports `constellationsSection`/`inferProjectType`/`WORKSPACE_DIR` ; pré-calcul `constellationsBlock = constellationsSection(prompt, inferProjectType(prompt), WORKSPACE_DIR)` (best-effort, après `notesSection`) ; passé dans le ctx d'`assembleSystemPrompt`.
+- **`scenario.ts`** : `PromptContext.constellationsSection?` + bloc `constellations: (ctx) => ctx.constellationsSection ?? ""` + inséré après `"blueprints"` dans **elite / mvp / nocturne** (ABSENT finition = freeze, esthetique = polish).
+- **`knowledge-stores-routes.ts`** : `GET /api/constellations` (`{resolved, config}`) + `PUT` (400 si JSON invalide) + ajout `constellations` (resolved + `isDefault`) à l'agrégat `/api/knowledge`.
+- **`ui/src/components/Knowledge.jsx`** : section « Constellations » (icône `Blocks`) — liste lecture (emoji/label, badge défaut/perso, keywords, règles repliables) + éditeur JSON léger (fetch `config` au clic, `PUT`, erreur 400 affichée sans casser le panneau).
+
+### Tests
+`test-constellations.ts` **26/26** : résolution (défauts, ajout, surcharge par id, désactivation `enabled:false`), tolérance (`JSON invalide → []`, entrée sans id filtrée), détection (mot-entier, accents/casse, anti faux-positif, projectType), section (règles/vide), validation `saveConstellationsConfig`, **gating** via `assembleSystemPrompt` (présent elite/mvp/nocturne, absent finition/esthetique). Non-régression `test-scenario.ts` 52/52 + `test-patrol.ts` 33/33. Détection live démontrée (« formulaire d'inscription » → pack FORMULAIRE injecté ; « portfolio de photographe » → ""). `tsc` 0, build UI vert (476 kB).
