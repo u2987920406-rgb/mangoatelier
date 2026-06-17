@@ -4,9 +4,11 @@ import {
   BarChart3,
   Box,
   Boxes,
+  Braces,
   Calculator,
   Check,
   Crosshair,
+  Database,
   Flower2,
   Layers,
   LayoutDashboard,
@@ -36,7 +38,9 @@ const TEMPLATES = [
   { id: "r3f",      label: "R3F",       icon: Boxes,           hint: "React Three Fiber + Drei — 3D React, jeu de course, shooter" },
   { id: "mantine",  label: "Dashboard", icon: LayoutDashboard, hint: "Mantine + TanStack Table — KPI, graphiques, tableau triable" },
   { id: "daisy",    label: "Landing",   icon: Flower2,         hint: "DaisyUI + Tailwind v4 — landing page MVP, site de démo" },
-  { id: "panda",    label: "Outil",     icon: Calculator,      hint: "PandaCSS + Ark UI — calculateur, simulateur, outil interactif" },
+  { id: "panda",    label: "Outil",      icon: Calculator,      hint: "PandaCSS + Ark UI — calculateur, simulateur, outil interactif" },
+  { id: "radix",    label: "Design Sys", icon: Braces,          hint: "Radix UI + Vanilla Extract — tokens stricts, système entreprise" },
+  { id: "supabase", label: "Supabase",   icon: Database,        hint: "Auth + CRUD + Realtime + RLS — app full-stack sans serveur" },
 ];
 
 const SUGGESTIONS = [
