@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, Moon, Sparkles, Trash2, ExternalLink, Loader2, Star, ClipboardCheck, Check } from "lucide-react";
+import { REVIEW_QUESTIONS } from "./NocturnalReviewForm.jsx";
 
 // Questionnaire structuré de la review matinale (vague 2) → axiomes.
-const REVIEW_QUESTIONS = [
-  { key: "design", label: "Le design me plaît" },
-  { key: "fonctionnel", label: "C'est fonctionnel / complet" },
-  { key: "originalite", label: "C'est original" },
-  { key: "coherence", label: "Fidèle à mon style" },
-  { key: "garder", label: "Je garderais ce code" },
-];
+// REVIEW_QUESTIONS = source unique partagée avec le formulaire du Chat.
 
 // Idée #58/#59 vague 1 — galerie de review des projets générés la nuit, avec le
 // score du juge (#59). Voir / garder / supprimer + déclenchement manuel d'un lot.

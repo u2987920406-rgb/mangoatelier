@@ -2,10 +2,14 @@ import { useState } from "react";
 import { Check, ClipboardCheck } from "lucide-react";
 
 // Questionnaire de review d'un projet nocturne (#58/#59 vague 2) → axiomes.
-// Réutilisé sous le prompt dans le Chat (projet nocturne ouvert) ; même contrat
-// que POST /api/nocturnal/:id/review (cases + aimé/pas aimé).
-const REVIEW_QUESTIONS = [
-  { key: "design", label: "Le design me plaît" },
+// Source UNIQUE des cases (réutilisée par la galerie ET le Chat) ; même contrat
+// que POST /api/nocturnal/:id/review (cases + aimé/pas aimé). Le backend
+// (reviewToAxioms) prend les clés telles quelles → ajouter/séparer une case ne
+// touche pas le serveur. « design » est séparé en charte graphique (esthétique
+// pure) vs ergonomie/UX (placement, usage) : on aime souvent l'un sans l'autre.
+export const REVIEW_QUESTIONS = [
+  { key: "charte_graphique", label: "Charte graphique belle (couleurs, typo, esthétique)" },
+  { key: "ergonomie", label: "Ergonomie & usage agréables (placement, navigation)" },
   { key: "fonctionnel", label: "C'est fonctionnel / complet" },
   { key: "originalite", label: "C'est original" },
   { key: "coherence", label: "Fidèle à mon style" },
