@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ArrowUp, Bookmark, BrainCircuit, FileCode, FolderOpen, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
+import NocturnalReviewForm from "./components/NocturnalReviewForm.jsx";
 
 let nextId = 1;
 const uid = () => nextId++;
@@ -31,6 +32,9 @@ export default function Chat({
   onToast = () => {},
   showThinking = true,
   tutorialId = null,
+  seedHistory = null,
+  nocturnalEntry = null,
+  onReviewed = () => {},
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -154,7 +158,14 @@ export default function Chat({
       .then((r) => (r.ok ? r.json() : { messages: [] }))
       .then((d) => {
         if (cancelled) return;
-        setMessages((d.messages ?? []).map((m) => ({ id: uid(), role: m.role, text: m.text })));
+        const loaded = (d.messages ?? []).map((m) => ({ id: uid(), role: m.role, text: m.text }));
+        // Repli : un projet sans historique (ex. généré la nuit avant le fix
+        // backend) affiche au moins sa tâche initiale au lieu d'un écran vide.
+        if (loaded.length === 0 && seedHistory) {
+          setMessages([{ id: uid(), role: "user", text: seedHistory }]);
+        } else {
+          setMessages(loaded);
+        }
         requestAnimationFrame(() => {
           listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
         });
@@ -163,7 +174,7 @@ export default function Chat({
     return () => {
       cancelled = true;
     };
-  }, [projectName]);
+  }, [projectName, seedHistory]);
 
   const push = (msg) => {
     setMessages((prev) => [...prev, { id: uid(), ...msg }]);
@@ -430,6 +441,10 @@ export default function Chat({
               }}
             />
           ),
+        )}
+        {/* Projet généré la nuit : reviewer directement sous le prompt (#58/#59). */}
+        {nocturnalEntry && !nocturnalEntry.reviewed && !busy && (
+          <NocturnalReviewForm id={nocturnalEntry.id} onToast={onToast} onReviewed={onReviewed} />
         )}
         {busy && (
           <div className="shimmer-text self-start px-1 py-0.5 text-[13px] font-medium">

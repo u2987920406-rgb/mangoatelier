@@ -80,6 +80,13 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [confirmCfg, setConfirmCfg] = useState(null);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  // D'où le workspace a été ouvert (ex. "nocturnal") → bouton retour contextuel.
+  const [workspaceOrigin, setWorkspaceOrigin] = useState(null);
+  // Tâche initiale d'un projet sans historique de chat (ex. généré la nuit) :
+  // affichée à gauche en repli si .chat-history.json est vide.
+  const [initialTask, setInitialTask] = useState(null);
+  // Projet nocturne ouvert ({ id, reviewed }) → bouton Reviewer sous le prompt.
+  const [nocturnalEntry, setNocturnalEntry] = useState(null);
   // Tutoriel (#56) : overlay guidé. Le niveau de liberté du spotlight est dérivé
   // de la définition du tuto (côté Tutorial), pas d'un état ici.
   const [tutorialActive, setTutorialActive] = useState(false);
@@ -272,10 +279,13 @@ export default function App() {
     refreshBackendStatus();
   }
 
-  function openProject(name, { template: tpl = "", prompt = null } = {}) {
+  function openProject(name, { template: tpl = "", prompt = null, origin = null, task = null, nocturnal = null } = {}) {
     setProjectName(name);
     setTemplate(tpl);
     setPendingPrompt(prompt);
+    setWorkspaceOrigin(origin);
+    setInitialTask(task);
+    setNocturnalEntry(nocturnal);
     setPreviewUrl(null);
     setPreviewErrors([]);
     setDeployedUrl(null);
@@ -412,7 +422,7 @@ export default function App() {
   if (screen === "multi") panelContent = <MultiProject onBack={() => setScreen("home")} />;
   if (screen === "superagent") panelContent = <SuperAgentBuilder onBack={() => setScreen("home")} projectName={projectName} />;
   if (screen === "design") panelContent = <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
-  if (screen === "nocturnal") panelContent = <NocturnalReview onBack={() => setScreen("home")} onOpenProject={(name) => openProject(name, {})} />;
+  if (screen === "nocturnal") panelContent = <NocturnalReview onBack={() => setScreen("home")} onOpenProject={(name, entry) => openProject(name, { origin: "nocturnal", task: entry?.task ?? null, nocturnal: entry ? { id: entry.id, reviewed: Boolean(entry.reviewed) } : null })} />;
   if (screen === "radar") panelContent = <Radar onBack={() => setScreen("home")} />;
 
   if (panelContent) {
@@ -562,6 +572,8 @@ export default function App() {
           <Header
             projectName={projectName}
             onHome={goHome}
+            onBack={workspaceOrigin ? () => setScreen(workspaceOrigin) : null}
+            backLabel={workspaceOrigin === "nocturnal" ? "Review nocturne" : "Retour"}
             model={model}
             onModel={setModel}
             mode={mode}
@@ -597,6 +609,9 @@ export default function App() {
               model={model}
               mode={mode}
               template={template}
+              seedHistory={initialTask}
+              nocturnalEntry={nocturnalEntry}
+              onReviewed={() => setNocturnalEntry((e) => (e ? { ...e, reviewed: true } : e))}
               onPreviewUrl={setPreviewUrl}
               onCost={(c) => setCost((prev) => prev + c)}
               onContext={setContext}

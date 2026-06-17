@@ -1,4 +1,4 @@
-import { BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Server, Shield, Triangle, Zap } from "lucide-react";
+import { ArrowLeft, BarChart3, Brain, BrainCircuit, Cloud, Download, Eye, EyeOff, Gauge, Gem, GitFork, Globe, GraduationCap, HelpCircle, History, Loader2, Rocket, Server, Shield, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -34,6 +34,8 @@ const MODES = [
 export default function Header({
   projectName,
   onHome,
+  onBack = null,
+  backLabel = "Retour",
   model,
   onModel,
   mode,
@@ -62,6 +64,16 @@ export default function Header({
 
   return (
     <header data-tour="header" className="flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel px-4">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-sm text-dim hover:text-ink hover:bg-edge-soft transition-colors"
+          title={`Retour — ${backLabel}`}
+        >
+          <ArrowLeft size={16} />
+          <span className="hidden sm:inline">{backLabel}</span>
+        </button>
+      )}
       <button
         onClick={onHome}
         className="flex items-center gap-2 font-extrabold tracking-tight hover:opacity-80 transition-opacity"

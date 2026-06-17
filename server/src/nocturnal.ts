@@ -12,6 +12,7 @@ import path from "node:path";
 import type { Express, Request, Response } from "express";
 import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
 import { runAgent } from "./agent.js";
+import { appendHistory, formatToolLine, type ChatEntry } from "./history.js";
 import { generateUniquePrompts } from "./train-loop.js";
 import { askLLM, resolveProvider } from "./llm-engine.js";
 import { loadPreferences } from "./preferences.js";
@@ -185,6 +186,12 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
   const provider = resolveProvider(process.env.NOCTURNAL_PROVIDER, "claude");
   let costUsd = 0;
   let success = false;
+  // Génération directe via runAgent (≠ /api/chat) : on reconstitue ici l'historique
+  // de chat du projet, comme le fait index.ts, pour qu'ouvrir un projet nocturne
+  // montre le prompt initial + la conversation de génération dans le panneau Chat.
+  const turn: ChatEntry[] = [{ role: "user", text: prompt.task, ts: new Date().toISOString() }];
+  const record = (role: ChatEntry["role"], text: string) =>
+    turn.push({ role, text, ts: new Date().toISOString() });
   try {
     await createProject(name);
     // provider claude → runAgent (Claude/abonnement). (Un provider non-claude
@@ -194,10 +201,20 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
       if (ev.type === "result") {
         costUsd = ev.costUsd ?? 0;
         success = ev.ok;
-      }
+        if (!ev.ok) record("error", `L'agent s'est arrêté : ${ev.error}`);
+      } else if (ev.type === "text") record("agent", ev.text);
+      else if (ev.type === "thinking") record("thinking", ev.text);
+      else if (ev.type === "tool") record("tool", formatToolLine(ev.name, ev.detail));
+      else if (ev.type === "error") record("error", ev.message);
     }
   } catch {
     success = false;
+  }
+  // Persiste l'historique (best-effort, n'empêche jamais d'enregistrer l'entrée).
+  try {
+    appendHistory(dir, turn);
+  } catch {
+    /* best effort */
   }
   const entry: NocturnalEntry = {
     id: genId(),

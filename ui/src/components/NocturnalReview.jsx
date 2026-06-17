@@ -216,7 +216,7 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
 
               <div className="mt-1 flex items-center gap-2">
                 <button
-                  onClick={() => onOpenProject?.(e.name)}
+                  onClick={() => onOpenProject?.(e.name, e)}
                   className="flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/[0.06] px-2.5 py-1 text-xs text-accent-soft hover:bg-accent/[0.12] transition-colors"
                 >
                   <ExternalLink size={12} /> Ouvrir
