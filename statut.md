@@ -162,7 +162,7 @@ Puis ouvrir **http://localhost:5173**
 ```bash
 ollama serve
 ```
-Modèle actif : `qwen2.5-coder:14b` (9 Go, D:\ollama\models)
+Modèle actif : `gemma4:12b` (7,6 Go) · Embeddings : `nomic-embed-text` (274 Mo)
 
 **Tests déterministes utiles** (`cd server`) :
 - `npx tsx src/audit-scan.ts` — scan rendement réel
