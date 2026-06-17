@@ -29,6 +29,7 @@ import { MULTI_PROJECT_RULES, multiProjectPromptSection } from "./multi-project.
 import { superAgentPromptSection } from "./super-agent-builder.js";
 import { preferencesPromptSection } from "./preferences.js";
 import { recoveryPromptSection } from "./orchestrator.js";
+import { SELF_CRITIQUE_RULES } from "./self-critique.js";
 
 export type PromptContext = {
   mode: "mvp" | "elite" | "finition" | "nocturne";
@@ -268,6 +269,11 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // the SINGLE builder applies it sequentially, one step per turn. Zero weight
   // ("") until a council has produced a plan → never pollutes healthy projects.
   recovery: (ctx) => recoveryPromptSection(ctx.projectDir),
+  // Idée #62 — self-critique (Constitutional AI explicite, Élite only): avant de
+  // livrer, l'agent passe son code au crible des axiomes + profil déjà injectés
+  // ci-dessus. Rend explicite ce que la Coque Souple fait déjà implicitement.
+  // Bloc prompt-only : zéro fichier, zéro réseau.
+  selfCritique: () => SELF_CRITIQUE_RULES,
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
@@ -275,7 +281,7 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne", string[]> = {
-  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "superAgent"],
   mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.

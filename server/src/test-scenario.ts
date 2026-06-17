@@ -104,6 +104,14 @@ check("nocturne — vision complète présente (boucle fermée)", nocturne.inclu
 check("nocturne — analytic présent (sonnet)", nocturne.includes(ANALYTIC));
 check("nocturne — tutorial absent (pas de tuto la nuit)", !nocturne.includes(TUTORIAL));
 
+// Self-critique (idée #62) — constitutional check Élite-only : présent en Élite,
+// absent en MVP, finition et nocturne (prompt-only, zéro fichier, zéro réseau).
+const SELF_CRITIQUE = "constitutional check against axioms";
+check("self-critique présent en Élite", elite.includes(SELF_CRITIQUE));
+check("self-critique absent en MVP", !mvp.includes(SELF_CRITIQUE));
+check("self-critique absent en finition", !finition.includes(SELF_CRITIQUE));
+check("self-critique absent en nocturne", !nocturne.includes(SELF_CRITIQUE));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 
