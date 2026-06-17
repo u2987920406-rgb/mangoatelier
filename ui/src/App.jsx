@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Palette, Rss, Satellite, Scissors, Sliders, ShieldCheck } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
@@ -6,26 +6,37 @@ import Home from "./components/Home.jsx";
 import Header from "./components/Header.jsx";
 import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
-import PromptLab from "./components/PromptLab.jsx";
-import Tokenizer from "./components/Tokenizer.jsx";
-import Ideation from "./components/Ideation.jsx";
 import SidePanel from "./components/SidePanel.jsx";
-import Veille from "./components/Veille.jsx";
-import DocGenerator from "./components/DocGenerator.jsx";
-import VersionGraph from "./components/VersionGraph.jsx";
-import QAPanel from "./components/QAPanel.jsx";
-import Billing from "./components/Billing.jsx";
-import CronManager from "./components/CronManager.jsx";
-import MetricsDashboard from "./components/MetricsDashboard.jsx";
-import NotesRAG from "./components/NotesRAG.jsx";
-import AutoAblation from "./components/AutoAblation.jsx";
-import MultiProject from "./components/MultiProject.jsx";
-import SuperAgentBuilder from "./components/SuperAgentBuilder.jsx";
-import DesignReview from "./components/DesignReview.jsx";
-import Tutorial from "./components/Tutorial.jsx";
 import QuickNoteMic from "./components/QuickNoteMic.jsx";
-import NocturnalReview from "./components/NocturnalReview.jsx";
-import Radar from "./components/Radar.jsx";
+
+// Panneaux lourds chargés à la demande (code-splitting)
+const PromptLab       = lazy(() => import("./components/PromptLab.jsx"));
+const Tokenizer       = lazy(() => import("./components/Tokenizer.jsx"));
+const Ideation        = lazy(() => import("./components/Ideation.jsx"));
+const Veille          = lazy(() => import("./components/Veille.jsx"));
+const DocGenerator    = lazy(() => import("./components/DocGenerator.jsx"));
+const VersionGraph    = lazy(() => import("./components/VersionGraph.jsx"));
+const QAPanel         = lazy(() => import("./components/QAPanel.jsx"));
+const Billing         = lazy(() => import("./components/Billing.jsx"));
+const CronManager     = lazy(() => import("./components/CronManager.jsx"));
+const MetricsDashboard= lazy(() => import("./components/MetricsDashboard.jsx"));
+const NotesRAG        = lazy(() => import("./components/NotesRAG.jsx"));
+const AutoAblation    = lazy(() => import("./components/AutoAblation.jsx"));
+const MultiProject    = lazy(() => import("./components/MultiProject.jsx"));
+const SuperAgentBuilder= lazy(() => import("./components/SuperAgentBuilder.jsx"));
+const DesignReview    = lazy(() => import("./components/DesignReview.jsx"));
+const Tutorial        = lazy(() => import("./components/Tutorial.jsx"));
+const NocturnalReview = lazy(() => import("./components/NocturnalReview.jsx"));
+const Radar           = lazy(() => import("./components/Radar.jsx"));
+
+// Fallback léger partagé par tous les panneaux lazy
+function PanelLoader() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-muted">
+      Chargement…
+    </div>
+  );
+}
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -365,13 +376,15 @@ export default function App() {
   // plein écran), pour que l'auto-contexte puisse y conduire sans le masquer.
   const tutorialOverlay =
     tutorialActive && tutorialId != null ? (
-      <Tutorial
-        id={tutorialId}
-        onComplete={completeTutorial}
-        onExit={exitTutorial}
-        onStartNext={startNextTutorial}
-        onContext={enterTutorialContext}
-      />
+      <Suspense fallback={null}>
+        <Tutorial
+          id={tutorialId}
+          onComplete={completeTutorial}
+          onExit={exitTutorial}
+          onStartNext={startNextTutorial}
+          onContext={enterTutorialContext}
+        />
+      </Suspense>
     ) : null;
   const globalChrome = (
     <>
@@ -404,7 +417,9 @@ export default function App() {
   if (panelContent) {
     return (
       <>
-        {panelContent}
+        <Suspense fallback={<PanelLoader />}>
+          {panelContent}
+        </Suspense>
         {globalChrome}
       </>
     );
