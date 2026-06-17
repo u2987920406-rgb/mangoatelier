@@ -573,3 +573,41 @@ Presque tout l'auxiliaire est déjà du code pur (git, deploy, github, preview, 
 5. ✅ Subagents parallèles (agent `builder`, outils fichiers uniquement)
 6. ✅ Compression de contexte (`compaction.ts`)
 7. ✅ Raisonnement analytique (extended thinking adaptatif)
+
+---
+
+## 📅 Session 2026-06-17 (reprise contexte) — Mode Client #70 · Sidebar #71 · Templates jeux #72 · Idées #73-#80 · shadcn/ui #81 · Mode Miroir #79
+
+### Contexte
+Session de continuation après résumé. 6 livraisons enchaînées en fin de session.
+
+### #70 Mode Client ✅
+`clientMode?: boolean` dans `runAgent()` et `/api/chat`. Quand actif : 5 blocs désactivés (axioms/designSystem/preferences/identity/references), bloc `CLIENT_CONTEXT_RULES` injecté. Toggle `Briefcase` dans Sidebar, persist localStorage par projet.
+
+### #71 Refonte Sidebar iconique ✅
+Nouveau `Sidebar.jsx` (bande 48px + panneaux flottants 288px). Header allégé à 6 éléments. Layout `App.jsx` : `flex h-screen` (Sidebar + colonne). Supprime 15+ éléments de l'ancien Header.
+
+### #72 Templates jeux ✅
+- **Phaser** : `server/templates/phaser/` (GameScene + arcade physics + FIT scale). Godot rejeté (export 30-60s casse le preview live).
+- **Three.js** : `server/templates/threejs/` (Scene + PerspectiveCamera + cube animé).
+- `Home.jsx` : sélecteurs Gamepad2 (Phaser) + Box (Three.js).
+
+### #73→#80 Idées notées
+Armée de sous-agents spécialisés, super-skills cascade, mémoire procédurale, auto-réécriture partielle du prompt, veille thématique sur sites ciblés, Mode Godot, Mode Miroir, capture avant/après vision.
+
+### #81 Template shadcn/ui ✅
+`server/templates/shadcn/` — 8 fichiers : package.json (CVA, clsx, twMerge, Radix), CSS Tailwind v4 avec `@theme {}` + variables CSS, utils.js (cn()), Button (6 variants CVA), Card, Input, Badge, App.jsx démo. Sélecteur Home.jsx avec icône Layers.
+
+### #79 Mode Miroir ✅
+**Backend** (`server/src/index.ts`) :
+- Constante `MIRROR_PROJECT = "__mirror__"` + `MANGO_UI_DIR = ../../ui`
+- `isMirror` flag : skip createProject/ensureErrorRelay/ensureClickSourcePlugin/ensureInspectRelay/ensureRepo/generateLexique/startPreview/commitVersion
+- Preview = `http://localhost:5173` (Vite HMR déjà actif)
+- L'agent reçoit `dir = D:\IA\mangoai\ui\` → il lit/édite `ui/src/**` directement
+
+**Frontend** (`ui/src/App.jsx`) :
+- Import `Squircle` de lucide-react
+- Bouton flottant bas-droite (accent) : `onClick={() => openProject("__mirror__")}`
+- Bandeau d'information dans le workspace quand `projectName === "__mirror__"`
+
+`tsc` 0, build UI vert (465 kB).
