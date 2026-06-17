@@ -52,6 +52,7 @@ import { registerProjectIORoutes } from "./project-io-routes.js";
 import { registerFeedbackRoutes } from "./feedback-routes.js";
 import { registerTutorialRoutes } from "./tutorial.js";
 import { registerNocturnalRoutes } from "./nocturnal.js";
+import { registerPromptEvolutionRoutes } from "./prompt-evolution.js";
 import { registerRadarRoutes } from "./radar.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
@@ -563,6 +564,7 @@ registerSuperAgentRoutes(app);
 registerTutorialRoutes(app);
 registerNocturnalRoutes(app);
 registerRadarRoutes(app);
+registerPromptEvolutionRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);

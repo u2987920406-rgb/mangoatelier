@@ -750,3 +750,36 @@ Sans seuil, le top-K remontait toujours 2 procédures, même hors-sujet. Cosinus
 
 ### Tests
 `test-procedures.ts` **25/25** : CRUD (meta+body, tri, delete), sécurité slug (anti-traversal), snapshot, reindex (embedder mocké, idempotent, null→failed), récupération (sémantique + **seuil anti-bruit** + repli mots-clés), section (pertinente/vide), gating (présent dans les 5 scénarios). Non-régression scenario 52/52 + constellations 26/26 + patrol 33/33. E2e live Ollama validé. `tsc` 0, build UI vert (481 kB).
+
+---
+
+## 📅 Session 2026-06-18 (suite) — #76 Auto-réécriture partielle du prompt ✅
+
+### Concept
+Couche **méta** au-dessus du flux d'apprentissage. Aujourd'hui le reviewer (`review.ts`), le feedback 👍/👎 (#41) et les reviews nocturnes (#58) distillent des axiomes **réactivement, un par un**. #76 regarde l'**ensemble périodiquement** : il analyse les axiomes + les corrections récurrentes et **PROPOSE** des évolutions structurelles des règles, **jamais appliquées seules** — validées par l'humain. « Pas du fine-tuning de poids — de la réécriture de règles symboliques. »
+
+### Architecture — `server/src/prompt-evolution.ts` (nouveau)
+Moule = `orchestrator.ts` (#44, conseil d'experts) : gather borné → askLLM → proposition → validation → application.
+- **`gatherEvolutionContext(ws)`** : registre `.axioms.md` + escalades Élève→Maître récurrentes (`.train.jsonl`, `resolvedBy:"maitre"` comptées par projectType) + `axiomStats`. Borné 12k. Tolérant aux lignes corrompues.
+- **`runEvolution`** : `askLLM` (`PROMPT_EVOLUTION_PROVIDER` défaut claude) avec un system prompt cadrant les 5 kinds, sauve un `EvolutionRun`.
+- **`parseEvolutionProposals`** (robuste, modèle `parseRadar`) : regex `{…}` + normalisation kind/targetIds, filtre les propositions vides/sans titre.
+- **`applyToAxioms(raw, proposal)`** PUR (cœur testable) : `add` append · `remove` retire par id · `consolidate` retire targets + ajoute le fusionné · `promote` remplace le bloc ciblé · `scenario` no-op ; reconstruit + `capRegistry` (plafond `AXIOMS_MAX_CHARS`). `splitAxiomBlocks`/`axiomId` purs.
+- **Cible appliquable = `.axioms.md` uniquement** ; `scenario.ts` (code source de l'app) n'est JAMAIS écrit — les suggestions le concernant sont du texte affiché (kind `scenario`).
+- **`applyProposal`/`rejectProposal`** : application sur validation humaine (jamais auto). status pending→applied/rejected.
+- **Scheduler nocturne optionnel** `startPromptEvolutionScheduler` (off par défaut, config `data/prompt-evolution-config.json`, tick 15 min, 1/jour à l'heure réglée) — modèle nocturnal.ts.
+
+### Câblage
+- `axioms.ts` : `AXIOMS_MAX_CHARS` + `capRegistry` exportés (réutilisés par applyToAxioms).
+- `index.ts` : `registerPromptEvolutionRoutes(app)` (qui démarre aussi le scheduler).
+- Routes : `POST /api/prompt-evolution/run` · `GET` · `POST /:runId/:pid/apply|reject` · `DELETE /:runId` · `GET/PUT /config`.
+- `Knowledge.jsx` : section « Évolution des règles » (icône `BrainCircuit`) — bouton « Analyser & proposer », liste des runs (résumé + propositions : badge kind, rationale, cibles, `newText` repliable), boutons ✓ Appliquer / ✗ Refuser ; les suggestions `scenario` sont en lecture seule (« à porter à la main », bouton Vu). Fetch `/api/prompt-evolution` au montage.
+- `.env.example` : `PROMPT_EVOLUTION_PROVIDER`.
+
+### Piège attrapé
+`escalationsByType` lisait un chemin `.train.jsonl` FIXE (la constante `TRAIN_LOG`) au lieu du `workspaceDir` passé à `gatherEvolutionContext` → invisible en prod (même dir) mais non testable. Corrigé : `escalationsByType(workspaceDir)`.
+
+### Tests
+`test-prompt-evolution.ts` **22/22** : split/id, `applyToAxioms` (5 kinds + plafond + id introuvable no-op), `parseEvolutionProposals` (valide, JSON bruité, invalide, kind inconnu→add, filtres), `gatherEvolutionContext` (registre + escalades par type, tolérance corrompu). Non-régression scenario 52/52 + procedures 25/25.
+
+### E2e live (abonnement) — méta-analyse exemplaire
+Seedé : 2 axiomes UIUX quasi-doublons (même règle 44px, vus à 2 dates) + 5 escalades webapp. Mango a proposé : **(1) consolidate** UIUX-01+02 → un axiome confirmé (raisonnement : « vus à deux dates indépendantes, le doublon se valide lui-même → promotion à confirmé ») ; **(2) scenario** : REFUS de créer un axiome à l'aveugle sur les 5 escalades (« motif précis inconnu → investiguer avant d'encoder le mauvais piège »). Comportement conservateur idéal. `tsc` 0, build UI vert (485 kB).
