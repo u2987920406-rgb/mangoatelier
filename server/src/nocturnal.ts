@@ -13,7 +13,7 @@ import type { Express, Request, Response } from "express";
 import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
 import { runAgent } from "./agent.js";
 import { appendHistory, formatToolLine, type ChatEntry } from "./history.js";
-import { inspectProject } from "./inspection.js";
+import { inspectProject, type InspectionSignal } from "./inspection.js";
 import { generateUniquePrompts } from "./train-loop.js";
 import { askLLM, resolveProvider } from "./llm-engine.js";
 import { loadPreferences } from "./preferences.js";
@@ -191,6 +191,36 @@ export function nocturnalRepairPrompt(buildError: string): string {
   return `Le build de l'app ÉCHOUE (npm run build / vite). Corrige la ou les erreurs ci-dessous — SANS ajouter de fonctionnalité, en gardant le design en place — puis assure-toi que le projet compile proprement. Sortie du build :\n\n${buildError}`;
 }
 
+// Dépendances injectables de la boucle de réparation : en prod ce sont
+// inspectProject (vrai `vite build`) et un tour runAgent ; en test, des fakes
+// sans réseau ni build. Même esprit que defaultRelayDeps (eleve.ts).
+export interface RepairDeps {
+  inspect: (dir: string) => Promise<{ ok: boolean; signal: InspectionSignal; detail: string }>;
+  repairTurn: (prompt: string) => Promise<void>;
+  onStatus?: (msg: string) => void;
+}
+
+/** Vérifie objectivement que le projet compile et, si le build échoue, lance
+ * jusqu'à `maxRepairs` tours de réparation autonome (sortie d'erreur réinjectée).
+ * S'arrête dès que le build passe, au plafond, ou sur un signal non réparable
+ * (≠ build-failed). Renvoie l'inspection finale (`ok` = compile VRAIMENT) et le
+ * nombre de tentatives. Logique pure sur ses deps → testable sans réseau. */
+export async function ensureBuildPasses(
+  dir: string,
+  deps: RepairDeps,
+  maxRepairs: number = MAX_NOCTURNAL_REPAIRS,
+): Promise<{ ok: boolean; signal: InspectionSignal; attempts: number }> {
+  let inspection = await deps.inspect(dir);
+  let attempts = 0;
+  while (attempts < maxRepairs && inspection.signal === "build-failed") {
+    attempts++;
+    deps.onStatus?.(`🔧 Build en échec — réparation autonome (tentative ${attempts}/${maxRepairs})…`);
+    await deps.repairTurn(nocturnalRepairPrompt(inspection.detail));
+    inspection = await deps.inspect(dir);
+  }
+  return { ok: inspection.ok, signal: inspection.signal, attempts };
+}
+
 async function buildOne(prompt: { task: string; kind: string; projectType: string }, batchId: string, index: number): Promise<NocturnalEntry> {
   const name = `nuit-${batchId}-${index}`;
   const dir = projectDir(name);
@@ -231,16 +261,15 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
     //    faisait pas (≠ runRelay/Élève) : un projet pouvait être "success" sans
     //    compiler — d'où des projets cassés en galerie, notés par le juge. On
     //    rebuild réellement et, si ça casse, on fait corriger l'agent (borné).
-    let inspection = await inspectProject(dir);
-    for (let attempt = 1; attempt <= MAX_NOCTURNAL_REPAIRS && inspection.signal === "build-failed"; attempt++) {
-      record("status", `🔧 Build en échec — réparation autonome (tentative ${attempt}/${MAX_NOCTURNAL_REPAIRS})…`);
-      await consumeTurn(nocturnalRepairPrompt(inspection.detail));
-      inspection = await inspectProject(dir);
-    }
+    const verdict = await ensureBuildPasses(dir, {
+      inspect: (d) => inspectProject(d),
+      repairTurn: (p) => consumeTurn(p),
+      onStatus: (msg) => record("status", msg),
+    });
     // success = le projet compile VRAIMENT (seul "ok" compte). Un build cassé
     // après réparations, ou un signal non réparable (timeout, no-deps…), reste KO.
-    success = inspection.ok;
-    if (!inspection.ok) record("error", `Build non valide après génération (${inspection.signal}).`);
+    success = verdict.ok;
+    if (!verdict.ok) record("error", `Build non valide après génération (${verdict.signal}).`);
   } catch {
     success = false;
   }
