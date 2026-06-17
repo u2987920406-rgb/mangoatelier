@@ -576,6 +576,34 @@ Presque tout l'auxiliaire est déjà du code pur (git, deploy, github, preview, 
 
 ---
 
+## 📅 Session 2026-06-17 (suite) — #82 Templates graphiques (7 stacks) · #83 Templates visualisation & flow (3 stacks)
+
+### #82 Templates graphiques — 7 stacks ✅
+
+Stacks ajoutées et câblées dans `Home.jsx` (sélecteurs) :
+
+- **pixi** — PixiJS v8 : `async app.init()`, `app.canvas`, Vampire Survivors demo (WASD + ennemis qui spawnt + score/wave). Pattern: `app.ticker.add()`.
+- **r3f** — React Three Fiber + Drei : `<Canvas>`, 3 cubes `useFrame` + hover rose + `Float`, OrbitControls + Grid + Environment + Html overlay.
+- **mantine** — Mantine v7 + TanStack Table : `MantineProvider` dark/violet, `AppShell` 4 pages (dashboard KPI + BarChart + Table triable/filtrable + Settings). Import CSS obligatoire dans `main.jsx`.
+- **daisy** — DaisyUI v5 + Tailwind v4 : `@import "tailwindcss"; @plugin "daisyui";`, `@tailwindcss/vite`, landing page dark data-theme avec navbar/hero/features/pricing.
+- **panda** — PandaCSS + Ark UI : `"postinstall": "panda codegen --silent"` génère `styled-system/`, `css()` de `../styled-system/css`, TVA calculator + km/miles converter avec Ark Tabs/NumberInput/Slider.
+- **radix** — Radix UI + Vanilla Extract : `createGlobalTheme` tokens, `styleVariants` pour Button, sélecteurs `data-state` Radix, démo design system (équipe/rôles/tokens). Bugfix clé : valeurs tab explicites `"team"/"roles"/"tokens"` (pas de `.toLowerCase()` sur labels français).
+- **supabase** — React + Supabase : Auth `signInWithPassword/signUp`, CRUD `from().select/insert/update/delete`, Realtime `.channel().on('postgres_changes',...)`. Schema SQL RLS en commentaire haut du fichier.
+
+### #83 Templates visualisation & flow — 3 stacks ✅
+
+Analyse des 3 bibliothèques et implémentation :
+
+- **cytoscape** — Cytoscape.js + cytoscape-dagre : carte mentale "Architecture Web" (14 nœuds, 3 niveaux), 3 layouts basculables avec animation (Hiérarchique/Arbre/Cercle), `cy.on('tap', 'node')` → panneau détail, destructeur `cy.destroy()` sur unmount. `dagre: ^0.8.5` requis en explicit dep.
+- **d3tree** — D3-Hierarchy : treemap bundle analyse (4 groupes, 5 catégories couleur, données Ko), `d3.hierarchy().sum().sort()`, `d3.treemap()` avec `paddingTop(22)` pour en-têtes groupes, tooltip `mousemove/mouseleave`, labels adaptatifs (`getComputedTextLength()`).
+- **reactflow** — React Flow v12 (`@xyflow/react`) : pipeline IA n8n-like, 4 types de nœuds personnalisés (TriggerNode vert / ProcessNode indigo / ConditionNode amber avec 2 Handles source yes/no / OutputNode cyan), edges `smoothstep+animated`, `addEdge` `onConnect`, bouton ajout nœud par type, MiniMap avec couleurs par type, `colorMode="dark"`.
+
+**Svelte Flow rejeté** : Mango génère du React → Svelte Flow hors contexte.
+
+`tsc` 0, build UI vert (470 kB).
+
+---
+
 ## 📅 Session 2026-06-17 (reprise contexte) — Mode Client #70 · Sidebar #71 · Templates jeux #72 · Idées #73-#80 · shadcn/ui #81 · Mode Miroir #79
 
 ### Contexte

@@ -12,6 +12,9 @@ import {
   Flower2,
   Layers,
   LayoutDashboard,
+  Network,
+  PieChart,
+  Workflow,
   ChevronDown,
   Clock,
   FileText,
@@ -40,7 +43,10 @@ const TEMPLATES = [
   { id: "daisy",    label: "Landing",   icon: Flower2,         hint: "DaisyUI + Tailwind v4 — landing page MVP, site de démo" },
   { id: "panda",    label: "Outil",      icon: Calculator,      hint: "PandaCSS + Ark UI — calculateur, simulateur, outil interactif" },
   { id: "radix",    label: "Design Sys", icon: Braces,          hint: "Radix UI + Vanilla Extract — tokens stricts, système entreprise" },
-  { id: "supabase", label: "Supabase",   icon: Database,        hint: "Auth + CRUD + Realtime + RLS — app full-stack sans serveur" },
+  { id: "supabase",   label: "Supabase",   icon: Database,  hint: "Auth + CRUD + Realtime + RLS — app full-stack sans serveur" },
+  { id: "cytoscape", label: "Mind Map",   icon: Network,   hint: "Cytoscape.js — organigramme, arbre hiérarchique, carte mentale" },
+  { id: "d3tree",    label: "Treemap",    icon: PieChart,  hint: "D3-Hierarchy — treemap, répartition proportionnelle de données" },
+  { id: "reactflow", label: "Flow",       icon: Workflow,  hint: "React Flow — éditeur de nœuds n8n-like, pipeline IA, workflow" },
 ];
 
 const SUGGESTIONS = [
