@@ -12,7 +12,7 @@ import path from "node:path";
 import type { Express, Request, Response } from "express";
 import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
 import { runAgent } from "./agent.js";
-import { appendHistory, formatToolLine, type ChatEntry } from "./history.js";
+import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { inspectProject, type InspectionSignal } from "./inspection.js";
 import { generateUniquePrompts } from "./train-loop.js";
 import { askLLM, resolveProvider } from "./llm-engine.js";
@@ -371,6 +371,29 @@ AXIOME-UX-XX [candidat] [validé-utilisateur] [review-nocturne]
     fs.mkdirSync(WORKSPACE_DIR, { recursive: true });
     const existing = fs.existsSync(axiomsPath) ? fs.readFileSync(axiomsPath, "utf8").trim() : "";
     fs.writeFileSync(axiomsPath, (existing ? `${existing}\n\n${text}` : text) + "\n", "utf8");
+
+    // #55a — si la charte graphique ET l'ergonomie sont validées, baliser comme
+    // candidat LoRA dans .train.jsonl. On capture le code source MAINTENANT
+    // (le dossier existe encore) pour que l'entrée soit autoportante — la paire
+    // tâche→solution survit à toute suppression ultérieure du projet.
+    const loraCrit = input.answers?.charte_graphique === true && input.answers?.ergonomie === true;
+    if (loraCrit) {
+      const trainLog = path.join(WORKSPACE_DIR, ".train.jsonl");
+      const dir = path.join(WORKSPACE_DIR, entry.name);
+      const solution = collectSource(dir, 12, 4000);
+      // #55a v2 — on embarque aussi la conversation complète (raisonnement +
+      // outils + décisions intermédiaires), pas juste le code final.
+      // C'est le CHEMIN vers la solution : pourquoi ce composant d'abord, pourquoi
+      // ce refactor, pourquoi cette structure — c'est ça que le LoRA doit apprendre.
+      const conversation = loadHistory(dir).filter(
+        (e) => e.role === "agent" || e.role === "thinking" || e.role === "user",
+      );
+      fs.appendFileSync(
+        trainLog,
+        `${JSON.stringify({ ts: new Date().toISOString(), kind: "nocturnal-review", task: entry.task, conversation, solution, score: entry.score, dims: entry.dims, lora_candidate: true })}\n`,
+        "utf8",
+      );
+    }
   } catch {
     return;
   }

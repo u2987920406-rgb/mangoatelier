@@ -79,7 +79,7 @@ app.get("/api/projects", (_req, res) => {
 // Body: { prompt: string, projectName: string, sessionId?: string }
 // Streams AgentEvent objects as SSE. Creates the project on first message.
 app.post("/api/chat", async (req, res) => {
-  const { prompt, projectName, sessionId, model, mode, template, editTarget, tutorialId } = req.body as {
+  const { prompt, projectName, sessionId, model, mode, template, editTarget, tutorialId, clientMode } = req.body as {
     prompt?: string;
     projectName?: string;
     sessionId?: string;
@@ -88,6 +88,7 @@ app.post("/api/chat", async (req, res) => {
     template?: string;
     editTarget?: EditTarget; // #6 : cible d'une édition visuelle (clic→source)
     tutorialId?: number; // #56 Chantier C : tour joué DANS le tutoriel (posture pédagogue)
+    clientMode?: boolean; // Mode Client : désactive le goût personnel, ancre sur les fichiers du client
   };
   // Posture tutoriel injectée dans le system prompt quand on construit dans un tuto.
   const tutorial = typeof tutorialId === "number" && tutorialId >= 1 ? { id: tutorialId } : null;
@@ -210,7 +211,7 @@ app.post("/api/chat", async (req, res) => {
     // event is held back until we know it isn't that case.
     const streamAgentTurn = async (session?: string): Promise<"ok" | "session-not-found"> => {
       let pendingFailure: unknown = null;
-      for await (const event of runAgent(agentPrompt, dir, session, chosenModel, chosenMode, tutorial)) {
+      for await (const event of runAgent(agentPrompt, dir, session, chosenModel, chosenMode, tutorial, Boolean(clientMode))) {
         if (session && event.type === "error" && /No conversation found/i.test(event.message)) {
           return "session-not-found";
         }

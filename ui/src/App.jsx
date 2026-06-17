@@ -4,6 +4,7 @@ import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
 import Header from "./components/Header.jsx";
+import Sidebar from "./components/Sidebar.jsx";
 import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
 import SidePanel from "./components/SidePanel.jsx";
@@ -87,6 +88,8 @@ export default function App() {
   const [initialTask, setInitialTask] = useState(null);
   // Projet nocturne ouvert ({ id, reviewed }) → bouton Reviewer sous le prompt.
   const [nocturnalEntry, setNocturnalEntry] = useState(null);
+  // Mode Client per-projet : persiste dans localStorage sous "mangoai.clientMode.<projet>"
+  const [clientMode, setClientMode] = useState(false);
   // Tutoriel (#56) : overlay guidé. Le niveau de liberté du spotlight est dérivé
   // de la définition du tuto (côté Tutorial), pas d'un état ici.
   const [tutorialActive, setTutorialActive] = useState(false);
@@ -291,7 +294,14 @@ export default function App() {
     setDeployedUrl(null);
     setGithubUrl(null);
     setContext(null);
+    // Restaure le mode client sauvegardé pour ce projet (ou false par défaut).
+    setClientMode(localStorage.getItem(`mangoai.clientMode.${name}`) === "true");
     setScreen("workspace");
+  }
+
+  function handleClientMode(val) {
+    setClientMode(val);
+    localStorage.setItem(`mangoai.clientMode.${projectName}`, String(val));
   }
 
   function goHome() {
@@ -568,7 +578,31 @@ export default function App() {
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
         </>
       ) : (
-        <div className="flex h-screen flex-col">
+        <div className="flex h-screen">
+          <Sidebar
+            projectName={projectName}
+            versions={versions}
+            onRollback={askRollback}
+            canGithub={githubEnabled && projects.includes(projectName)}
+            pushingGithub={pushingGithub}
+            onGithub={pushGithub}
+            githubUrl={githubUrl}
+            backendStatus={projects.includes(projectName) ? backendStatus : null}
+            onBackendScaffold={scaffoldBackend}
+            onBackendStart={startBackend}
+            onBackendStop={stopBackend}
+            showThinking={showThinking}
+            onToggleThinking={() => {
+              setShowThinking((v) => {
+                const next = !v;
+                localStorage.setItem("mangoai.showThinking", String(next));
+                return next;
+              });
+            }}
+            clientMode={clientMode}
+            onClientMode={handleClientMode}
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
           <Header
             projectName={projectName}
             onHome={goHome}
@@ -578,30 +612,12 @@ export default function App() {
             onModel={setModel}
             mode={mode}
             onMode={setMode}
-            versions={versions}
-            onRollback={askRollback}
             canDeploy={projects.includes(projectName)}
             deploying={deploying}
             onDeploy={deploy}
             deployedUrl={deployedUrl}
-            canGithub={githubEnabled && projects.includes(projectName)}
-            pushingGithub={pushingGithub}
-            onGithub={pushGithub}
-            githubUrl={githubUrl}
-            backendStatus={projects.includes(projectName) ? backendStatus : null}
-            onBackendScaffold={scaffoldBackend}
-            onBackendStart={startBackend}
-            onBackendStop={stopBackend}
             cost={cost}
             context={context}
-            showThinking={showThinking}
-            onToggleThinking={() => {
-              setShowThinking((v) => {
-                const next = !v;
-                localStorage.setItem("mangoai.showThinking", String(next));
-                return next;
-              });
-            }}
           />
           <div className="flex min-h-0 flex-1">
             <Chat
@@ -631,6 +647,7 @@ export default function App() {
               onChatMode={handleChatMode}
               onToast={pushToast}
               tutorialId={tutorialActive ? tutorialId : null}
+              clientMode={clientMode}
             />
             <Preview
               url={previewUrl}
@@ -661,6 +678,7 @@ export default function App() {
               <ShieldCheck size={16} className="text-accent-soft" />
             </button>
           </div>
+          </div>{/* end flex-col wrapper */}
         </div>
       )}
       {globalChrome}

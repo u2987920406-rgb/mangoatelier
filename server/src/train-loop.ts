@@ -29,6 +29,31 @@ import { inferProjectType } from "./blueprints.js";
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const TRAIN_LOG = path.join(WORKSPACE_DIR, ".train.jsonl");
 
+// Capture un snapshot léger des fichiers source d'un projet — rendu autoportant
+// dans .train.jsonl pour que la paire tâche→solution survive à rmProject().
+function captureSource(dir: string, maxFiles = 8, maxChars = 3000): string {
+  const srcDir = path.join(dir, "src");
+  let out = "";
+  let count = 0;
+  const walk = (d: string) => {
+    let items: fs.Dirent[];
+    try { items = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const it of items) {
+      if (count >= maxFiles) return;
+      const p = path.join(d, it.name);
+      if (it.isDirectory() && it.name !== "node_modules") { walk(p); }
+      else if (/\.(jsx?|tsx?|css)$/.test(it.name)) {
+        try {
+          out += `\n--- ${path.relative(dir, p)} ---\n${fs.readFileSync(p, "utf8").slice(0, maxChars)}\n`;
+          count++;
+        } catch { /* skip */ }
+      }
+    }
+  };
+  walk(srcDir);
+  return out;
+}
+
 // ── Moteur de diversité : fond (domaine) × forme/UX (style) × type ───────────
 export const DOMAINS = [
   "un restaurant italien", "un coach de fitness", "un cabinet d'avocats d'affaires",
@@ -240,9 +265,14 @@ async function main(): Promise<void> {
         attempts: r.attempts,
         projectType: p.projectType,
       });
+      // #55a — escalade Maître réussie = paire tâche→solution de qualité (candidat LoRA).
+      // On capture le code source ICI (dossier encore présent) pour que l'entrée
+      // soit autoportante — rmProject() peut supprimer ensuite sans perte.
+      const lora_candidate = r.resolvedBy === "maitre" && r.success;
+      const solution = lora_candidate ? captureSource(dir) : undefined;
       fs.appendFileSync(
         TRAIN_LOG,
-        `${JSON.stringify({ ts: new Date().toISOString(), runId, name, kind: p.kind, projectType: p.projectType, resolvedBy: r.resolvedBy, attempts: r.attempts, success: r.success, axiom: r.axiom, costUsd: r.costUsd, durationMs, task: p.task })}\n`,
+        `${JSON.stringify({ ts: new Date().toISOString(), runId, name, kind: p.kind, projectType: p.projectType, resolvedBy: r.resolvedBy, attempts: r.attempts, success: r.success, axiom: r.axiom, costUsd: r.costUsd, durationMs, task: p.task, lora_candidate, ...(solution ? { solution } : {}) })}\n`,
       );
 
       stats.done++;

@@ -32,6 +32,7 @@ export default function Chat({
   onToast = () => {},
   showThinking = true,
   tutorialId = null,
+  clientMode = false,
   seedHistory = null,
   nocturnalEntry = null,
   onReviewed = () => {},
@@ -258,6 +259,7 @@ export default function Chat({
           sessionId: sessionRef.current ?? undefined,
           editTarget: useEdit ?? undefined,
           tutorialId: tutorialId ?? undefined,
+          clientMode: clientMode || undefined,
         }),
       });
       if (!res.ok) {

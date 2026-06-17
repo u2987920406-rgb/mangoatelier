@@ -41,6 +41,10 @@ export type PromptContext = {
   // Idée #61 vague 2 — notes personnelles pertinentes à la requête du tour,
   // pré-calculées (async) par agent.ts puis injectées telles quelles. "" si aucune.
   notesSection?: string;
+  // Mode Client — quand true, les blocs de goût personnel (axiomes, préférences,
+  // design-system, identité, références) sont désactivés et remplacés par un bloc
+  // dédié qui recentre l'agent sur les fichiers du projet client uniquement.
+  clientMode?: boolean;
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -186,6 +190,16 @@ MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoAI
 `;
 }
 
+// Mode Client — tous les blocs de goût personnel sont désactivés, remplacés
+// par ce bloc qui recentre l'agent sur les fichiers fournis par le client.
+const CLIENT_CONTEXT_RULES = `
+Mode Client actif — ce projet appartient à un CLIENT EXTERNE :
+- Ta SEULE référence esthétique = les fichiers fournis dans ce projet (.assets/, uploads, brief, moodboards). Lis-les EN PREMIER, avant tout autre action.
+- IGNORE complètement les préférences personnelles de l'utilisateur (axiomes, goût, palette habituelle, typographie favorite). Elles ne s'appliquent PAS ici.
+- Respecte UNIQUEMENT la charte graphique, les couleurs, les typographies et l'ambiance que le client a fournis. Si aucun fichier n'est fourni, demande-les avant de coder.
+- Le Miroir ("voici ce que j'ai compris") reflète le goût DU CLIENT — pas celui de l'utilisateur.
+- En cas de doute entre le goût de l'utilisateur et les fichiers du client : les fichiers du client gagnent TOUJOURS.`;
+
 // ── Named blocks: each returns its text for the given context ("" = absent) ──
 const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   tutorial: (ctx) => (ctx.tutorial ? tutorialRules(ctx.tutorial) : ""),
@@ -230,24 +244,26 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 Autonomous moodboard (night generation): run the moodboard above WITHOUT asking the user anything and WITHOUT waiting for plan.md validation — you build alone at night. Pick the 2-3 real leaders yourself, capture them with Sharingan, derive a strong coherent visual direction (palette, typography, layout, structure) and apply it directly to the build. Skipping the moodboard would yield a bland generic UI — do NOT skip it.`,
   visionElite: () => VISION_RULES_ELITE,
   visionMvp: () => VISION_RULES_MVP,
+  // Bloc mode client — injecté en tête quand clientMode=true, remplace les blocs de goût.
+  clientContext: (ctx) => (ctx.clientMode ? CLIENT_CONTEXT_RULES : ""),
   // Future retrieval seam: today returns the capped registry unchanged.
-  axioms: () => selectAxioms(WORKSPACE_DIR),
+  axioms: (ctx) => (ctx.clientMode ? "" : selectAxioms(WORKSPACE_DIR)),
   memory: (ctx) => memoryPromptSection(ctx.projectDir, WORKSPACE_DIR),
   // Idée #42 — personal identity layers (.language / .thinking-style / .vision):
   // who the user is deeply, across all projects. Injected right after the user
   // profile/memory so the agent reads intent through the user's own language,
   // thinking style and long-term vision. "" when all three layers are empty.
-  identity: () => identityPromptSection(WORKSPACE_DIR),
+  identity: (ctx) => (ctx.clientMode ? "" : identityPromptSection(WORKSPACE_DIR)),
   skills: () => skillsPromptSection(),
   // Chantier A — cross-project design system: visual identity that survives
   // project switches (palette, typo, components). Always injected so new
   // projects inherit the user's established visual style without prompting.
-  designSystem: () => DESIGN_SYSTEM_RULES + designSystemPromptSection(WORKSPACE_DIR),
+  designSystem: (ctx) => (ctx.clientMode ? "" : DESIGN_SYSTEM_RULES + designSystemPromptSection(WORKSPACE_DIR)),
   // Idée #49 — "Cadrage qui apprend de toi": recurring preferences learned
   // from past projects (tone, typography, layout, palette, UX habits) injected
   // as OVERRIDABLE defaults at the founding cadrage of each new project.
   // Zero weight ("") until .preferences.md exists — never pollutes new setups.
-  preferences: () => preferencesPromptSection(WORKSPACE_DIR),
+  preferences: (ctx) => (ctx.clientMode ? "" : preferencesPromptSection(WORKSPACE_DIR)),
   // Chantier #38 — living architecture map: per-project technical structure
   // (components, pages, API, data, stack, decisions). Injected only when the
   // file exists (non-empty), so it never pollutes brand-new projects.
@@ -267,7 +283,7 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // Idée #50 — Banque de références perso: mood library of inspirations
   // (screenshots / URLs / palettes) reused at the founding cadrage of each new
   // project. Rules always present; list injected only when references exist.
-  references: () => REFERENCES_RULES + referencesPromptSection(WORKSPACE_DIR),
+  references: (ctx) => (ctx.clientMode ? "" : REFERENCES_RULES + referencesPromptSection(WORKSPACE_DIR)),
   // Idée #26 Phase 2 — raw source files from OTHER workspace projects: before
   // recoding a component/hook/util, the agent checks what already exists in the
   // user's other projects and adapts it instead of starting from scratch.
@@ -300,11 +316,11 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique", string[]> = {
-  elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "superAgent"],
-  mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  elite: ["tutorial", "mode", "clientContext", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "superAgent"],
+  mvp: ["tutorial", "mode", "clientContext", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["tutorial", "mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  finition: ["tutorial", "mode", "clientContext", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
   // Nocturne (#58) — arsenal DESIGN d'Élite (analytic + moodboard complet +
   // visionElite + design-system) en autonomie totale : on RETIRE les portes
   // humaines (cadrage qui sollicite, clarification, Miroir) et le scoping
@@ -315,7 +331,7 @@ const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique"
   // on l'embellit. Mène avec le protocole graphicPolish, garde tout l'arsenal
   // qualité (analytic + visionElite + design-system) SANS nouveau scope/plan
   // (pas de cadrage/clarification/Miroir) ni tests ni tutorial.
-  esthetique: ["mode", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  esthetique: ["mode", "clientContext", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
