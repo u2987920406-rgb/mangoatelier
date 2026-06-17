@@ -13,6 +13,7 @@ import type { Express, Request, Response } from "express";
 import { createProject, projectDir, WORKSPACE_DIR } from "./projects.js";
 import { runAgent } from "./agent.js";
 import { appendHistory, formatToolLine, type ChatEntry } from "./history.js";
+import { inspectProject } from "./inspection.js";
 import { generateUniquePrompts } from "./train-loop.js";
 import { askLLM, resolveProvider } from "./llm-engine.js";
 import { loadPreferences } from "./preferences.js";
@@ -178,7 +179,17 @@ export async function judgeProject(dir: string, task: string): Promise<{ score: 
 // ── Génération d'un projet (Claude autonome) ─────────────────────────────────
 
 const AUTONOMOUS_SUFFIX =
-  "\n\nMode autonome (génération nocturne) : ne pose AUCUNE question, prends les meilleures décisions toi-même et construis directement une app complète et soignée.";
+  "\n\nMode autonome (génération nocturne) : ne pose AUCUNE question, prends les meilleures décisions toi-même et construis directement une app complète et soignée. Soigne particulièrement le design : déploie le moodboard (recherche de leaders réels + capture Sharingan) pour une vraie charte graphique distinctive, jamais un rendu générique par défaut.";
+
+// Nombre de tours de réparation autonome après un build cassé (la nuit, personne
+// ne corrige à la main). Borné pour ne pas brûler la nuit sur un projet rétif.
+const MAX_NOCTURNAL_REPAIRS = 2;
+
+/** Prompt de réparation : on réinjecte la sortie d'erreur du build et on demande
+ * une correction stricte (pas de nouvelle feature). Pur → testable. */
+export function nocturnalRepairPrompt(buildError: string): string {
+  return `Le build de l'app ÉCHOUE (npm run build / vite). Corrige la ou les erreurs ci-dessous — SANS ajouter de fonctionnalité, en gardant le design en place — puis assure-toi que le projet compile proprement. Sortie du build :\n\n${buildError}`;
+}
 
 async function buildOne(prompt: { task: string; kind: string; projectType: string }, batchId: string, index: number): Promise<NocturnalEntry> {
   const name = `nuit-${batchId}-${index}`;
@@ -192,21 +203,44 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
   const turn: ChatEntry[] = [{ role: "user", text: prompt.task, ts: new Date().toISOString() }];
   const record = (role: ChatEntry["role"], text: string) =>
     turn.push({ role, text, ts: new Date().toISOString() });
-  try {
-    await createProject(name);
-    // provider claude → runAgent (Claude/abonnement). (Un provider non-claude
-    // resterait à câbler en vague 2 ; aujourd'hui défaut = claude.)
-    void provider;
-    for await (const ev of runAgent(prompt.task + AUTONOMOUS_SUFFIX, dir, undefined, "sonnet", "mvp")) {
+  // sessionId capturé au 1er tour → les tours de réparation REPRENNENT la même
+  // conversation (l'agent garde le contexte de ce qu'il a construit).
+  let sessionId: string | undefined;
+  // Mode "nocturne" : arsenal design d'Élite (moodboard Sharingan + web +
+  // design-system) SANS les portes humaines (personne ne valide la nuit).
+  const consumeTurn = async (genPrompt: string): Promise<void> => {
+    for await (const ev of runAgent(genPrompt, dir, sessionId, "sonnet", "nocturne")) {
       if (ev.type === "result") {
-        costUsd = ev.costUsd ?? 0;
-        success = ev.ok;
+        costUsd += ev.costUsd ?? 0;
+        sessionId = ev.sessionId;
         if (!ev.ok) record("error", `L'agent s'est arrêté : ${ev.error}`);
       } else if (ev.type === "text") record("agent", ev.text);
       else if (ev.type === "thinking") record("thinking", ev.text);
       else if (ev.type === "tool") record("tool", formatToolLine(ev.name, ev.detail));
       else if (ev.type === "error") record("error", ev.message);
     }
+  };
+  try {
+    await createProject(name);
+    // provider claude → runAgent (Claude/abonnement). (Un provider non-claude
+    // resterait à câbler en vague 2 ; aujourd'hui défaut = claude.)
+    void provider;
+    // 1) Génération initiale.
+    await consumeTurn(prompt.task + AUTONOMOUS_SUFFIX);
+    // 2) Vérification OBJECTIVE du build + auto-réparation. La voie Claude ne le
+    //    faisait pas (≠ runRelay/Élève) : un projet pouvait être "success" sans
+    //    compiler — d'où des projets cassés en galerie, notés par le juge. On
+    //    rebuild réellement et, si ça casse, on fait corriger l'agent (borné).
+    let inspection = await inspectProject(dir);
+    for (let attempt = 1; attempt <= MAX_NOCTURNAL_REPAIRS && inspection.signal === "build-failed"; attempt++) {
+      record("status", `🔧 Build en échec — réparation autonome (tentative ${attempt}/${MAX_NOCTURNAL_REPAIRS})…`);
+      await consumeTurn(nocturnalRepairPrompt(inspection.detail));
+      inspection = await inspectProject(dir);
+    }
+    // success = le projet compile VRAIMENT (seul "ok" compte). Un build cassé
+    // après réparations, ou un signal non réparable (timeout, no-deps…), reste KO.
+    success = inspection.ok;
+    if (!inspection.ok) record("error", `Build non valide après génération (${inspection.signal}).`);
   } catch {
     success = false;
   }

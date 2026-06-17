@@ -1,5 +1,5 @@
 // Tests purs du juge nocturne (#59). Lancer : npx tsx src/test-nocturnal.ts
-import { parseJudgeOutput } from "./nocturnal.js";
+import { parseJudgeOutput, nocturnalRepairPrompt } from "./nocturnal.js";
 
 let pass = 0, fail = 0;
 function check(label: string, cond: boolean): void {
@@ -45,6 +45,14 @@ console.log("─".repeat(56));
 // Entrées invalides
 check("texte sans JSON → null", parseJudgeOutput("aucune note disponible") === null);
 check("vide → null", parseJudgeOutput("") === null);
+
+// Prompt de réparation (auto-réparation build, robustesse nocturne)
+{
+  const err = "Brochure.jsx:152:14: ERROR: Unexpected closing \"span\" tag";
+  const p = nocturnalRepairPrompt(err);
+  check("repair — réinjecte la sortie d'erreur du build", p.includes(err));
+  check("repair — interdit d'ajouter une feature", p.includes("SANS ajouter de fonctionnalité"));
+}
 
 console.log("═".repeat(56));
 if (fail === 0) console.log(`✅ All ${pass}/${pass} checks passed.`);

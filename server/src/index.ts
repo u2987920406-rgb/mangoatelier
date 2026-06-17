@@ -98,7 +98,9 @@ app.post("/api/chat", async (req, res) => {
   const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
     ? (model as ModelChoice)
     : undefined;
-  const chosenMode: Mode = ALLOWED_MODES.includes(mode as Mode) ? (mode as Mode) : "elite";
+  // "nocturne" est un mode INTERNE (génération autonome) — hors d'ALLOWED_MODES,
+  // donc jamais sélectionnable via /api/chat : une valeur inconnue retombe sur Élite.
+  const chosenMode: Mode = (ALLOWED_MODES as readonly string[]).includes(mode as string) ? (mode as Mode) : "elite";
   const projectType = inferProjectType(prompt ?? "");
   if (!prompt?.trim() || !projectName?.trim()) {
     res.status(400).json({ error: "prompt and projectName are required" });

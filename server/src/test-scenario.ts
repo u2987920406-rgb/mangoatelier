@@ -90,6 +90,20 @@ check("clarification proactive présente en Élite", elite.includes(CLARIF));
 check("clarification proactive présente en MVP", mvp.includes(CLARIF));
 check("clarification proactive absente en finition (phase freeze)", !finition.includes(CLARIF));
 
+// Mode nocturne (#58) — génération autonome : arsenal DESIGN d'Élite (moodboard
+// COMPLET + vision complète + analytic) MAIS sans les portes humaines (cadrage
+// qui sollicite, clarification, Miroir) ni le scoping architecte questionneur.
+const nocturne = assembleSystemPrompt({ mode: "nocturne", model: "sonnet", projectDir: dir });
+check("nocturne — moodboard COMPLET présent (arborescence contextuelle)", nocturne.includes("CONTEXTUAL INFORMATION ARCHITECTURE"));
+check("nocturne — moodboard MVP léger absent (c'est le complet)", !nocturne.includes(MOODBOARD_MVP));
+check("nocturne — scoping architecte questionneur ABSENT (pas de PLAN_RULES)", !nocturne.includes("ADAPTIVE & PROGRESSIVE"));
+check("nocturne — cadrage (sollicite des refs) ABSENT", !nocturne.includes(CADRAGE));
+check("nocturne — clarification (pose une question) ABSENTE", !nocturne.includes(CLARIF));
+check("nocturne — Le Miroir (porte de validation) ABSENT", !nocturne.includes(MIROIR));
+check("nocturne — vision complète présente (boucle fermée)", nocturne.includes(VISION_LOOP));
+check("nocturne — analytic présent (sonnet)", nocturne.includes(ANALYTIC));
+check("nocturne — tutorial absent (pas de tuto la nuit)", !nocturne.includes(TUTORIAL));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 

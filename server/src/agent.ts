@@ -15,7 +15,12 @@ export type ModelChoice = (typeof ALLOWED_MODELS)[number];
 // minimal visual loop); Élite = the full arsenal. This is the switch every
 // future advanced feature (Mango Plan, moodboard, temporal QA…) plugs into.
 export const ALLOWED_MODES = ["mvp", "elite", "finition"] as const;
-export type Mode = (typeof ALLOWED_MODES)[number];
+// "nocturne" = mode INTERNE de génération autonome (boucle nocturne #58) : il
+// déploie l'arsenal DESIGN d'Élite (moodboard Sharingan + recherche web +
+// design-system) mais SANS les portes humaines (cadrage qui sollicite,
+// clarification, Miroir) — personne ne répond la nuit. Non exposé au sélecteur
+// UI → hors d'ALLOWED_MODES, ajouté au seul type Mode.
+export type Mode = (typeof ALLOWED_MODES)[number] | "nocturne";
 const DEFAULT_MODE: Mode = "elite";
 
 export type AgentEvent =
@@ -112,12 +117,13 @@ export async function* runAgent(
   // Thinking option rides on the analytic ritual: Élite + a thinking-capable
   // model. (The matching ANALYTIC_RULES block is in the Élite scenario and
   // self-gates on the model — the two stay in sync.)
-  const analytic = (effectiveMode === "elite" || effectiveMode === "finition") && effectiveModel !== "haiku";
+  const analytic = (effectiveMode === "elite" || effectiveMode === "finition" || effectiveMode === "nocturne") && effectiveModel !== "haiku";
   // Mango Plan + moodboard (ideas 9/11) are Élite-only — and the moodboard
   // needs the web. MVP gets WebSearch only for the auto-moodboard (1 search,
   // 1 capture — half-capacity, no WebFetch deep-reads reserved for Élite).
+  // Nocturne déploie le moodboard COMPLET comme Élite (WebSearch + WebFetch).
   // Finition is frozen: no web research allowed.
-  const webTools = effectiveMode === "elite" ? ["WebSearch", "WebFetch"] : effectiveMode === "mvp" ? ["WebSearch"] : [];
+  const webTools = effectiveMode === "elite" || effectiveMode === "nocturne" ? ["WebSearch", "WebFetch"] : effectiveMode === "mvp" ? ["WebSearch"] : [];
   // Idée #61 vague 2 — recall des notes personnelles pertinentes à ce tour
   // (sémantique Ollama, repli mots-clés ; "" si aucune note). Best-effort : ne
   // doit jamais empêcher un tour de démarrer.

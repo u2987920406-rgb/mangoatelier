@@ -31,7 +31,7 @@ import { preferencesPromptSection } from "./preferences.js";
 import { recoveryPromptSection } from "./orchestrator.js";
 
 export type PromptContext = {
-  mode: "mvp" | "elite" | "finition";
+  mode: "mvp" | "elite" | "finition" | "nocturne";
   model: string;
   projectDir: string;
   // Idée #56 Chantier C — présent quand l'utilisateur construit DANS le tutoriel
@@ -80,6 +80,11 @@ Mode 💎 Élite — maximum quality:
   finition: `
 Mode 🛡️ Finition — hardening & QA phase (the project is built; now make it solid and shippable):
 - This is a CONSOLIDATION phase, NOT a construction phase. The full finition protocol below governs this turn.`,
+  nocturne: `
+Mode 🌙 Génération nocturne — full autonomy, polished design:
+- You build ALONE, at night: NOBODY is available to answer. Take EVERY scoping, product and design decision yourself with your best judgement — never ask a question, never wait for validation, never present a plan for approval. Just decide and ship a complete, polished app.
+- Design bar = Élite: deploy the FULL visual moodboard below (real web leaders + Sharingan capture) to ground a genuine, distinctive visual identity. This is the whole point of this mode — do NOT settle for a generic default look.
+- You MAY write plan.md as an internal design doc to organise yourself, but it is NEVER a gate: do not stop to have it validated, just build.`,
 } as const;
 
 // Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
@@ -198,6 +203,14 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   // Moodboard visuel auto en MVP — half-capacity: 1 leader / 1 sharingan_url capture,
   // applied directly to the build (no plan.md, no WebSearch, no scoping ritual).
   moodboardMvp: () => MOODBOARD_RULES_MVP,
+  // Mode nocturne (#58) — le moodboard COMPLET d'Élite (recherche web + Sharingan
+  // 2-3 leaders → vraie charte graphique) MAIS en autonomie totale : sans le
+  // scoping architecte qui pose des questions (PLAN_RULES) et sans aucune porte
+  // de validation. Comble le design fade des builds nocturnes en MVP.
+  moodboardNocturne: () =>
+    MOODBOARD_RULES +
+    `
+Autonomous moodboard (night generation): run the moodboard above WITHOUT asking the user anything and WITHOUT waiting for plan.md validation — you build alone at night. Pick the 2-3 real leaders yourself, capture them with Sharingan, derive a strong coherent visual direction (palette, typography, layout, structure) and apply it directly to the build. Skipping the moodboard would yield a bland generic UI — do NOT skip it.`,
   visionElite: () => VISION_RULES_ELITE,
   visionMvp: () => VISION_RULES_MVP,
   // Future retrieval seam: today returns the capped registry unchanged.
@@ -261,12 +274,18 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
 // Élite runs the full arsenal; MVP omits the analytic ritual and Mango Plan
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
-const SCENARIOS: Record<"mvp" | "elite" | "finition", string[]> = {
+const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne", string[]> = {
   elite: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   mvp: ["tutorial", "mode", "base", "blueprints", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["tutorial", "mode", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  // Nocturne (#58) — arsenal DESIGN d'Élite (analytic + moodboard complet +
+  // visionElite + design-system) en autonomie totale : on RETIRE les portes
+  // humaines (cadrage qui sollicite, clarification, Miroir) et le scoping
+  // architecte questionneur (PLAN_RULES → remplacé par moodboardNocturne), ainsi
+  // que tutorial (pas de tuto la nuit) et tests (build rapide ciblé design).
+  nocturne: ["mode", "base", "blueprints", "supabase", "backend", "analytic", "moodboardNocturne", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
