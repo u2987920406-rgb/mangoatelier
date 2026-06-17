@@ -29,24 +29,24 @@ import {
 } from "lucide-react";
 
 const TEMPLATES = [
-  { id: "", label: "Vierge", icon: Package, hint: "Page blanche" },
-  { id: "vitrine", label: "Vitrine", icon: Store, hint: "Site d'entreprise" },
-  { id: "ecommerce", label: "E-commerce", icon: ShoppingCart, hint: "Boutique en ligne" },
-  { id: "dashboard", label: "Dashboard", icon: BarChart3, hint: "Tableau de bord" },
-  { id: "blog", label: "Blog", icon: FileText, hint: "Articles & posts" },
-  { id: "shadcn", label: "shadcn/ui", icon: Layers, hint: "Composants accessibles — Button, Card, Input, Badge" },
-  { id: "phaser",   label: "Jeu 2D",    icon: Gamepad2,        hint: "Phaser 3 — sprites, physique, niveaux" },
-  { id: "threejs",  label: "Jeu 3D",    icon: Box,             hint: "Three.js — WebGL, modèles, effets" },
-  { id: "pixi",     label: "2D rapide", icon: Crosshair,       hint: "PixiJS — Vampire Survivors, bullet-hell, centaines de sprites" },
-  { id: "r3f",      label: "R3F",       icon: Boxes,           hint: "React Three Fiber + Drei — 3D React, jeu de course, shooter" },
-  { id: "mantine",  label: "Dashboard", icon: LayoutDashboard, hint: "Mantine + TanStack Table — KPI, graphiques, tableau triable" },
-  { id: "daisy",    label: "Landing",   icon: Flower2,         hint: "DaisyUI + Tailwind v4 — landing page MVP, site de démo" },
-  { id: "panda",    label: "Outil",      icon: Calculator,      hint: "PandaCSS + Ark UI — calculateur, simulateur, outil interactif" },
-  { id: "radix",    label: "Design Sys", icon: Braces,          hint: "Radix UI + Vanilla Extract — tokens stricts, système entreprise" },
-  { id: "supabase",   label: "Supabase",   icon: Database,  hint: "Auth + CRUD + Realtime + RLS — app full-stack sans serveur" },
-  { id: "cytoscape", label: "Mind Map",   icon: Network,   hint: "Cytoscape.js — organigramme, arbre hiérarchique, carte mentale" },
-  { id: "d3tree",    label: "Treemap",    icon: PieChart,  hint: "D3-Hierarchy — treemap, répartition proportionnelle de données" },
-  { id: "reactflow", label: "Flow",       icon: Workflow,  hint: "React Flow — éditeur de nœuds n8n-like, pipeline IA, workflow" },
+  { id: "",          label: "Vierge",     icon: Package,        family: "Base",          hint: "Page blanche — structure libre",                                           examples: [] },
+  { id: "vitrine",   label: "Vitrine",    icon: Store,          family: "Site",          hint: "Site d'entreprise, présentation de services",                             examples: ["Apple.com", "Agence créative", "Cabinet d'avocats"] },
+  { id: "ecommerce", label: "E-commerce", icon: ShoppingCart,   family: "Site",          hint: "Boutique, catalogue produits, panier",                                    examples: ["Boutique sneakers", "Librairie en ligne", "Cave à vin"] },
+  { id: "dashboard", label: "Dashboard",  icon: BarChart3,      family: "App",           hint: "Tableau de bord, monitoring, KPIs",                                       examples: ["Stripe Dashboard", "Vercel Analytics", "Linear"] },
+  { id: "blog",      label: "Blog",       icon: FileText,       family: "Site",          hint: "Articles, newsletter web, tutoriels",                                     examples: ["Medium", "Substack-like", "Dev blog perso"] },
+  { id: "shadcn",    label: "shadcn/ui",  icon: Layers,         family: "App",           hint: "App soignée avec composants accessibles",                                 examples: ["Notion", "Clerk", "Cal.com"] },
+  { id: "phaser",    label: "Jeu 2D",     icon: Gamepad2,       family: "Jeu",           hint: "Phaser 3 — plateforme, RPG, puzzle",                                      examples: ["Clone Mario", "Zelda 2D", "Candy Crush"] },
+  { id: "threejs",   label: "Jeu 3D",     icon: Box,            family: "Jeu",           hint: "Three.js — WebGL, configurateur 3D, démo",                               examples: ["Nike By You", "Portfolio 3D", "Showroom voiture"] },
+  { id: "pixi",      label: "2D rapide",  icon: Crosshair,      family: "Jeu",           hint: "PixiJS — centaines de sprites, bullet-hell",                             examples: ["Vampire Survivors", "Brotato", "Tower defense"] },
+  { id: "r3f",       label: "R3F",        icon: Boxes,          family: "Jeu",           hint: "React Three Fiber — 3D intégré à React",                                 examples: ["Jeu de course", "Shooter 3D", "Musée virtuel"] },
+  { id: "mantine",   label: "Data App",   icon: LayoutDashboard,family: "App",           hint: "Mantine + TanStack — tableau lourd, CRM, back-office",                   examples: ["Airtable", "Monday.com", "Retool"] },
+  { id: "daisy",     label: "Landing",    icon: Flower2,        family: "Site",          hint: "DaisyUI — landing page, MVP rapide, site de démo",                       examples: ["Linear.app landing", "Page SaaS", "Site lancement"] },
+  { id: "panda",     label: "Outil",      icon: Calculator,     family: "App",           hint: "PandaCSS + Ark UI — calculateur, simulateur, configurateur",             examples: ["Simulateur de prêt", "Calculateur macro", "Convertisseur"] },
+  { id: "radix",     label: "Design Sys", icon: Braces,         family: "App",           hint: "Radix + Vanilla Extract — tokens stricts, multi-plateforme",             examples: ["Material Design", "Carbon (IBM)", "Primer (GitHub)"] },
+  { id: "supabase",  label: "Supabase",   icon: Database,       family: "Full-stack",    hint: "Auth + CRUD + Realtime + RLS — app sans serveur dédié",                  examples: ["Trello-like", "App de tickets", "Chat collaboratif"] },
+  { id: "cytoscape", label: "Mind Map",   icon: Network,        family: "Visualisation", hint: "Cytoscape.js — organigramme, arbre, graphe de relations",                examples: ["Ancestry / arbre généalogique", "Organigramme RH", "Réseau de personnages"] },
+  { id: "d3tree",    label: "Treemap",    icon: PieChart,       family: "Visualisation", hint: "D3-Hierarchy — treemap, répartition proportionnelle",                    examples: ["Bundle analyzer", "Carte boursière", "Répartition budget"] },
+  { id: "reactflow", label: "Flow",       icon: Workflow,       family: "Builder",       hint: "React Flow — workflow n8n-like, pipeline IA, éditeur visuel",            examples: ["n8n", "Flowise", "Make (ex-Integromat)"] },
 ];
 
 const SUGGESTIONS = [
@@ -297,19 +297,41 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
           {available.map((t) => {
             const active = tpl === t.id;
             return (
-              <button
-                key={t.id}
-                onClick={() => setTpl(t.id)}
-                className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[13px] transition-colors ${
-                  active
-                    ? "border-accent/60 bg-accent/15 text-ink"
-                    : "border-edge bg-panel/60 text-dim hover:border-faint hover:text-ink"
-                }`}
-                title={t.hint}
-              >
-                <t.icon size={15} className={active ? "text-accent-soft" : ""} />
-                {t.label}
-              </button>
+              <div key={t.id} className="relative group">
+                <button
+                  onClick={() => setTpl(t.id)}
+                  className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[13px] transition-colors ${
+                    active
+                      ? "border-accent/60 bg-accent/15 text-ink"
+                      : "border-edge bg-panel/60 text-dim hover:border-faint hover:text-ink"
+                  }`}
+                >
+                  <t.icon size={15} className={active ? "text-accent-soft" : ""} />
+                  {t.label}
+                </button>
+
+                {/* Popover — apparaît au survol, zéro espace en dehors */}
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-52 -translate-x-1/2 translate-y-1 rounded-xl border border-edge bg-panel/95 p-3 shadow-xl shadow-black/40 opacity-0 backdrop-blur transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+                  {/* Famille */}
+                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-widest text-faint">{t.family}</p>
+                  {/* Nom + stack */}
+                  <p className="mb-1 text-[13px] font-semibold text-ink leading-tight">{t.label}</p>
+                  {/* Cas d'usage */}
+                  <p className="text-[11px] leading-snug text-dim">{t.hint}</p>
+                  {/* Exemples */}
+                  {t.examples.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {t.examples.map((ex) => (
+                        <span key={ex} className="rounded-full border border-edge-soft bg-bg px-2 py-0.5 text-[10px] text-faint">
+                          {ex}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Petite flèche en bas */}
+                  <div className="absolute -bottom-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-edge bg-panel/95" />
+                </div>
+              </div>
             );
           })}
         </div>
