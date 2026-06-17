@@ -33,7 +33,7 @@ import { AUDIT_TASKS, type AuditTask } from "./audit-tasks.js";
 import { verifyEffect } from "./audit-verify.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
+const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
 const MAX_ATTEMPTS = Number(process.env.ELEVE_MAX_ATTEMPTS ?? 2);
 const SOURCE = path.resolve(process.cwd(), "..", "workspace", "test-pipeline");
 const AUDIT_LOG = path.join(WORKSPACE_DIR, ".audit.jsonl");

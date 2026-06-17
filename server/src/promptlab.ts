@@ -1,5 +1,6 @@
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import type { Express, Request, Response } from 'express'
+import { subscriptionEnv } from './llm-engine.js'
 
 // The Lab runs a raw prompt against several models side by side. It goes
 // through the Agent SDK (which reuses the local Claude Code login) rather than
@@ -56,6 +57,8 @@ export function registerPromptLabRoutes(app: Express): void {
             maxTurns: 2,
             tools: [],
             includePartialMessages: true,
+            // Abonnement Claude Code uniquement (jamais les crédits API).
+            env: subscriptionEnv(),
             systemPrompt:
               "You are a helpful AI assistant. Answer the user's request directly and completely in a single message, in the user's language. You have no tools — answer from your own knowledge; never say you will read files, search, or take any action.",
           },

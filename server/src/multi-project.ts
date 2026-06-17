@@ -5,7 +5,7 @@ import { askLLM, resolveProvider } from './llm-engine.js'
 
 const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
 
-// Phase 3 idée #26 — index sémantique (résumés via l'Élève local Qwen/Ollama — $0, hors crédits API)
+// Phase 3 idée #26 — index sémantique (résumés via l'Élève local Gemma/Ollama — $0, hors crédits API)
 const DATA_DIR = path.join(process.cwd(), '..', 'server', 'data')
 const INDEX_FILE = path.join(DATA_DIR, 'multi-project-index.json')
 
@@ -272,7 +272,7 @@ function scanAllProjects(): ScannedFile[] {
   return all
 }
 
-// Demande à l'Élève local (Qwen via Ollama) un résumé ≤ 2 phrases en français.
+// Demande à l'Élève local (Gemma via Ollama) un résumé ≤ 2 phrases en français.
 // $0, souverain, hors crédits API. Fallback = 1re ligne non vide (degraded).
 const SUMMARY_SYSTEM =
   'Tu résumes des fichiers de code en français, de façon concise et factuelle. Pas de markdown, pas de code, 2 phrases maximum.'
@@ -509,7 +509,7 @@ export function registerMultiProjectRoutes(app: Express): void {
       })
       const capped = toIndex.slice(0, MAX_FILES_PER_RUN)
 
-      // 4) Résumés via l'Élève local (Qwen/Ollama) par petits lots
+      // 4) Résumés via l'Élève local (Gemma/Ollama) par petits lots
       let indexed = 0
       for (let i = 0; i < capped.length; i += OLLAMA_BATCH_SIZE) {
         const batch = capped.slice(i, i + OLLAMA_BATCH_SIZE)

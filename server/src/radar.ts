@@ -62,7 +62,7 @@ function isCacheFresh(cache: RadarCache): boolean {
 
 const SYSTEM_PROMPT =
   "You are an AI research analyst specializing in tools for AI-assisted local-first app builders. " +
-  "MangoAI is a personal app-builder that uses Claude (via subscription) and local models (Ollama/Qwen). " +
+  "MangoAI is a personal app-builder that uses Claude (via subscription) and local models (Ollama/Gemma). " +
   "Your task: analyze a list of AI news items and judge their relevance for MangoAI. " +
   "Respond ONLY with valid JSON — no markdown, no commentary outside the JSON object.";
 

@@ -1,6 +1,7 @@
 // Wraps the Claude Agent SDK: runs one chat turn against a generated project
 // and yields simplified events the frontend can render.
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import { subscriptionEnv } from "./llm-engine.js";
 import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
 import { relevantNotesSection } from "./notes-rag.js";
@@ -133,6 +134,10 @@ export async function* runAgent(
         cwd: projectDir,
         model: effectiveModel,
         maxTurns: 40,
+        // Force l'abonnement Claude Code (jamais les crédits API) : une
+        // ANTHROPIC_API_KEY présente détournerait la génération principale vers
+        // la facturation à l'usage. Voir subscriptionEnv() dans llm-engine.
+        env: subscriptionEnv(),
         permissionMode: "acceptEdits",
         allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__vision__snapshot", "mcp__vision__clone_url", "mcp__vision__scrape_url", "mcp__vision__sharingan_url", "mcp__vision__sharingan_image", ...webTools],
         agents: AGENTS,

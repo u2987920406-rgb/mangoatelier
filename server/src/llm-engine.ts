@@ -3,7 +3,7 @@
 // `.env`, sans toucher au code. Généralise le askEleveDispatch de l'Élève.
 //
 //   - 'claude'   → query() via l'ABONNEMENT Claude Code (qualité, pas de crédits API)
-//   - 'ollama'   → modèle local (Qwen) — $0, souverain
+//   - 'ollama'   → modèle local (Gemma) — $0, souverain
 //   - 'openai'   → endpoint compatible OpenAI générique (LLM_OPENAI_URL / LLM_OPENAI_KEY)
 //   - 'deepseek' → DeepSeek API (OpenAI-compat) — DEEPSEEK_API_KEY
 //   - 'mistral'  → Mistral API (OpenAI-compat) — MISTRAL_API_KEY
@@ -58,7 +58,7 @@ export function resolveProvider(envValue?: string, fallback: LLMProvider = 'clau
 
 function defaultModel(provider: LLMProvider): string {
   if (provider === 'claude') return process.env.LLM_CLAUDE_MODEL ?? 'sonnet'
-  if (provider === 'ollama') return process.env.OLLAMA_SUMMARY_MODEL ?? process.env.ELEVE_MODEL ?? 'qwen2.5-coder:7b'
+  if (provider === 'ollama') return process.env.OLLAMA_SUMMARY_MODEL ?? process.env.ELEVE_MODEL ?? 'gemma4:12b'
   if (provider === 'deepseek' || provider === 'mistral' || provider === 'groq') {
     return PROVIDER_PRESETS[provider].defaultModel
   }
@@ -66,13 +66,22 @@ function defaultModel(provider: LLMProvider): string {
   return process.env.LLM_OPENAI_MODEL ?? process.env.ELEVE_MODEL ?? 'deepseek-chat'
 }
 
-// ── Provider claude : query() via l'ABONNEMENT ───────────────────────────────
-// CRUCIAL : query() utilise l'abonnement UNIQUEMENT si ANTHROPIC_API_KEY est
-// absente de l'env. Une clé (même sans crédit) le détourne vers les crédits API.
-// On nettoie donc l'env passé au sous-processus, en plus du .env commenté.
-async function askClaude(system: string, user: string, model: string): Promise<string> {
+// ── Abonnement vs crédits API : le garde-fou central ─────────────────────────
+// CRUCIAL : query() utilise l'ABONNEMENT Claude Code UNIQUEMENT si
+// ANTHROPIC_API_KEY est absente de l'env. Une clé (même sans crédit) le détourne
+// silencieusement vers les crédits API PAYANTS. Tout appel à query() qui veut
+// l'abonnement DOIT passer cet env nettoyé (askClaude, claudeWebResearch,
+// runAgent dans agent.ts, le Lab dans promptlab.ts). Centralisé ici pour qu'un
+// seul endroit porte la règle.
+export function subscriptionEnv(): Record<string, string | undefined> {
   const env: Record<string, string | undefined> = { ...process.env }
   delete env.ANTHROPIC_API_KEY
+  return env
+}
+
+// ── Provider claude : query() via l'ABONNEMENT ───────────────────────────────
+async function askClaude(system: string, user: string, model: string): Promise<string> {
+  const env = subscriptionEnv()
   const q = query({
     prompt: user,
     options: {
@@ -102,8 +111,7 @@ export async function claudeWebResearch(
   prompt: string,
   opts: { model?: string; maxTurns?: number } = {},
 ): Promise<string> {
-  const env: Record<string, string | undefined> = { ...process.env }
-  delete env.ANTHROPIC_API_KEY
+  const env = subscriptionEnv()
   const q = query({
     prompt,
     options: {

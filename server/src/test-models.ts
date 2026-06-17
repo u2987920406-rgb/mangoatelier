@@ -1,12 +1,11 @@
 // Tests déterministes du registre de profils modèle (sans réseau, sans Ollama).
-// Vérifie : résolution Gemma, non-régression Qwen, fallback GENERIC,
+// Vérifie : résolution Gemma, repli GENERIC (dont les anciens noms Qwen retirés),
 // régime WRITE-ONLY de Gemma (pas de <edit> dans son system).
 //
 // Lancer :  npx tsx src/test-models.ts
 
 import { resolveProfile } from "./models/profile.js";
 import { gemmaProfile } from "./models/gemma.js";
-import { qwenProfile } from "./models/qwen.js";
 import { GENERIC } from "./models/generic.js";
 
 const line = (c = "─") => console.log(c.repeat(64));
@@ -26,10 +25,10 @@ check('gemma4:12b → gemma', resolveProfile("gemma4:12b").id === "gemma");
 check('gemma4:e4b → gemma', resolveProfile("gemma4:e4b").id === "gemma");
 check('gemma3:27b → gemma', resolveProfile("gemma3:27b").id === "gemma");
 
-// [2] Non-régression Qwen
-console.log("\n  [2] non-régression → famille qwen :");
-check('qwen2.5-coder:14b → qwen', resolveProfile("qwen2.5-coder:14b").id === "qwen");
-check('qwen2.5-coder:7b → qwen', resolveProfile("qwen2.5-coder:7b").id === "qwen");
+// [2] Qwen retiré → ses anciens noms retombent gracieusement sur GENERIC
+console.log("\n  [2] Qwen retiré → fallback GENERIC :");
+check('qwen2.5-coder:14b → generic', resolveProfile("qwen2.5-coder:14b").id === "generic");
+check('qwen2.5-coder:7b → generic', resolveProfile("qwen2.5-coder:7b").id === "generic");
 
 // [3] Fallback GENERIC
 console.log("\n  [3] fallback → generic :");
@@ -61,6 +60,6 @@ check('mentionne WRITE-ONLY', gemmaProfile.escalateAppendix.includes("WRITE-ONLY
 
 line("═");
 console.log(failures === 0
-  ? "✅ Tous les checks sont verts (Gemma #54 + non-régression Qwen + GENERIC)."
+  ? "✅ Tous les checks sont verts (Gemma #54 + anciens noms Qwen → GENERIC)."
   : `❌ ${failures} échec(s)`);
 process.exit(failures === 0 ? 0 : 1);

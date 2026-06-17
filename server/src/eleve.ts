@@ -3,7 +3,7 @@
 //   parseContract (contract.ts) · executeContract (executor.ts) ·
 //   inspectProject (inspection.ts) · selectAxioms (axioms.ts)
 //
-//   1. L'Élève (modèle OSS local, Qwen via Ollama) tente la tâche à coût zéro,
+//   1. L'Élève (modèle OSS local, Gemma via Ollama) tente la tâche à coût zéro,
 //      en répondant dans le contrat <mangoai>, nourri des axiomes pertinents.
 //   2. MangoAI applique (executeContract) puis JUGE objectivement (inspectProject).
 //   3. Build vert → l'Élève a réussi seul.
@@ -27,7 +27,7 @@ import { WORKSPACE_DIR } from "./projects.js";
 import { resolveProfile } from "./models/profile.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
+const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
 
 // Partition de la famille du modèle Élève : prompt système, fichiers d'axiomes,
 // caps et routage d'escalade viennent du PROFIL (server/src/models/). Le cœur
@@ -96,7 +96,7 @@ export interface EscalationContext {
 
 // ── Face ENTRÉE du contrat : la forme imposée à l'Élève ───────────────────────
 // Fournie par la PARTITION de la famille du modèle (models/) : GENERIC = le
-// format historique (write + edit) ; qwen = variante Write-only. Le core ne
+// format historique (write + edit) ; gemma = variante Write-only. Le core ne
 // connaît aucune famille, il lit simplement PROFILE.system.
 const ELEVE_SYSTEM = PROFILE.system;
 
@@ -206,7 +206,7 @@ function buildEleveUser(task: string, projectDir: string, lastError: string): st
   return parts.join("\n");
 }
 
-// ── Cerveau Élève par défaut : Qwen local via Ollama ──────────────────────────
+// ── Cerveau Élève par défaut : Gemma local via Ollama ──────────────────────────
 async function askEleveOllama(system: string, user: string): Promise<string> {
   const res = await fetch(`${OLLAMA}/api/chat`, {
     method: "POST",

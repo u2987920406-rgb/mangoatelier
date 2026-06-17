@@ -12,10 +12,9 @@
 
 import { GENERIC } from "./generic.js";
 import { gemmaProfile } from "./gemma.js";
-import { qwenProfile } from "./qwen.js";
 
 export interface ModelProfile {
-  /** Identifiant court de la famille ("qwen", "generic"). */
+  /** Identifiant court de la famille ("gemma", "generic"). */
   id: string;
   /** Reconnaît la famille à partir de l'identifiant de modèle (nom Ollama/API). */
   matches: (model: string) => boolean;
@@ -37,7 +36,7 @@ export interface ModelProfile {
 
 // Registre des familles reconnues. L'ordre compte : première correspondance
 // gagne. Un modèle non reconnu retombe sur GENERIC (= comportement actuel exact).
-const PROFILES: ModelProfile[] = [qwenProfile, gemmaProfile];
+const PROFILES: ModelProfile[] = [gemmaProfile];
 
 /** Résout la partition d'un modèle ; fallback GENERIC (non-régression garantie). */
 export function resolveProfile(model: string): ModelProfile {

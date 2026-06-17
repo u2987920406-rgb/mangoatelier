@@ -67,7 +67,7 @@ const noEscalate = async () => ({ axiom: false, costUsd: 0 });
     check("prompt d'édition visuelle construit", built !== null);
     if (!built) throw new Error("buildVisualEditPrompt null");
 
-    console.log("\n▶ L'Élève (Qwen) exécute l'édition ciblée…");
+    console.log("\n▶ L'Élève (Gemma) exécute l'édition ciblée…");
     const r = await runRelay(
       built.prompt,
       dir,

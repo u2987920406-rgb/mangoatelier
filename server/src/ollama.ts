@@ -8,7 +8,7 @@ const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434'
 // Modèle par défaut : celui de l'Élève (un modèle de code, idéal pour résumer
 // du code). Surchargeable sans toucher au code via OLLAMA_SUMMARY_MODEL.
 const DEFAULT_MODEL =
-  process.env.OLLAMA_SUMMARY_MODEL ?? process.env.ELEVE_MODEL ?? 'qwen2.5-coder:7b'
+  process.env.OLLAMA_SUMMARY_MODEL ?? process.env.ELEVE_MODEL ?? 'gemma4:12b'
 
 export interface OllamaOptions {
   model?: string

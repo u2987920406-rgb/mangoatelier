@@ -1,6 +1,6 @@
 // Test de tuyauterie — Phase Ultime, début du Jalon D.
 // But : prouver le RELAIS de bout en bout, PAS la qualité du code.
-//   1. On envoie une tâche triviale à l'Élève (Qwen local via Ollama),
+//   1. On envoie une tâche triviale à l'Élève (Gemma local via Ollama),
 //      en lui imposant le format de SORTIE de la Coque Rigide.
 //   2. On récupère sa réponse BRUTE.
 //   3. On la passe dans le parseContract() réel de MangoAI.
@@ -12,7 +12,7 @@
 import { parseContract } from "./contract.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
+const MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
 
 // Face ENTRÉE (spec docs/contrat-es.md) : on enseigne la forme immuable.
 const SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.

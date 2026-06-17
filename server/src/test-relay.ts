@@ -2,11 +2,11 @@
 //   - DÉTERMINISTE (défaut) : faux Élève / faux Maître / fausse inspection →
 //     prouve la LOGIQUE d'orchestration (succès Élève, escalade, échec total)
 //     sans réseau ni coût. executeContract est, lui, RÉEL (vrais fichiers).
-//   - LIVE (--live) : vrai Qwen + vraie inspection Vite sur une copie de
+//   - LIVE (--live) : vrai Gemma + vraie inspection Vite sur une copie de
 //     test-pipeline ; n'appelle Claude (coût) QUE si l'Élève échoue.
 //
 // Lancer :  npx tsx src/test-relay.ts          (déterministe)
-//           npx tsx src/test-relay.ts --live    (avec Qwen réel)
+//           npx tsx src/test-relay.ts --live    (avec Gemma réel)
 
 import fs from "node:fs";
 import os from "node:os";
@@ -121,13 +121,13 @@ async function deterministic(): Promise<void> {
   }
 }
 
-// ── LIVE : vrai Qwen sur une copie junctionnée de test-pipeline ───────────────
+// ── LIVE : vrai Gemma sur une copie junctionnée de test-pipeline ───────────────
 const SOURCE = path.resolve(process.cwd(), "..", "workspace", "test-pipeline");
 
 async function live(): Promise<void> {
   line("═");
-  console.log("LIVE — vrai Élève (Qwen) sur un projet Vite réel");
-  console.log("(Claude n'est appelé QUE si Qwen échoue — coût possible)");
+  console.log("LIVE — vrai Élève (Gemma) sur un projet Vite réel");
+  console.log("(Claude n'est appelé QUE si Gemma échoue — coût possible)");
   line();
   if (!fs.existsSync(SOURCE)) {
     console.log(`  ⚠ ${SOURCE} introuvable — live sauté`);
@@ -149,7 +149,7 @@ async function live(): Promise<void> {
       return;
     }
     // Tâche facile et additive (nouveau fichier) → ne casse pas le build existant.
-    // deps par défaut = vrai Qwen + vraie inspection Vite + vrai Claude (escalade).
+    // deps par défaut = vrai Gemma + vraie inspection Vite + vrai Claude (escalade).
     const task = 'Crée le fichier "src/utils/sum.js" qui exporte une fonction sum(a, b) renvoyant a + b.';
     const r = await runRelay(task, dir, { maxEleveAttempts: 2 });
     console.log("\n  Trace :");

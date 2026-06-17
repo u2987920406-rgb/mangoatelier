@@ -4,7 +4,7 @@
 //   A. DÉTERMINISTE (sans modèle) — exerce parseContract() sur les cas de
 //      réparation et de rejet de la spec (docs/contrat-es.md). Filet de
 //      régression permanent. Échoue avec exit≠0 si un invariant casse.
-//   B. ÉLÈVE EN RÉEL (Qwen via Ollama) — tâches salissantes pour voir si
+//   B. ÉLÈVE EN RÉEL (Gemma via Ollama) — tâches salissantes pour voir si
 //      l'Élève dérape et si la réparation rattrape. Informatif, ne fait pas
 //      échouer le banc (l'Élève a le droit d'être imparfait — c'est le sujet).
 //
@@ -15,7 +15,7 @@
 import { parseContract, type ContractResult } from "./contract.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const MODEL = process.env.ELEVE_MODEL ?? "qwen2.5-coder:7b";
+const MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
 const UNIT_ONLY = process.argv.includes("--unit");
 
 function line(c = "─") {

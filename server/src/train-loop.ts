@@ -8,7 +8,7 @@
 // Élève→Claude, un AXIOME de code (.axioms.md) — exactement le carburant que
 // l'idée #28 (clapet v4) attend.
 //
-// Cerveau : l'ÉLÈVE LOCAL (Qwen via Ollama) → coût ≈ 0. Claude n'intervient que
+// Cerveau : l'ÉLÈVE LOCAL (Gemma via Ollama) → coût ≈ 0. Claude n'intervient que
 // sur escalade, PLAFONNÉE (--max-escalations) pour borner le coût de la nuit.
 // Disque : chaque projet est SUPPRIMÉ après mesure (garde --keep réussites).
 //

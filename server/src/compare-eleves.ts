@@ -8,7 +8,7 @@
  *   npx tsx src/compare-eleves.ts
  *
  * Modèles custom (séparés par des virgules) :
- *   MODELS=qwen2.5-coder:7b,qwen2.5-coder:14b npx tsx src/compare-eleves.ts
+ *   MODELS=gemma4:12b,gemma3:27b npx tsx src/compare-eleves.ts
  *
  * Sans build (plus rapide) :
  *   SKIP_BUILD=1 npx tsx src/compare-eleves.ts
@@ -27,7 +27,7 @@ const SOURCE     = path.resolve(process.cwd(), "..", "workspace", "test-pipeline
 
 const MODELS: string[] = process.env.MODELS
   ? process.env.MODELS.split(",").map(s => s.trim()).filter(Boolean)
-  : ["qwen2.5-coder:7b", "qwen2.5:14b", "qwen2.5-coder:14b"];
+  : ["gemma4:12b"];
 
 // ── Contrat Élève ─────────────────────────────────────────────────────────────
 const SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
@@ -273,7 +273,7 @@ function fmt(ms: number): string {
   return `${Math.floor(ms / 60000)}m${Math.round((ms % 60000) / 1000)}s`;
 }
 function shortName(m: string): string {
-  return m.replace("qwen2.5-coder:", "coder:").replace("qwen2.5:", "gen:").replace(":latest", "");
+  return m.replace("gemma4:", "g4:").replace("gemma3:", "g3:").replace(":latest", "");
 }
 function bar(n: number, max: number, width = 8): string {
   const f = Math.round((n / Math.max(max, 1)) * width);

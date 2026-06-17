@@ -1,17 +1,17 @@
 // Partition GEMMA — famille Gemma 3, Gemma 4 (Google DeepMind), via Ollama.
 //
 // Gemma 4 12B dispose d'un contexte 256K et d'une capacité de codage solide,
-// mais partage avec Qwen le même antipattern observé en boucle d'entraînement :
-// les petits modèles locaux ratent systématiquement le find/replace (<edit>)
+// mais présente l'antipattern observé sur tous les petits modèles locaux en
+// boucle d'entraînement : ils ratent systématiquement le find/replace (<edit>)
 // — indentation fantôme, emoji, apostrophe — ce qui produit des builds verts
-// mais des specs à 0 %. On adopte donc le même remède que pour Qwen :
-// régime WRITE-ONLY, <edit> retiré du vocabulaire offert à l'Élève.
+// mais des specs à 0 %. Remède : régime WRITE-ONLY, <edit> retiré du
+// vocabulaire offert à l'Élève.
 //
 // Intégration #54 — caps à calibrer au benchmark (#54).
 
 import type { ModelProfile } from "./profile.js";
 
-// Contrat WRITE-ONLY identique à QWEN_SYSTEM (pas de <edit>).
+// Contrat WRITE-ONLY (pas de <edit>).
 // La règle d'or « fichier entier, jamais de squelette » est inscrite en dur.
 const GEMMA_SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
 Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoAI les exécutera.

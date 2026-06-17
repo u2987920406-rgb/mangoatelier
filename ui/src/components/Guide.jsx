@@ -18,7 +18,7 @@ const GROUPS = [
     icon: BrainCircuit,
     title: "Choisir le cerveau & le mode",
     items: [
-      ["Modèle", "Haiku = rapide/simple · Sonnet = équilibré (défaut) · Opus = puissant/cher · 🎓 Élève local = gratuit (Qwen), Claude en secours."],
+      ["Modèle", "Haiku = rapide/simple · Sonnet = équilibré (défaut) · Opus = puissant/cher · 🎓 Élève local = gratuit (Gemma), Claude en secours."],
       ["Mode ⚡ MVP / 💎 Élite", "MVP = droit au but, rapide, économe. Élite = analyse, plan, vérif visuelle, tests auto, recherche web. Bascule selon l'enjeu."],
     ],
   },

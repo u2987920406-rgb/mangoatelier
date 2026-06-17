@@ -101,7 +101,7 @@ app.post("/api/chat", async (req, res) => {
   // Posture tutoriel injectée dans le system prompt quand on construit dans un tuto.
   const tutorial = typeof tutorialId === "number" && tutorialId >= 1 ? { id: tutorialId } : null;
   // Third brain option (Phase Ultime jalon D): "eleve" routes the turn to the
-  // local student (Qwen via Ollama) through the relay loop instead of Claude.
+  // local student (Gemma via Ollama) through the relay loop instead of Claude.
   // Claude stays the escalation tier. Any other value = a normal Claude turn.
   const useEleve = model === "eleve";
   const chosenModel = ALLOWED_MODELS.includes(model as ModelChoice)
@@ -246,7 +246,7 @@ app.post("/api/chat", async (req, res) => {
       // Élève path (jalon D): the local student attempts the task at zero cost,
       // an objective build judges it, and only an objective failure escalates to
       // Claude. We stream the relay trace as status lines.
-      send({ type: "status", text: "🎓 L'Élève local (Qwen) prend la main…" });
+      send({ type: "status", text: "🎓 L'Élève local (Gemma) prend la main…" });
       const r = await runRelay(agentPrompt, dir, {
         onLog: (line) => {
           record("status", line);
@@ -257,7 +257,7 @@ app.post("/api/chat", async (req, res) => {
       lastResult.current = { costUsd: r.costUsd, numTurns: r.attempts };
       const verdict =
         r.resolvedBy === "eleve"
-          ? `✅ Résolu par l'Élève (Qwen local) en ${r.attempts} tentative(s) — coût Claude $0.00.`
+          ? `✅ Résolu par l'Élève (Gemma local) en ${r.attempts} tentative(s) — coût Claude $0.00.`
           : r.resolvedBy === "maitre"
             ? `👑 L'Élève a buté → escaladé au Maître (Claude), corrigé${r.axiom ? " + 1 axiome appris" : ""} — coût $${r.costUsd.toFixed(4)}.`
             : `❌ Échec : ni l'Élève ni le Maître n'ont fait passer le build (${r.inspection.signal}).`;
@@ -1181,7 +1181,10 @@ registerRadarRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn("⚠️  ANTHROPIC_API_KEY missing — copy .env.example to .env before chatting.");
+  // MangoAI passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
+  // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
+  // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.
+  if (process.env.ANTHROPIC_API_KEY) {
+    console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoAI utilise l'abonnement Claude Code, pas les crédits API.");
   }
 });
