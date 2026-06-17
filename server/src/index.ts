@@ -1,4 +1,7 @@
 // MangoAI backend: chat endpoint (SSE) + project/preview management.
+// Mode Miroir (#79) : projectName "__mirror__" → l'agent édite l'UI de Mango elle-même.
+export const MIRROR_PROJECT = "__mirror__";
+const MANGO_UI_DIR = path.resolve(import.meta.dirname, "..", "..", "ui");
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -150,21 +153,29 @@ app.post("/api/chat", async (req, res) => {
     // Inside the try: if it rejects, the finally still releases agentBusy.
     await interruptCompaction();
 
+    // Mode Miroir (#79) — l'agent édite l'UI de Mango elle-même.
+    const isMirror = projectName === MIRROR_PROJECT;
+
     let dir: string;
-    if (!projectExists(projectName)) {
+    if (isMirror) {
+      dir = MANGO_UI_DIR;
+      send({ type: "status", text: "🪞 Mode Miroir — l'agent édite l'interface de Mango." });
+    } else if (!projectExists(projectName)) {
       send({ type: "status", text: "Création du projet (template + npm install)…" });
       dir = await createProject(projectName, template || undefined);
     } else {
       dir = projectDir(projectName);
     }
-    ensureErrorRelay(dir);
-    // #5 : tampon de source (dev-only, vite.config.js) + relais clic→source
-    // (index.html) — pour l'édition visuelle. Idempotents, sans effet en prod.
-    ensureClickSourcePlugin(dir);
-    ensureInspectRelay(dir);
-    // Snapshot the pre-agent state so the first rollback point always exists
-    await ensureRepo(dir);
-    historyDir = dir;
+    if (!isMirror) {
+      ensureErrorRelay(dir);
+      // #5 : tampon de source (dev-only, vite.config.js) + relais clic→source
+      // (index.html) — pour l'édition visuelle. Idempotents, sans effet en prod.
+      ensureClickSourcePlugin(dir);
+      ensureInspectRelay(dir);
+      // Snapshot the pre-agent state so the first rollback point always exists
+      await ensureRepo(dir);
+      historyDir = dir;
+    }
     record("user", prompt);
 
     // Idée #45 Porte A — le contrat de langage se construit TOUT SEUL en
@@ -172,7 +183,7 @@ app.post("/api/chat", async (req, res) => {
     // est inconnu). Fire-and-forget façon review/compaction : non bloquant,
     // erreurs avalées, ne tourne QUE si .lexique.md est absent/vide. Ne ralentit
     // JAMAIS la réponse de chat.
-    void generateLexique(dir, prompt).catch(() => {});
+    if (!isMirror) void generateLexique(dir, prompt).catch(() => {});
 
     // Édition visuelle ciblée (#6) : si le tour vient d'un clic→source, on enrichit
     // la tâche envoyée à l'agent avec le fichier:ligne EXACT + l'extrait (edit
@@ -198,9 +209,16 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    send({ type: "status", text: "Démarrage de l'aperçu…" });
-    const { url } = await startPreview(dir);
-    send({ type: "preview", url });
+    let url: string;
+    if (isMirror) {
+      // Le dev server de Mango tourne déjà sur 5173 — pas besoin de démarrer.
+      url = "http://localhost:5173";
+      send({ type: "preview", url });
+    } else {
+      send({ type: "status", text: "Démarrage de l'aperçu…" });
+      ({ url } = await startPreview(dir));
+      send({ type: "preview", url });
+    }
     // Vision mode: bind the snapshot tool to this project's preview, set the
     // per-turn budget for the chosen effort mode, purge last turn's snapshots.
     setVisionContext(dir, url, chosenMode);
@@ -293,10 +311,12 @@ app.post("/api/chat", async (req, res) => {
       send({ type: changed ? "status" : "error", ...(changed ? { text: msg } : { message: msg }) });
     }
 
-    const version = await commitVersion(dir, prompt.replace(/\s+/g, " ").slice(0, 72));
-    if (version) {
-      record("status", `📌 Version sauvegardée (${version.hash})`);
-      send({ type: "version", ...version });
+    if (!isMirror) {
+      const version = await commitVersion(dir, prompt.replace(/\s+/g, " ").slice(0, 72));
+      if (version) {
+        record("status", `📌 Version sauvegardée (${version.hash})`);
+        send({ type: "version", ...version });
+      }
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

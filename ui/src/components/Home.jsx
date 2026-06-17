@@ -4,6 +4,7 @@ import {
   BarChart3,
   Box,
   Check,
+  Layers,
   ChevronDown,
   Clock,
   FileText,
@@ -23,6 +24,7 @@ const TEMPLATES = [
   { id: "ecommerce", label: "E-commerce", icon: ShoppingCart, hint: "Boutique en ligne" },
   { id: "dashboard", label: "Dashboard", icon: BarChart3, hint: "Tableau de bord" },
   { id: "blog", label: "Blog", icon: FileText, hint: "Articles & posts" },
+  { id: "shadcn", label: "shadcn/ui", icon: Layers, hint: "Composants accessibles — Button, Card, Input, Badge" },
   { id: "phaser", label: "Jeu 2D", icon: Gamepad2, hint: "Phaser 3 — sprites, physique, niveaux" },
   { id: "threejs", label: "Jeu 3D", icon: Box, hint: "Three.js — WebGL, modèles, effets" },
 ];

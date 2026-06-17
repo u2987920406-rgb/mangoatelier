@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Palette, Rss, Satellite, Scissors, Sliders, ShieldCheck } from "lucide-react";
+import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Palette, Rss, Satellite, Scissors, Sliders, ShieldCheck, Squircle } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -619,6 +619,12 @@ export default function App() {
             cost={cost}
             context={context}
           />
+          {projectName === "__mirror__" && (
+            <div className="flex shrink-0 items-center gap-2 border-b border-accent/30 bg-accent/[0.06] px-4 py-1.5 text-xs text-accent-soft">
+              <Squircle size={13} />
+              <span>Mode Miroir — l'agent édite l'interface de Mango. Vite HMR applique les changements en direct. Tout est récupérable via git.</span>
+            </div>
+          )}
           <div className="flex min-h-0 flex-1">
             <Chat
               projectName={projectName}
@@ -663,6 +669,13 @@ export default function App() {
             />
           </div>
           <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+            <button
+              onClick={() => openProject("__mirror__")}
+              title="Mode Miroir — éditer l'interface de Mango elle-même"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-accent/40 bg-accent/10 shadow-lg hover:bg-accent/20 transition-colors"
+            >
+              <Squircle size={16} className="text-accent-soft" />
+            </button>
             <button
               onClick={() => setScreen("versions")}
               title="Historique des versions"
