@@ -715,3 +715,38 @@ Un signal détecté sur la DEMANDE du tour (ex. « crée un formulaire ») activ
 
 ### Tests
 `test-constellations.ts` **26/26** : résolution (défauts, ajout, surcharge par id, désactivation `enabled:false`), tolérance (`JSON invalide → []`, entrée sans id filtrée), détection (mot-entier, accents/casse, anti faux-positif, projectType), section (règles/vide), validation `saveConstellationsConfig`, **gating** via `assembleSystemPrompt` (présent elite/mvp/nocturne, absent finition/esthetique). Non-régression `test-scenario.ts` 52/52 + `test-patrol.ts` 33/33. Détection live démontrée (« formulaire d'inscription » → pack FORMULAIRE injecté ; « portfolio de photographe » → ""). `tsc` 0, build UI vert (476 kB).
+
+---
+
+## 📅 Session 2026-06-18 (suite) — #75 Mémoire procédurale ✅
+
+### Concept
+8e magasin de connaissance `.procedures/` (cross-projet, à côté de `.axioms.md`) : les **schémas de résolution** de Mango (comment il a résolu pagination/auth/drag-and-drop — la démarche : situation → raisonnement → pièges → étapes validées). Face à une situation SIMILAIRE, il récupère sa procédure passée et l'adapte. « Le chirurgien expérimenté a des gestes, pas juste des connaissances. »
+
+### Frontière (vérifiée)
+- **Skill** = « comment faire X » → code à copier.
+- **Axiome** = la règle abstraite (WHY), jamais le HOW.
+- **Procédure (#75)** = « comment j'ai *résolu* X » → la démarche de raisonnement.
+
+### Architecture — `server/src/procedures.ts` (nouveau)
+- **Stockage** `WORKSPACE_DIR/.procedures/<slug>/{meta.json, PROCEDURE.md}` (pattern `components.ts`). `meta = {slug,name,problem,tags,usedIn,embedding?,createdAt,updatedAt}` ; `problem` = situation déclencheuse (texte de matching) ; `PROCEDURE.md` = la démarche (lue à la demande). Slug anti-traversal repris de `references.ts` (`slugify`/`isSafeSlug` + double-check du chemin résolu).
+- **CRUD** : list/load/save/delete + `proceduresSnapshot` (détecteur de changement).
+- **Embedder injectable** `ProcedureDeps.embed` (défaut = `safeEmbed` de notes-rag, désormais exporté) → tests déterministes sans Ollama.
+- **`reindexProcedures`** : backfill best-effort des embeddings manquants (embed de `name+problem+tags`, persiste meta.json), idempotent. Calculé HORS du tour.
+- **Récupération** `relevantProcedures` (modèle `relevantNotes`) : sémantique (cosinus sur embeddings persistés) quand des procédures en portent ET la requête s'encode ; **seuil `MIN_SIMILARITY=0.65`** (env `PROCEDURE_MIN_SIMILARITY`) ; sinon repli mots-clés (`topByKeyword` sur name+problem+tags). `proceduresPromptSection` : divulgation progressive pré-filtrée (top 2, pointeur `Read …PROCEDURE.md and ADAPT`), "" si aucune.
+
+### Calibrage du seuil (mesuré en réel, nomic-embed-text)
+Sans seuil, le top-K remontait toujours 2 procédures, même hors-sujet. Cosinus mesurés : vraie correspondance **0.68–0.81**, bruit **≤0.59**. Seuil **0.65** → garde les vraies, filtre le bruit. E2e : « pagination »→Pagination seule, « connexion »→Auth seule, « portfolio »→aucune.
+
+### Capture auto — `review.ts`
+8e magasin « PROCEDURE library » ajouté au `REVIEW_SYSTEM` avec **définition stricte** (démarche de résolution d'un problème non-trivial — PAS un skill code, PAS un axiome règle, PAS un fait projet ; format meta.json SANS embedding + PROCEDURE.md ## Problème/## Démarche/## Validation). `proceduresBefore` snapshot + chemin absolu PROCEDURES_DIR + liste injectée ; après la review, si changé → libellé `what` + `reindexProcedures` (embeddings des nouvelles, hors tour).
+
+### Câblage
+- **`agent.ts`** : pré-calcul async `proceduresBlock = await proceduresPromptSection(WORKSPACE_DIR, prompt)` (best-effort) → ctx.
+- **`scenario.ts`** : `PromptContext.proceduresSection?` + bloc `procedures` après `skills` dans **les 5 scénarios** (mémoire de résolution utile partout, comme skills ; non gated clientMode).
+- **`notes-rag.ts`** : `safeEmbed` exporté (réutilisé).
+- **`knowledge-stores-routes.ts`** : `GET /api/procedures`, `GET /:slug` (meta+body), `POST` (calcule embedding via safeEmbed), `DELETE`, `POST /reindex` + `procedures` (sans embedding) dans l'agrégat `/api/knowledge`.
+- **`ui/src/components/Knowledge.jsx`** : section « Procédures » (icône `Footprints`) — liste (name, problem, tags, corps repliable via fetch `/:slug`, suppression) + formulaire d'ajout (name/problem/tags/body).
+
+### Tests
+`test-procedures.ts` **25/25** : CRUD (meta+body, tri, delete), sécurité slug (anti-traversal), snapshot, reindex (embedder mocké, idempotent, null→failed), récupération (sémantique + **seuil anti-bruit** + repli mots-clés), section (pertinente/vide), gating (présent dans les 5 scénarios). Non-régression scenario 52/52 + constellations 26/26 + patrol 33/33. E2e live Ollama validé. `tsc` 0, build UI vert (481 kB).

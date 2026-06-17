@@ -20,6 +20,15 @@ import {
 } from "./constellations.js";
 import { listComponents } from "./components.js";
 import { listReferences } from "./references.js";
+import {
+  listProcedures,
+  loadProcedure,
+  saveProcedure,
+  deleteProcedure,
+  reindexProcedures,
+  type ProcedureMeta,
+} from "./procedures.js";
+import { safeEmbed } from "./notes-rag.js";
 import { projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 
 export function registerKnowledgeStoresRoutes(app: Express): void {
@@ -44,6 +53,8 @@ export function registerKnowledgeStoresRoutes(app: Express): void {
       components: listComponents(WORKSPACE_DIR),
       // Idée #50 — Banque de références perso: mood library (workspace-level).
       references: listReferences(WORKSPACE_DIR),
+      // Idée #75 — mémoire procédurale (workspace-level), sans l'embedding lourd.
+      procedures: listProcedures(WORKSPACE_DIR).map(({ embedding: _e, ...rest }) => rest),
       // Idée #74 — constellations effectives (défauts + overrides), avec origine.
       constellations: resolveConstellations(WORKSPACE_DIR).map((c) => ({
         id: c.id,
@@ -235,6 +246,70 @@ export function registerKnowledgeStoresRoutes(app: Express): void {
     } catch (err) {
       // JSON invalide / pas un tableau → 400 (erreur de saisie utilisateur).
       res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // ── Idée #75 — Mémoire procédurale (schémas de résolution) ───────────────────
+  app.get("/api/procedures", (req: Request, res: Response) => {
+    res.json({
+      procedures: listProcedures(WORKSPACE_DIR).map(({ embedding: _e, ...rest }) => rest),
+    });
+  });
+
+  app.get("/api/procedures/:slug", (req: Request, res: Response) => {
+    const entry = loadProcedure(WORKSPACE_DIR, req.params["slug"] as string);
+    if (!entry) {
+      res.status(404).json({ error: `Procédure "${req.params["slug"]}" introuvable` });
+      return;
+    }
+    const { embedding: _e, ...meta } = entry.meta;
+    res.json({ meta, body: entry.body });
+  });
+
+  app.post("/api/procedures", async (req: Request, res: Response) => {
+    const body = req.body as { name?: string; problem?: string; tags?: string[]; body?: string; slug?: string };
+    if (!body.name?.trim() || !body.problem?.trim()) {
+      res.status(400).json({ error: "name et problem requis" });
+      return;
+    }
+    const existing = body.slug ? loadProcedure(WORKSPACE_DIR, body.slug) : null;
+    const now = new Date().toISOString();
+    // Embedding calculé à la création/édition (best-effort) — sinon backfill plus tard.
+    const embedding = (await safeEmbed(`${body.name}\n${body.problem}\n${(body.tags ?? []).join(" ")}`)) ?? undefined;
+    const meta: ProcedureMeta = {
+      slug: body.slug ?? "",
+      name: body.name.trim(),
+      problem: body.problem.trim(),
+      tags: Array.isArray(body.tags) ? body.tags.map((t) => t.trim()).filter(Boolean) : (existing?.meta.tags ?? []),
+      usedIn: existing?.meta.usedIn ?? [],
+      ...(embedding ? { embedding } : {}),
+      createdAt: existing?.meta.createdAt ?? now,
+      updatedAt: now,
+    };
+    try {
+      saveProcedure(WORKSPACE_DIR, { meta, body: body.body ?? existing?.body ?? "" });
+      const { embedding: _e, ...publicMeta } = meta;
+      res.json(publicMeta);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.delete("/api/procedures/:slug", (req: Request, res: Response) => {
+    try {
+      deleteProcedure(WORKSPACE_DIR, req.params["slug"] as string);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/procedures/reindex", async (_req: Request, res: Response) => {
+    try {
+      const { indexed, failed } = await reindexProcedures(WORKSPACE_DIR);
+      res.json({ ok: true, indexed, failed });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
   });
 }

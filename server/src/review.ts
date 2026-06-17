@@ -24,6 +24,7 @@ import {
   loadThinkingStyle,
 } from "./identity.js";
 import { COMPONENTS_DIR_NAME, componentsSnapshot, listComponents } from "./components.js";
+import { PROCEDURES_DIR_NAME, proceduresSnapshot, listProcedures, reindexProcedures } from "./procedures.js";
 import { appendHistory, type ChatEntry } from "./history.js";
 
 // One review at a time; a turn that ends while a review runs skips its review
@@ -109,6 +110,28 @@ job is to curate the knowledge stores below (paths are given in the user message
    and anything that imports project-specific data, hooks or API paths.
    If a component with the same name already exists and the new version is better,
    overwrite it and update meta.json's updatedAt + usedIn.
+8. The PROCEDURE library (its ABSOLUTE directory is given in the user message as
+   PROCEDURES_DIR) — PROCEDURAL MEMORY: the REASONING PLAYBOOK for solving a
+   recurring NON-TRIVIAL technical problem (pagination, auth, drag-and-drop, file
+   upload, debounced search, infinite scroll, optimistic update…). A procedure is
+   the DÉMARCHE — the situation, the order of steps, the reasoning, the PITFALLS
+   avoided, how it was validated. This is DISTINCT from the three look-alikes:
+   - NOT a skill: a skill is copy-paste CODE for a class of task; a procedure is
+     HOW you reasoned to a solution (steps + traps), not the final snippet.
+   - NOT an axiom: an axiom is an abstract universal RULE (the why); a procedure
+     is a concrete solving path for a specific problem class.
+   - NOT project memory: a procedure generalises across projects.
+   Create one ONLY when THIS turn actually SOLVED such a problem via a reusable
+   approach. Format — two files per procedure, build the path from the ABSOLUTE
+   PROCEDURES_DIR (never a bare ".procedures/..."):
+     <PROCEDURES_DIR>/<slug>/meta.json — {"slug","name","problem":"the triggering
+       situation in one line","tags":[],"usedIn":[],"createdAt":"ISO","updatedAt":"ISO"}
+       (NO "embedding" field — it is computed elsewhere; never write it yourself).
+     <PROCEDURES_DIR>/<slug>/PROCEDURE.md — "## Problème", then "## Démarche" (the
+       ordered steps WITH the reasoning and the traps avoided), then "## Validation".
+   slug = kebab-case class-level ("pagination-cote-client", "auth-supabase-session"),
+   never a one-session artifact. PATCH an existing procedure before creating a new
+   one. Skip trivial turns — most turns add NO procedure.
 ABSOLUTE RULE — ${VISION_FILE_NAME}: you must NEVER create, edit or touch the
 .vision.md file. It is 100% MANUAL, authored only by the user via explicit
 signals. Even if the turn looks like a validated pattern, do NOT write it there.
@@ -152,6 +175,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const languageBefore = loadLanguage(WORKSPACE_DIR);
       const thinkingBefore = loadThinkingStyle(WORKSPACE_DIR);
       const componentsBefore = componentsSnapshot(WORKSPACE_DIR);
+      const proceduresBefore = proceduresSnapshot(WORKSPACE_DIR);
       // Absolute paths only — a relative ".skills/..." or bare filename can be
       // resolved by the reviewer against the wrong base and land outside the
       // workspace (observed: a skill written to the repo root). Forward slashes
@@ -164,11 +188,15 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const languagePath = abs(path.join(WORKSPACE_DIR, LANGUAGE_FILE_NAME));
       const thinkingPath = abs(path.join(WORKSPACE_DIR, THINKING_STYLE_FILE_NAME));
       const componentsDirPath = abs(path.join(WORKSPACE_DIR, COMPONENTS_DIR_NAME));
+      const proceduresDirPath = abs(path.join(WORKSPACE_DIR, PROCEDURES_DIR_NAME));
       const skillList = listSkills()
         .map((s) => `- ${s.name}: ${s.description}`)
         .join("\n");
       const componentList = listComponents(WORKSPACE_DIR)
         .map((c) => `- ${c.name}: ${c.description}${c.tags.length ? ` [${c.tags.join(", ")}]` : ""}`)
+        .join("\n");
+      const procedureList = listProcedures(WORKSPACE_DIR)
+        .map((p) => `- ${p.name}: ${p.problem}${p.tags.length ? ` [${p.tags.join(", ")}]` : ""}`)
         .join("\n");
       const prompt = [
         "Conversation turn to review:",
@@ -194,6 +222,9 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
         "",
         `COMPONENTS_DIR (absolute — create components as ${componentsDirPath}/<Name>/component.tsx + meta.json):`,
         componentList || "(none yet)",
+        "",
+        `PROCEDURES_DIR (absolute — create procedures as ${proceduresDirPath}/<slug>/meta.json + PROCEDURE.md):`,
+        procedureList || "(none yet)",
         "",
         `Reminder: NEVER touch ${VISION_FILE_NAME} — it is manual-only.`,
         "Update the store(s) if warranted, then stop.",
@@ -224,7 +255,17 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
       const languageChanged = loadLanguage(WORKSPACE_DIR) !== languageBefore;
       const thinkingChanged = loadThinkingStyle(WORKSPACE_DIR) !== thinkingBefore;
       const componentsChanged = componentsSnapshot(WORKSPACE_DIR) !== componentsBefore;
-      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged || languageChanged || thinkingChanged || componentsChanged) {
+      const proceduresChanged = proceduresSnapshot(WORKSPACE_DIR) !== proceduresBefore;
+      // Idée #75 — embarque l'embedding des procédures fraîchement écrites par le
+      // reviewer (hors du chemin du tour). Best-effort : repli mots-clés si Ollama down.
+      if (proceduresChanged) {
+        try {
+          await reindexProcedures(WORKSPACE_DIR);
+        } catch {
+          /* indexation best-effort */
+        }
+      }
+      if (memoryChanged || profileChanged || skillsChanged || axiomsChanged || languageChanged || thinkingChanged || componentsChanged || proceduresChanged) {
         const what = [
           ...(memoryChanged ? ["mémoire du projet"] : []),
           ...(profileChanged ? ["profil utilisateur"] : []),
@@ -233,6 +274,7 @@ export function spawnBackgroundReview(projectDir: string, turn: ChatEntry[]): vo
           ...(languageChanged ? ["vocabulaire personnel"] : []),
           ...(thinkingChanged ? ["style de pensée"] : []),
           ...(componentsChanged ? ["bibliothèque de composants"] : []),
+          ...(proceduresChanged ? ["mémoire procédurale"] : []),
         ].join(" + ");
         console.log(`[review] ${what} updated ($${cost.toFixed(4)})`);
         // Visible on the next history reload, like the "version saved" line.

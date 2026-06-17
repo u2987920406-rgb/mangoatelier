@@ -6,6 +6,7 @@ import { assembleSystemPrompt } from "./scenario.js";
 import { visionServer } from "./vision.js";
 import { relevantNotesSection } from "./notes-rag.js";
 import { constellationsSection } from "./constellations.js";
+import { proceduresPromptSection } from "./procedures.js";
 import { inferProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
 
@@ -153,6 +154,15 @@ export async function* runAgent(
   } catch {
     constellationsBlock = "";
   }
+  // Idée #75 — mémoire procédurale : récupère (sémantique + repli mots-clés) les
+  // démarches de résolution passées qui matchent CETTE demande, "" si aucune.
+  // Best-effort, n'embed que la requête (les procédures sont pré-indexées).
+  let proceduresBlock = "";
+  try {
+    proceduresBlock = await proceduresPromptSection(WORKSPACE_DIR, prompt);
+  } catch {
+    proceduresBlock = "";
+  }
   try {
     const q = query({
       prompt,
@@ -178,7 +188,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, clientMode }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },

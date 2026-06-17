@@ -121,8 +121,10 @@ export function cosine(a: number[], b: number[]): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-/** Embedding best-effort : null si Ollama injoignable ou modèle d'embedding absent. */
-async function safeEmbed(text: string): Promise<number[] | null> {
+/** Embedding best-effort : null si Ollama injoignable ou modèle d'embedding absent.
+ * Exporté pour être réutilisé par d'autres magasins à récupération sémantique
+ * (ex. procédures #75) — même chaîne Ollama nomic-embed-text, même dégradation. */
+export async function safeEmbed(text: string): Promise<number[] | null> {
   try {
     return await embedOllama(text);
   } catch {

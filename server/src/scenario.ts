@@ -45,6 +45,9 @@ export type PromptContext = {
   // déclenché par un signal détecté sur la demande, pré-calculé par agent.ts.
   // "" quand aucune constellation ne se déclenche → zéro poids.
   constellationsSection?: string;
+  // Idée #75 — mémoire procédurale: démarches de résolution passées qui matchent
+  // la demande (récupération sémantique), pré-calculées par agent.ts. "" si aucune.
+  proceduresSection?: string;
   // Mode Client — quand true, les blocs de goût personnel (axiomes, préférences,
   // design-system, identité, références) sont désactivés et remplacés par un bloc
   // dédié qui recentre l'agent sur les fichiers du projet client uniquement.
@@ -262,6 +265,10 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // thinking style and long-term vision. "" when all three layers are empty.
   identity: (ctx) => (ctx.clientMode ? "" : identityPromptSection(WORKSPACE_DIR)),
   skills: () => skillsPromptSection(),
+  // Idée #75 — mémoire procédurale: démarches de résolution passées pertinentes
+  // (pré-filtrées par similarité dans agent.ts). Divulgation progressive comme
+  // skills : métadonnées injectées, corps PROCEDURE.md lu à la demande. "" si aucune.
+  procedures: (ctx) => ctx.proceduresSection ?? "",
   // Chantier A — cross-project design system: visual identity that survives
   // project switches (palette, typo, components). Always injected so new
   // projects inherit the user's established visual style without prompting.
@@ -323,22 +330,22 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique", string[]> = {
-  elite: ["tutorial", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "superAgent"],
-  mvp: ["tutorial", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  elite: ["tutorial", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "procedures", "superAgent"],
+  mvp: ["tutorial", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "procedures", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
-  finition: ["tutorial", "mode", "clientContext", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  finition: ["tutorial", "mode", "clientContext", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "procedures", "superAgent"],
   // Nocturne (#58) — arsenal DESIGN d'Élite (analytic + moodboard complet +
   // visionElite + design-system) en autonomie totale : on RETIRE les portes
   // humaines (cadrage qui sollicite, clarification, Miroir) et le scoping
   // architecte questionneur (PLAN_RULES → remplacé par moodboardNocturne), ainsi
   // que tutorial (pas de tuto la nuit) et tests (build rapide ciblé design).
-  nocturne: ["mode", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "moodboardNocturne", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "superAgent"],
+  nocturne: ["mode", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "moodboardNocturne", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "procedures", "superAgent"],
   // Esthétique (#68) — polish graphique haute fidélité : projet fonctionnel,
   // on l'embellit. Mène avec le protocole graphicPolish, garde tout l'arsenal
   // qualité (analytic + visionElite + design-system) SANS nouveau scope/plan
   // (pas de cadrage/clarification/Miroir) ni tests ni tutorial.
-  esthetique: ["mode", "clientContext", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "superAgent"],
+  esthetique: ["mode", "clientContext", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "procedures", "superAgent"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's
