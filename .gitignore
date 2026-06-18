@@ -19,3 +19,4 @@ server/data/prompt-evolution-config.json
 
 # Livrable d'audit local (non versionné)
 *AUDIT COMPLET*.md
+.claude/
