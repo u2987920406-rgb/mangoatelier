@@ -125,6 +125,101 @@ L'ÉLÈVE (remplaçable — consomme et enrichit les bases)
 
 ---
 
+## 🎯 5 projets vitrines MangoAI — idées #94 à #98 (2026-06-18)
+
+Sélectionnés après analyse complète des capacités Elite (28 blocs, 19 templates, résultats test A/B Mango Crypt). Chaque projet cible une famille différente et une force spécifique de Mango. Ordre de réalisation recommandé : 94 → 96 → 95 → 97 → 98.
+
+### #94 — Studio d'architecture intérieure premium
+**Template** : `vitrine` · **Effort** : L · **Mode** : 💎 Élite
+
+Pourquoi : galart-paris a prouvé que Mango excelle sur les vitrines multi-pages haut de gamme avec Sharingan + cadrage + miroir + design-system. Ce projet pousse encore plus loin avec une galerie filtrée.
+
+**Contenu 0 → 100 %** :
+- 5 pages React Router : Accueil · Projets · Studio · Approche · Contact
+- Hero plein-écran overlay animé + titre grande typo serif
+- Galerie projets filtrée par catégorie (résidentiel / commercial / hôtellerie) + lightbox custom
+- Sections alternées image + texte (philosophie, matériaux, approche)
+- Formulaire de contact avec validation
+- Navigation sticky backdrop-blur
+- Animations scroll IntersectionObserver sur toutes les sections
+- Mobile-first, entièrement responsive
+- **Refs Sharingan** : Zaha Hadid Architects · Snøhetta
+
+---
+
+### #95 — Dashboard analytics SaaS (type Vercel / Linear)
+**Template** : `shadcn` ou `dashboard` · **Effort** : L · **Mode** : 💎 Élite
+
+Pourquoi : le test A/B Mango Crypt a mesuré 154 tests vs 0 en MVP et max 200 l/fichier vs monolithes. Un dashboard démontre cette rigueur architecturale : chaque widget = composant isolé, chaque logique = fonction testée.
+
+**Contenu 0 → 100 %** :
+- Dark mode natif + light mode toggle
+- Sidebar collapsible avec navigation icônes
+- KPI cards avec animation compteur au montage
+- Graphique ligne 30 jours + barres par catégorie (recharts)
+- Table de données paginée avec tri et recherche
+- Système de notifications (badge + panneau déroulant)
+- Données fictives seed statique réalistes
+- Architecture Elite : composants < 200 l., hooks séparés, utils
+- **Tests Vitest** sur les hooks et fonctions utilitaires
+
+---
+
+### #96 — Landing page SaaS "prête à lancer"
+**Template** : `daisy` · **Effort** : M · **Mode** : 💎 Élite
+
+Pourquoi : la landing page est le produit le plus courant qu'un client commande. Les constellations Mango (accessibilité, formulaire) + WCAG AA font une vraie différence. Résultat indiscernable d'une page à 5 000 €.
+
+**Contenu 0 → 100 %** :
+- Hero avec headline + CTA fort + mockup produit CSS (sans image externe)
+- 6 features avec icônes animées au survol
+- Social proof : logos clients fictifs + 3 testimonials avec avatar
+- Pricing table 3 tiers (Free · Pro · Enterprise) avec toggle mensuel/annuel
+- FAQ accordion 8 questions
+- CTA final + formulaire email avec validation
+- Footer complet (navigation + légal + réseaux)
+- Animations scroll, micro-interactions boutons
+- **WCAG AA**, focus visible, navigation clavier complète
+
+---
+
+### #97 — App de flashcards / apprentissage (Anki-like)
+**Template** : `supabase` · **Effort** : XL · **Mode** : 💎 Élite
+
+Pourquoi : premier projet fullstack complet — démontre que Mango livre une vraie application avec auth, données persistées, logique métier. Le contrat de langage (deck / card / review / due-date) + tests sur l'algo de répétition espacée montrent la maturité du code Elite.
+
+**Contenu 0 → 100 %** :
+- Auth email/password Supabase (inscription, connexion, déconnexion)
+- CRUD complet : créer / modifier / supprimer decks et cartes
+- Mode révision : recto → clic → verso → bouton "Facile / Difficile"
+- Algo répétition espacée simple (easy → +4j, hard → +1j, stocké en base)
+- Page stats : cartes dues aujourd'hui, streak, progression par deck (recharts)
+- **RLS Supabase** (chaque utilisateur ne voit que ses decks)
+- Architecture modulaire : hooks/useDecks.js · hooks/useReview.js · utils/spacing.js
+- **Tests Vitest** sur l'algorithme de répétition espacée
+- Responsive mobile (cas d'usage principal : réviser depuis le téléphone)
+
+---
+
+### #98 — RPG top-down rétro (style Zelda)
+**Template** : `phaser` · **Effort** : XL · **Mode** : 💎 Élite
+
+Pourquoi : le test A/B Mango Crypt a prouvé que le mode Elite produit 154 tests et une architecture propre (entities/systems/world/render/screens) sur un jeu 2D. Le plus technique et impressionnant de la liste.
+
+**Contenu 0 → 100 %** :
+- Carte tuilée générée en code avec zones explorables
+- Personnage joueur : déplacement 4 directions + animation sprite
+- 2 types d'ennemis : patrouille + poursuite si proche
+- Système de combat tour par tour (attaque / esquive / fuite)
+- Inventaire : 3 types d'objets (soin, attaque+, défense+)
+- HUD : barre HP, niveau, XP, minimap
+- 2 zones + 1 boss final (loop complète jouable)
+- Écrans : menu principal · jeu · game over · victoire
+- Architecture : src/game/ (loop · entities · systems · world · render · screens)
+- **Tests Vitest** : logique combat, inventaire, gestion HP
+
+---
+
 ## 🗓️ Journal des sessions
 
 > **🟢 2026-06-17 (session « Mise au point vision + leviers #65-67, lot free style, mode ✨ Esthétique #68 »)** — **(1) Mise au point « fonction vision »** demandée par Raf : diagnostic forces (archi tool/prompt model-agnostic ; 5 portes multimodales Read/clone_url/scrape_url/sharingan_url 6 couches/sharingan_image ; garde-fous budget+soft-stop ; drive interactif `inputs`) / limites (aveugle sans aperçu vivant — ex. la nuit ; critique auto-déclarative non mesurée ; budget sous-exploité ; faible sur l'interactif ; juge #59 note le code pas le rendu ; rien persisté pour audit). **3 leviers chiffrés ajoutés (#65 aperçu headless nocturne ⚖️M, #66 juge sur capture du rendu ⚖️M, #67 diff visuel objectif 🧠L), rattachés à #53.** **(2) Lot free style** : option `freeStyle` ajoutée (`composeTask`/`generateUniquePrompts(n,{freeStyle})` dans train-loop.ts + `runNocturnalBatch(count,{freeStyle})` + route `/api/nocturnal/run`) → prompts SANS DA imposée pour juger l'apport réel du moodboard. Lot de 3 : 3/3 compilent, **moodboard Sharingan massivement utilisé** (multipage ×7+3web, slides ×6+1, wizard ×2) — vs quasi rien avec DA imposée → preuve que nocturne POUSSE le moodboard quand le design est libre ; design 8/10 (biais : juge=code, pas rendu → #66) ; 0 réparation. **(3) Analyse d'un doc « Graphic Design Generator »** fourni par Raf : ~80 % déjà couvert (clic→source #5, édition visuelle #6, blueprints #8, moodboard #46, sharingan_image #51, clarification #52, design-system #A) ; pépite = la phase esthétique manquante. **(4) #68 « mode ✨ Esthétique » ✅ livré** (délégué à agent ⚖️ Sonnet, vérif Opus) : nouveau mode UTILISATEUR `esthetique` sur le modèle de la Finition mais orienté BEAUTÉ (la Finition durcit la robustesse, pas l'esthétique). `agent.ts` (ALLOWED_MODES + analytic ; pas de web), `vision.ts` (budget élite, boucle complète), `scenario.ts` (`MODE_RULES.esthetique` + `GRAPHIC_POLISH_RULES` marqueur « Graphic polish — high-fidelity aesthetic pass » : micro-interactions hover/zoom/ombres, animations & défilement, profondeur, tokens par composant, vérif snapshot obligatoire, clôture proactive, FEATURE FREEZE + bloc `graphicPolish` + `SCENARIOS.esthetique` sans plan/cadrage/miroir/tests/tutorial), `Header.jsx` (sélecteur ✨ Esthétique, icône Sparkles). `test-scenario.ts` +10 assertions (52/52). `tsc` 0, build UI vert. Backend redémarré.
