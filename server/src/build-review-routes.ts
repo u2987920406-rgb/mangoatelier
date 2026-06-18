@@ -4,13 +4,13 @@ import { loadReview, saveReview, analyzeAndSave } from "./build-review.js";
 
 export function registerBuildReviewRoutes(app: Express): void {
   app.get("/api/projects/:name/build-review", (req: Request, res: Response) => {
-    const { name } = req.params;
+    const name = req.params["name"] as string;
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
     res.json({ review: loadReview(name) });
   });
 
   app.post("/api/projects/:name/build-review/rate", (req: Request, res: Response) => {
-    const { name } = req.params;
+    const name = req.params["name"] as string;
     const { score, comment } = req.body as { score?: unknown; comment?: unknown };
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
     if (typeof score !== "number" || score < 1 || score > 5) {
@@ -21,7 +21,7 @@ export function registerBuildReviewRoutes(app: Express): void {
   });
 
   app.post("/api/projects/:name/build-review/analyze", async (req: Request, res: Response) => {
-    const { name } = req.params;
+    const name = req.params["name"] as string;
     const { score, comment } = req.body as { score?: unknown; comment?: unknown };
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
     if (typeof score !== "number" || score < 1 || score > 5) {
