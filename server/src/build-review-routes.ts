@@ -1,36 +1,41 @@
 import type { Express, Request, Response } from "express";
 import { projectExists } from "./projects.js";
-import { loadSteps, loadRatings, saveRating, deleteRating } from "./build-review.js";
+import { loadReview, saveReview, analyzeAndSave } from "./build-review.js";
 
 export function registerBuildReviewRoutes(app: Express): void {
-  // Liste des étapes du build (messages "agent" de l'historique)
-  app.get("/api/projects/:name/build-steps", (req: Request, res: Response) => {
+  app.get("/api/projects/:name/build-review", (req: Request, res: Response) => {
     const { name } = req.params;
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
-    const steps   = loadSteps(name);
-    const ratings = loadRatings(name);
-    const ratingMap = Object.fromEntries(ratings.map((r) => [r.stepIndex, r]));
-    res.json({ steps: steps.map((s) => ({ ...s, rating: ratingMap[s.index] ?? null })) });
+    res.json({ review: loadReview(name) });
   });
 
-  // Ajouter / modifier une note
-  app.post("/api/projects/:name/build-steps/:index/rate", (req: Request, res: Response) => {
-    const { name, index } = req.params;
-    const idx = parseInt(index, 10);
+  app.post("/api/projects/:name/build-review/rate", (req: Request, res: Response) => {
+    const { name } = req.params;
     const { score, comment } = req.body as { score?: unknown; comment?: unknown };
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
     if (typeof score !== "number" || score < 1 || score > 5) {
       res.status(400).json({ error: "score doit être un entier entre 1 et 5" }); return;
     }
-    saveRating(name, idx, score, typeof comment === "string" ? comment.trim() : "");
+    saveReview(name, score, typeof comment === "string" ? comment.trim() : "");
     res.json({ ok: true });
   });
 
-  // Supprimer une note
-  app.delete("/api/projects/:name/build-steps/:index/rate", (req: Request, res: Response) => {
-    const { name, index } = req.params;
+  app.post("/api/projects/:name/build-review/analyze", async (req: Request, res: Response) => {
+    const { name } = req.params;
+    const { score, comment } = req.body as { score?: unknown; comment?: unknown };
     if (!projectExists(name)) { res.status(404).json({ error: "Projet introuvable" }); return; }
-    deleteRating(name, parseInt(index, 10));
-    res.json({ ok: true });
+    if (typeof score !== "number" || score < 1 || score > 5) {
+      res.status(400).json({ error: "score doit être un entier entre 1 et 5" }); return;
+    }
+    try {
+      const axioms = await analyzeAndSave(
+        name,
+        score,
+        typeof comment === "string" ? comment.trim() : "",
+      );
+      res.json({ ok: true, axiomsExtracted: axioms });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
   });
 }

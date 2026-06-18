@@ -1,26 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, ChevronUp, Star, Trash2 } from "lucide-react";
+import { BrainCircuit, Star } from "lucide-react";
 
-function StarPicker({ value, onChange }) {
+function StarPicker({ value, onChange, disabled }) {
   const [hovered, setHovered] = useState(0);
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
+          disabled={disabled}
           onMouseEnter={() => setHovered(n)}
           onMouseLeave={() => setHovered(0)}
           onClick={() => onChange(n)}
-          className="transition-transform hover:scale-110"
+          className="transition-transform hover:scale-110 disabled:cursor-default"
           title={`${n} étoile${n > 1 ? "s" : ""}`}
         >
           <Star
-            size={16}
-            className={
-              n <= (hovered || value)
-                ? "fill-warn text-warn"
-                : "text-edge"
-            }
+            size={22}
+            className={n <= (hovered || value) ? "fill-warn text-warn" : "text-edge"}
           />
         </button>
       ))}
@@ -28,214 +25,143 @@ function StarPicker({ value, onChange }) {
   );
 }
 
-function StepCard({ step, onRate, onDelete }) {
-  const [open, setOpen]         = useState(false);
-  const [editing, setEditing]   = useState(false);
-  const [score, setScore]       = useState(step.rating?.score ?? 0);
-  const [comment, setComment]   = useState(step.rating?.comment ?? "");
-  const [saving, setSaving]     = useState(false);
-
-  const rated = step.rating != null;
-
-  async function submit() {
-    if (!score) return;
-    setSaving(true);
-    await onRate(step.index, score, comment);
-    setSaving(false);
-    setEditing(false);
-  }
-
-  async function remove() {
-    await onDelete(step.index);
-    setScore(0);
-    setComment("");
-    setEditing(false);
-  }
-
-  const preview = step.text.length > 120 ? step.text.slice(0, 120) + "…" : step.text;
-  const time = step.ts
-    ? new Date(step.ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-    : "";
-
-  return (
-    <div className={`rounded-xl border transition-colors ${
-      rated ? "border-warn/40 bg-warn/[0.04]" : "border-edge bg-bg/60"
-    }`}>
-      {/* En-tête cliquable */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left"
-      >
-        <span className="mt-0.5 shrink-0 font-mono text-[10px] text-faint w-5 text-center">
-          {step.index + 1}
-        </span>
-        <span className="min-w-0 flex-1 text-[12px] leading-snug text-dim line-clamp-2">
-          {preview}
-        </span>
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
-          {rated && (
-            <div className="flex">
-              {[1,2,3,4,5].map((n) => (
-                <Star
-                  key={n}
-                  size={10}
-                  className={n <= step.rating.score ? "fill-warn text-warn" : "text-edge"}
-                />
-              ))}
-            </div>
-          )}
-          {open ? <ChevronUp size={12} className="text-faint" /> : <ChevronDown size={12} className="text-faint" />}
-        </div>
-      </button>
-
-      {/* Contenu déplié */}
-      {open && (
-        <div className="border-t border-edge px-3 pb-3 pt-2">
-          {/* Texte complet */}
-          <p className="mb-3 text-[12px] leading-relaxed text-ink whitespace-pre-wrap">
-            {step.text}
-          </p>
-          {time && (
-            <p className="mb-3 text-[10px] text-faint">{time}</p>
-          )}
-
-          {/* Formulaire de notation */}
-          {editing || !rated ? (
-            <div className="flex flex-col gap-2">
-              <StarPicker value={score} onChange={setScore} />
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Commentaire (optionnel)…"
-                rows={2}
-                className="w-full resize-none rounded-lg border border-edge bg-panel px-2.5 py-1.5 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
-              />
-              <div className="flex gap-2">
-                <button
-                  disabled={!score || saving}
-                  onClick={submit}
-                  className="flex-1 rounded-lg bg-accent/90 px-2.5 py-1.5 text-[12px] font-semibold text-white hover:bg-accent disabled:opacity-40 transition-colors"
-                >
-                  {saving ? "Enregistrement…" : "Valider"}
-                </button>
-                {editing && (
-                  <button
-                    onClick={() => { setEditing(false); setScore(step.rating.score); setComment(step.rating.comment); }}
-                    className="rounded-lg border border-edge px-2.5 py-1.5 text-[12px] text-dim hover:text-ink transition-colors"
-                  >
-                    Annuler
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-                <div className="flex gap-0.5 mb-1">
-                  {[1,2,3,4,5].map((n) => (
-                    <Star key={n} size={14} className={n <= step.rating.score ? "fill-warn text-warn" : "text-edge"} />
-                  ))}
-                </div>
-                {step.rating.comment && (
-                  <p className="text-[12px] text-dim italic">« {step.rating.comment} »</p>
-                )}
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="rounded-lg border border-edge px-2 py-1 text-[11px] text-dim hover:text-ink transition-colors"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={remove}
-                  className="rounded-lg border border-err/40 p-1 text-err/60 hover:bg-err/10 hover:text-err transition-colors"
-                  title="Supprimer la note"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+const LABELS = ["", "Décevant", "Moyen", "Correct", "Bien", "Excellent"];
 
 export default function BuildReview({ projectName }) {
-  const [steps, setSteps] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [review, setReview]     = useState(null);
+  const [score, setScore]       = useState(0);
+  const [comment, setComment]   = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult]     = useState(null); // axiomes extraits
+  const [error, setError]       = useState(null);
 
-  const fetch_ = useCallback(() => {
-    setLoading(true);
-    fetch(`/api/projects/${encodeURIComponent(projectName)}/build-steps`)
+  const load = useCallback(() => {
+    fetch(`/api/projects/${encodeURIComponent(projectName)}/build-review`)
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setSteps(d.steps); })
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (d?.review) {
+          setReview(d.review);
+          setScore(d.review.score ?? 0);
+          setComment(d.review.comment ?? "");
+          if (d.review.axiomsExtracted) setResult(d.review.axiomsExtracted);
+        }
+      });
   }, [projectName]);
 
-  useEffect(() => { fetch_(); }, [fetch_]);
+  useEffect(() => { load(); }, [load]);
 
-  async function handleRate(index, score, comment) {
-    await fetch(`/api/projects/${encodeURIComponent(projectName)}/build-steps/${index}/rate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ score, comment }),
-    });
-    fetch_();
+  async function handleAnalyze() {
+    if (!score) return;
+    setAnalyzing(true);
+    setError(null);
+    setResult(null);
+    try {
+      const r = await fetch(
+        `/api/projects/${encodeURIComponent(projectName)}/build-review/analyze`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ score, comment }),
+        },
+      );
+      const d = await r.json();
+      if (!r.ok) { setError(d.error ?? "Erreur serveur"); return; }
+      setResult(d.axiomsExtracted ?? []);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
-  async function handleDelete(index) {
-    await fetch(`/api/projects/${encodeURIComponent(projectName)}/build-steps/${index}/rate`, {
-      method: "DELETE",
-    });
-    fetch_();
-  }
-
-  const rated   = steps.filter((s) => s.rating).length;
-  const total   = steps.length;
-  const avgScore = rated
-    ? (steps.filter((s) => s.rating).reduce((sum, s) => sum + s.rating.score, 0) / rated).toFixed(1)
-    : null;
-
-  if (loading) {
-    return <p className="p-4 text-xs text-faint">Chargement…</p>;
-  }
-
-  if (total === 0) {
-    return (
-      <div className="p-4 text-center">
-        <p className="text-xs text-faint">Aucune étape trouvée.</p>
-        <p className="mt-1 text-[11px] text-faint">Lance un build pour voir les étapes ici.</p>
-      </div>
-    );
-  }
+  const alreadyAnalyzed = review?.analyzedAt != null;
 
   return (
-    <div className="flex flex-col gap-2 p-2">
-      {/* Résumé */}
-      <div className="flex items-center justify-between rounded-xl border border-edge bg-panel/60 px-3 py-2">
-        <p className="text-[11px] text-faint">
-          {rated}/{total} étapes notées
+    <div className="flex flex-col gap-4 p-3">
+
+      {/* Titre explicatif */}
+      <div className="rounded-xl border border-edge bg-bg/60 px-3 py-2.5">
+        <p className="text-[12px] leading-relaxed text-dim">
+          Note ce build pour que Mango apprenne de ton jugement.
+          Ton score + commentaire seront analysés pour extraire des axiomes
+          qui influenceront les prochains projets.
         </p>
-        {avgScore && (
-          <div className="flex items-center gap-1">
-            <Star size={12} className="fill-warn text-warn" />
-            <span className="text-[12px] font-semibold text-ink">{avgScore}/5</span>
-          </div>
+      </div>
+
+      {/* Étoiles */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-faint">
+          Qualité globale du build
+        </p>
+        <StarPicker value={score} onChange={setScore} disabled={analyzing} />
+        {score > 0 && (
+          <p className="text-[13px] font-semibold text-ink">{LABELS[score]}</p>
         )}
       </div>
 
-      {/* Étapes */}
-      {steps.map((step) => (
-        <StepCard
-          key={step.index}
-          step={step}
-          onRate={handleRate}
-          onDelete={handleDelete}
+      {/* Commentaire */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-faint">
+          Ce qui a bien marché / déçu
+        </p>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          disabled={analyzing}
+          placeholder="Ex : le design était élégant mais Mango a ignoré la contrainte mobile-first que j'avais précisée…"
+          rows={4}
+          className="w-full resize-none rounded-xl border border-edge bg-bg px-3 py-2.5 text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors disabled:opacity-50"
         />
-      ))}
+      </div>
+
+      {/* Bouton analyser */}
+      <button
+        disabled={!score || analyzing}
+        onClick={handleAnalyze}
+        className="flex items-center justify-center gap-2 rounded-xl bg-accent/90 px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent disabled:opacity-40 transition-colors"
+      >
+        <BrainCircuit size={15} />
+        {analyzing ? "Analyse en cours…" : alreadyAnalyzed ? "Ré-analyser" : "Analyser"}
+      </button>
+
+      {error && (
+        <p className="rounded-xl border border-err/30 bg-err/[0.07] px-3 py-2 text-[12px] text-err">
+          {error}
+        </p>
+      )}
+
+      {/* Résultat — axiomes extraits */}
+      {result && result.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-faint">
+            {result.length} axiome{result.length > 1 ? "s" : ""} ajouté{result.length > 1 ? "s" : ""} à ta mémoire
+          </p>
+          {result.map((axiom, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-accent/25 bg-accent/[0.06] px-3 py-2.5"
+            >
+              <pre className="whitespace-pre-wrap text-[11px] leading-relaxed text-dim font-mono">
+                {axiom}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result && result.length === 0 && (
+        <p className="text-center text-[12px] text-faint">
+          Aucun axiome extrait — essaie d'ajouter un commentaire plus précis.
+        </p>
+      )}
+
+      {alreadyAnalyzed && !result && (
+        <p className="text-[11px] text-faint text-center">
+          Déjà analysé le {new Date(review.analyzedAt).toLocaleDateString("fr-FR")} ·{" "}
+          {review.axiomsExtracted?.length ?? 0} axiome{(review.axiomsExtracted?.length ?? 0) > 1 ? "s" : ""} extrait{(review.axiomsExtracted?.length ?? 0) > 1 ? "s" : ""}
+        </p>
+      )}
     </div>
   );
 }
