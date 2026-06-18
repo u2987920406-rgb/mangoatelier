@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   Bot,
   Camera,
@@ -36,7 +36,7 @@ export function parseToolEntry(m) {
 
 // Consecutive agent tool calls collapsed into one expandable block. While the
 // group is still growing (busy), the collapsed header echoes the latest action.
-export default function ToolGroup({ items, busy }) {
+function ToolGroup({ items, busy }) {
   const [open, setOpen] = useState(false);
   const last = parseToolEntry(items[items.length - 1]);
   const LastIcon = TOOL_ICONS[last.name] ?? Wrench;
@@ -80,3 +80,7 @@ export default function ToolGroup({ items, busy }) {
     </div>
   );
 }
+
+// Mémoïsé : avec des groupes `items` stables (useMemo côté Chat), une frappe
+// dans la chatbox ne re-rend plus la liste d'actions.
+export default memo(ToolGroup);

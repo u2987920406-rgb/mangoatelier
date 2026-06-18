@@ -33,7 +33,7 @@ import { SELF_CRITIQUE_RULES } from "./self-critique.js";
 import { perfectPlanSection } from "./perfect-plan.js";
 
 export type PromptContext = {
-  mode: "mvp" | "elite" | "finition" | "nocturne" | "esthetique";
+  mode: "mvp" | "elite" | "finition" | "nocturne" | "esthetique" | "discuss";
   model: string;
   projectDir: string;
   // Idée #56 Chantier C — présent quand l'utilisateur construit DANS le tutoriel
@@ -82,6 +82,15 @@ Deep analysis (you run with native extended thinking — use it):
 - Before any substantial technical work (new feature or section, refactor, tricky bug), use your thinking to: critically analyse the real need behind the request; explore 3 different technical approaches and pick one with a short justification; lay out a step-by-step execution plan before writing code.
 - Before delivering, self-review aggressively: bugs, edge cases, security (untrusted input, unsafe links), coherence with the project's conventions and with the learned skills available to you.
 - Skip this ritual for trivial tweaks and pure Q&A — answer directly.`;
+
+// Mode Discussion (#discuss) — conversation naturelle, zéro build automatique.
+const DISCUSS_RULES = `
+Mode 💬 Discussion — réflexion et conseil :
+- Tu es ici pour PENSER et CONSEILLER, pas pour générer du code. Ne produis pas de code sauf si l'utilisateur demande explicitement un snippet précis.
+- Engage naturellement : pose des questions de clarification, propose des approches, partage les compromis, aide à structurer l'idée.
+- Sois concis et direct — c'est une conversation, pas une livraison. Une réponse claire vaut mieux qu'un mur de texte.
+- Si l'utilisateur dit "go", "construis" ou "implémente", il a changé d'intention — bascule en mode build.
+- Réponds toujours en français.`;
 
 // Mode posture, prepended so it frames everything else. Two orthogonal axes:
 // the model is the brain, the mode is the rigour dial.
@@ -331,13 +340,15 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // données / ambiance + références) défini AVANT le premier message. Injecté en
   // tête (après tutorial) dans elite+mvp ; "" si absent → zéro poids.
   perfectPlan: (ctx) => ctx.perfectPlanSection ?? "",
+  // Mode discussion — posture conversationnelle (zéro build automatique).
+  discuss: () => DISCUSS_RULES,
 };
 
 // ── Scenarios: ordered block pipelines per effort mode ──────────────────────
 // Élite runs the full arsenal; MVP omits the analytic ritual and Mango Plan
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
-const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique", string[]> = {
+const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique" | "discuss", string[]> = {
   elite: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "procedures", "superAgent"],
   mvp: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "procedures", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
@@ -354,6 +365,10 @@ const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique"
   // qualité (analytic + visionElite + design-system) SANS nouveau scope/plan
   // (pas de cadrage/clarification/Miroir) ni tests ni tutorial.
   esthetique: ["mode", "clientContext", "base", "graphicPolish", "blueprints", "supabase", "backend", "analytic", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "procedures", "superAgent"],
+  // Discussion — conversation naturelle sans build automatique. Zéro arsenal de
+  // génération : juste la posture conversationnelle + contexte projet (notes,
+  // mémoire, identité) pour que Claude puisse conseiller pertinemment.
+  discuss: ["discuss", "memory", "notes", "identity"],
 };
 
 /** Assembles the system-prompt append for a turn by running the scenario's

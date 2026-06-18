@@ -1,4 +1,4 @@
-import { ArrowLeft, Brain, Cloud, Gauge, Gem, Globe, GraduationCap, Loader2, Rocket, Shield, Sparkles, Triangle, Zap } from "lucide-react";
+import { ArrowLeft, Brain, Cloud, Gauge, Gem, Globe, GraduationCap, Loader2, Rocket, Shield, Sparkles, Trash2, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import { NEUTRAL, t } from "../neutral.js";
 
@@ -37,6 +37,8 @@ export default function Header({
   deployedUrl,
   cost,
   context,
+  canDelete = false,
+  onDeleteProject = null,
 }) {
   const current = MODELS.find((m) => m.id === model) ?? MODELS[1];
   const currentMode = MODES.find((m) => m.id === mode) ?? MODES[1];
@@ -169,6 +171,19 @@ export default function Header({
         <span className="font-mono text-xs text-faint" title="Coût cumulé de la session">
           ${cost.toFixed(4)}
         </span>
+
+        {canDelete && onDeleteProject && (
+          <>
+            <span className="text-edge">|</span>
+            <button
+              onClick={onDeleteProject}
+              title="Supprimer ce projet et revenir à l'accueil"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500"
+            >
+              <Trash2 size={16} />
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

@@ -9,11 +9,11 @@ import path from "node:path";
 import fs from "node:fs";
 import { ALLOWED_MODELS, ALLOWED_MODES, interruptAgent, runAgent, type AgentEvent, type Mode, type ModelChoice } from "./agent.js";
 import { appendHistory, formatToolLine, type ChatEntry } from "./history.js";
-import { createProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
+import { createProject, deleteProject, listProjects, listTemplates, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
 import { axiomStats } from "./axioms.js";
 import { computeInsights } from "./metrics-insights.js";
 import { inferProjectType } from "./blueprints.js";
-import { previewStatus, startPreview } from "./preview.js";
+import { previewStatus, startPreview, stopPreview } from "./preview.js";
 import { clearSession, getSession, saveSession } from "./sessions.js";
 import { commitVersion, ensureRepo, changedFilesInLastCommit } from "./versions.js";
 import { ensureErrorRelay, ensureInspectRelay } from "./relay.js";
@@ -83,6 +83,22 @@ app.get("/api/projects", (_req, res) => {
     preview: previewStatus(),
     githubEnabled: githubConfigured(),
   });
+});
+
+app.delete("/api/projects/:name", async (req, res) => {
+  const name = req.params["name"] as string;
+  try {
+    // Si l'aperçu tourne sur CE projet, l'arrêter d'abord : sinon le dev server
+    // Vite garde le dossier verrouillé (Windows) et rmSync échoue.
+    const dir = path.resolve(projectDir(name));
+    if (previewStatus().projectDir && path.resolve(previewStatus().projectDir!) === dir) {
+      await stopPreview();
+    }
+    deleteProject(name);
+    res.json({ ok: true });
+  } catch (err: unknown) {
+    res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Body: { prompt: string, projectName: string, sessionId?: string }

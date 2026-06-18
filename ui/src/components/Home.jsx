@@ -21,11 +21,16 @@ import {
   Package,
   PieChart,
   Plus,
+  CheckSquare,
+  ListChecks,
   Search,
   ShoppingCart,
   Sparkles,
+  Square as SquareIcon,
   Store,
+  Trash2,
   Workflow,
+  X,
 } from "lucide-react";
 import PerfectPlan from "./PerfectPlan.jsx";
 
@@ -65,7 +70,7 @@ function slugify(text) {
 
 const PROJECTS_VISIBLE = 6;
 
-export default function Home({ projects, templates, onOpen, onStartTutorial, nextTutorialId }) {
+export default function Home({ projects, templates, onOpen, onDelete, onDeleteMany, onStartTutorial, nextTutorialId }) {
   const [name, setName] = useState("");
   const [tpl, setTpl] = useState("");
   const [search, setSearch] = useState("");
@@ -74,12 +79,23 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
   const [tutorialsList, setTutorialsList] = useState([]);
   const [tutorialsDone, setTutorialsDone] = useState([]);
   const [showPerfectPlan, setShowPerfectPlan] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+
+  const toggleSelected = (p) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p); else next.add(p);
+      return next;
+    });
+  };
+  const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()); };
 
   const available = TEMPLATES.filter((t) => t.id === "" || templates.includes(t.id));
   const filtered = search.trim()
     ? projects.filter((p) => p.toLowerCase().includes(search.toLowerCase()))
     : projects;
-  const visible = showAll ? filtered : filtered.slice(0, PROJECTS_VISIBLE);
+  const visible = (showAll || selectMode) ? filtered : filtered.slice(0, PROJECTS_VISIBLE);
 
   function toggleTutorials() {
     const next = !showTutorials;
@@ -277,34 +293,126 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
                   {projects.length}
                 </span>
               </div>
-              {projects.length > 3 && (
-                <div className="relative">
-                  <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
-                  <input
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setShowAll(true); }}
-                    placeholder="Filtrer…"
-                    className="h-7 w-32 rounded-lg border border-edge bg-panel pl-7 pr-2.5 text-xs text-dim placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
-                  />
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {projects.length > 3 && !selectMode && (
+                  <div className="relative">
+                    <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+                    <input
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setShowAll(true); }}
+                      placeholder="Filtrer…"
+                      className="h-7 w-32 rounded-lg border border-edge bg-panel pl-7 pr-2.5 text-xs text-dim placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </div>
+                )}
+                {!selectMode ? (
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="flex h-7 items-center gap-1.5 rounded-lg border border-edge px-2.5 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
+                    title="Sélectionner plusieurs projets"
+                  >
+                    <ListChecks size={13} />
+                    Sélectionner
+                  </button>
+                ) : (
+                  <button
+                    onClick={exitSelectMode}
+                    className="flex h-7 items-center gap-1.5 rounded-lg border border-edge px-2.5 text-xs text-faint hover:border-faint hover:text-dim transition-colors"
+                  >
+                    <X size={13} />
+                    Annuler
+                  </button>
+                )}
+              </div>
             </div>
+
+            {selectMode && (
+              <div className="mb-3 flex items-center justify-between rounded-xl border border-edge bg-panel/60 px-3 py-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-dim">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+                  <button
+                    onClick={() => setSelected(new Set(filtered))}
+                    className="text-xs text-faint hover:text-accent transition-colors"
+                  >
+                    Tout sélectionner ({filtered.length})
+                  </button>
+                  {selected.size > 0 && (
+                    <button
+                      onClick={() => setSelected(new Set())}
+                      className="text-xs text-faint hover:text-dim transition-colors"
+                    >
+                      Désélectionner
+                    </button>
+                  )}
+                </div>
+                <button
+                  disabled={selected.size === 0}
+                  onClick={() => {
+                    const names = [...selected];
+                    if (window.confirm(`Supprimer ${names.length} projet${names.length > 1 ? "s" : ""} ? Cette action est irréversible.`)) {
+                      onDeleteMany?.(names);
+                      exitSelectMode();
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/25 disabled:opacity-30 disabled:hover:bg-red-500/15 transition-colors"
+                >
+                  <Trash2 size={13} />
+                  Supprimer ({selected.size})
+                </button>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2.5">
-              {visible.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onOpen(p, {})}
-                  className="group flex items-center gap-2.5 rounded-xl border border-edge bg-panel/60 px-3.5 py-3 text-left hover:border-accent/50 hover:bg-panel transition-colors"
-                >
-                  <FolderOpen size={14} className="shrink-0 text-dim group-hover:text-accent-soft transition-colors" />
-                  <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{p}</span>
-                  <ArrowRight size={12} className="shrink-0 text-faint group-hover:text-accent-soft transition-colors" />
-                </button>
-              ))}
+              {visible.map((p) => {
+                const isSel = selected.has(p);
+                if (selectMode) {
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => toggleSelected(p)}
+                      className={`group flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors ${
+                        isSel
+                          ? "border-accent/60 bg-accent/10"
+                          : "border-edge bg-panel/60 hover:border-accent/40 hover:bg-panel"
+                      }`}
+                    >
+                      {isSel
+                        ? <CheckSquare size={15} className="shrink-0 text-accent" />
+                        : <SquareIcon size={15} className="shrink-0 text-faint" />}
+                      <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{p}</span>
+                    </button>
+                  );
+                }
+                return (
+                  <div
+                    key={p}
+                    className="group flex items-center rounded-xl border border-edge bg-panel/60 hover:border-accent/50 hover:bg-panel transition-colors overflow-hidden"
+                  >
+                    <button
+                      onClick={() => onOpen(p, {})}
+                      className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left"
+                    >
+                      <FolderOpen size={14} className="shrink-0 text-dim group-hover:text-accent-soft transition-colors" />
+                      <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{p}</span>
+                      <ArrowRight size={12} className="shrink-0 text-faint group-hover:text-accent-soft transition-colors" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Supprimer le projet "${p}" ? Cette action est irréversible.`)) {
+                          onDelete?.(p);
+                        }
+                      }}
+                      title="Supprimer le projet"
+                      className="hidden group-hover:flex items-center justify-center h-full px-2.5 text-faint hover:text-red-400 transition-colors border-l border-edge"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
-            {filtered.length > PROJECTS_VISIBLE && (
+            {!selectMode && filtered.length > PROJECTS_VISIBLE && (
               <button
                 onClick={() => setShowAll((v) => !v)}
                 className="mt-2.5 w-full rounded-xl border border-edge py-2 text-xs text-faint hover:border-faint hover:text-dim transition-colors"

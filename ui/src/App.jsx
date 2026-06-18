@@ -8,7 +8,6 @@ import Sidebar from "./components/Sidebar.jsx";
 import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
 import SidePanel from "./components/SidePanel.jsx";
-import QuickNoteMic from "./components/QuickNoteMic.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import { NEUTRAL } from "./neutral.js";
 
@@ -126,6 +125,38 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
+
+  const handleDeleteProject = useCallback(async (name) => {
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(name)}`, { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pushToast("error", d.error ?? `Suppression impossible (HTTP ${res.status})`);
+        return false;
+      }
+      refreshProjects();
+      return true;
+    } catch (err) {
+      pushToast("error", `Suppression impossible : ${err.message ?? err}`);
+      return false;
+    }
+  }, [refreshProjects, pushToast]);
+
+  const handleDeleteProjects = useCallback(async (names) => {
+    const failed = [];
+    for (const name of names) {
+      try {
+        const res = await fetch(`/api/projects/${encodeURIComponent(name)}`, { method: "DELETE" });
+        if (!res.ok) failed.push(name);
+      } catch { failed.push(name); }
+    }
+    refreshProjects();
+    if (failed.length) {
+      pushToast("error", `${failed.length}/${names.length} non supprimé(s) — ${failed.join(", ")}`);
+    } else {
+      pushToast("success", `${names.length} projet(s) supprimé(s)`);
+    }
+  }, [refreshProjects, pushToast]);
 
   useEffect(() => {
     refreshProjects();
@@ -439,7 +470,6 @@ export default function App() {
   const globalChrome = (
     <>
       {tutorialOverlay}
-      {!tutorialActive && <QuickNoteMic onToast={pushToast} />}
       <Toasts toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
       <ConfirmModal config={confirmCfg} onClose={() => setConfirmCfg(null)} />
     </>
@@ -487,6 +517,8 @@ export default function App() {
             projects={projects}
             templates={templates}
             onOpen={openProject}
+            onDelete={handleDeleteProject}
+            onDeleteMany={handleDeleteProjects}
             onStartTutorial={startTutorial}
             nextTutorialId={tutorialNextId}
           />
@@ -644,8 +676,8 @@ export default function App() {
           <Header
             projectName={projectName}
             onHome={goHome}
-            onBack={workspaceOrigin ? () => setScreen(workspaceOrigin) : null}
-            backLabel={workspaceOrigin === "nocturnal" ? "Review nocturne" : "Retour"}
+            onBack={() => (workspaceOrigin ? setScreen(workspaceOrigin) : goHome())}
+            backLabel={workspaceOrigin === "nocturnal" ? "Review nocturne" : "Accueil"}
             model={model}
             onModel={setModel}
             mode={mode}
@@ -656,6 +688,13 @@ export default function App() {
             deployedUrl={deployedUrl}
             cost={cost}
             context={context}
+            canDelete={projects.includes(projectName) && projectName !== "__mirror__"}
+            onDeleteProject={async () => {
+              if (window.confirm(`Supprimer le projet "${projectName}" ? Cette action est irréversible.`)) {
+                const ok = await handleDeleteProject(projectName);
+                if (ok) goHome();
+              }
+            }}
           />
           {projectName === "__mirror__" && (
             <div className="flex shrink-0 items-center gap-2 border-b border-accent/30 bg-accent/[0.06] px-4 py-1.5 text-xs text-accent-soft">

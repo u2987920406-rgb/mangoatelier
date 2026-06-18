@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ArrowUp, Bookmark, BrainCircuit, FileCode, FolderOpen, Mic, MicOff, Paperclip, Scan, Sparkles, Square, X } from "lucide-react";
 import ToolGroup from "./components/ToolGroup.jsx";
@@ -11,7 +11,7 @@ const uid = () => nextId++;
 const CHAT_MODES = [
   { id: "construire", label: "Construire", model: "sonnet", mode: "elite" },
   { id: "planifier",  label: "Planifier",  model: "opus",   mode: "elite" },
-  { id: "discuter",   label: "Discuter",   model: "haiku",  mode: "mvp"   },
+  { id: "discuter",   label: "Discuter",   model: "haiku",  mode: "discuss" },
 ];
 
 export default function Chat({
@@ -56,6 +56,7 @@ export default function Chat({
   const audioChunksRef = useRef([]);
   const [contextFile, setContextFile] = useState(null);   // string | null
   const [filePicker, setFilePicker] = useState(false);    // popover ouvert ?
+  const [awaitingPlanConfirm, setAwaitingPlanConfirm] = useState(false);
   const [fileList, setFileList] = useState([]);            // fichiers du projet
   const [fileSearch, setFileSearch] = useState("");
   const pickerRef = useRef(null);
@@ -155,6 +156,7 @@ export default function Chat({
   // history of the project replaces whatever is on screen.
   useEffect(() => {
     sessionRef.current = null;
+    setAwaitingPlanConfirm(false);
     let cancelled = false;
     if (!projectName.trim()) {
       setMessages([]);
@@ -188,6 +190,29 @@ export default function Chat({
       listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
     });
   };
+
+  // Callback STABLE (useCallback) : indispensable pour que <Message> mémoïsé ne
+  // re-rende pas à chaque frappe dans la chatbox. Sans ça, une prop onFeedback
+  // recréée à chaque render casserait la mémoïsation et tout l'historique
+  // (ReactMarkdown) re-rendrait à chaque touche → lag sur les longues sessions.
+  const handleFeedback = useCallback((rating, text) => {
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectName, rating, text }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.escalate) {
+          setMessages((prev) => [...prev, { id: uid(), role: "escalation", projectName }]);
+        }
+      })
+      .catch(() => {});
+  }, [projectName]);
+
+  // Groupes stables tant que `messages` ne change pas : sans ça, groupMessages
+  // recrée des objets à chaque frappe et casse la mémoïsation de ToolGroup.
+  const grouped = useMemo(() => groupMessages(messages), [messages]);
 
   // Keep the refs in sync so the post-turn poll sees current values.
   useEffect(() => { projectNameRef.current = projectName; }, [projectName]);
@@ -239,6 +264,10 @@ export default function Chat({
     // Auto-prompts (fix requests) never carry attachments
     const files = typeof textArg === "string" ? [] : attachments;
     if ((!typed && files.length === 0) || busy) return;
+    // Planifier mode : détecter dès l'appel (var locale — safe à travers l'async)
+    const isPlanner = model === "opus" && mode === "elite";
+    const wasPlanPhase = isPlanner && !awaitingPlanConfirm;
+    if (awaitingPlanConfirm) setAwaitingPlanConfirm(false);
     // Cible d'édition visuelle (#6) : seulement pour un envoi utilisateur (pas un
     // auto-prompt), capturée puis consommée pour ce message.
     const useEdit = typeof textArg !== "string" ? editTarget : null;
@@ -272,12 +301,15 @@ export default function Chat({
         prompt = `[Fichiers joints : ${paths.join(", ")}]\n\n${prompt}`;
       }
       push({ role: "user", text: prompt });
+      const apiPrompt = wasPlanPhase
+        ? `${prompt}\n\n---\n**MODE PLANIFICATION** : Ne génère pas de code maintenant. Présente uniquement le plan d'implémentation : architecture des composants, pages/routes, étapes de build, choix techniques clés. J'enverrai une confirmation avant que tu commences à coder.`
+        : prompt;
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt,
+          prompt: apiPrompt,
           projectName,
           model,
           mode,
@@ -314,6 +346,7 @@ export default function Chat({
       push({ role: "error", text: String(err) });
     } finally {
       setBusy(false);
+      if (wasPlanPhase) setAwaitingPlanConfirm(true);
       onAgentDone();
       // Surface the background agents' status lines (review + patrol #73) once
       // they've had time to finish, without keeping the stream open.
@@ -453,7 +486,7 @@ export default function Chat({
             </p>
           </div>
         )}
-        {groupMessages(messages).map((g) =>
+        {grouped.map((g) =>
           g.kind === "tools" ? (
             <ToolGroup key={g.key} items={g.items} busy={busy && g.isLast} />
           ) : (
@@ -461,26 +494,30 @@ export default function Chat({
               key={g.key}
               m={g.message}
               showThinking={showThinking}
-              onFeedback={(rating, text) => {
-                fetch("/api/feedback", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ projectName, rating, text }),
-                })
-                  .then((r) => r.json())
-                  .then((d) => {
-                    if (d.escalate) {
-                      push({ role: "escalation", projectName });
-                    }
-                  })
-                  .catch(() => {});
-              }}
+              onFeedback={handleFeedback}
             />
           ),
         )}
         {/* Projet généré la nuit : reviewer directement sous le prompt (#58/#59). */}
         {nocturnalEntry && !nocturnalEntry.reviewed && !busy && (
           <NocturnalReviewForm id={nocturnalEntry.id} onToast={onToast} onReviewed={onReviewed} />
+        )}
+        {awaitingPlanConfirm && !busy && (
+          <div className="flex justify-center py-3">
+            <button
+              onClick={() => {
+                setAwaitingPlanConfirm(false);
+                const cm = CHAT_MODES.find((c) => c.id === "construire");
+                onChatMode({ model: cm.model, mode: cm.mode });
+                setInput("Confirmé — construis maintenant selon ce plan.");
+                requestAnimationFrame(() => inputRef.current?.focus());
+              }}
+              className="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-accent/90"
+            >
+              <Sparkles size={14} />
+              Confirmer et construire
+            </button>
+          </div>
         )}
         {busy && (
           <div className="shimmer-text self-start px-1 py-0.5 text-[13px] font-medium">
@@ -782,7 +819,11 @@ function EscalationCard({ projectName }) {
   );
 }
 
-function Message({ m, showThinking = true, onFeedback }) {
+// memo() : un message ne re-rend que si ses propres props changent. Couplé au
+// callback onFeedback stable (useCallback côté Chat) et à des objets `m`
+// référentiellement stables, taper dans la chatbox ne re-rend plus l'historique
+// — c'est ce qui rendait l'édition et le micro laggy sur les longues sessions.
+const Message = memo(function Message({ m, showThinking = true, onFeedback }) {
   const [voted, setVoted] = useState(null); // "like" | "dislike" | null
 
   function handleVote(rating) {
@@ -883,4 +924,4 @@ function Message({ m, showThinking = true, onFeedback }) {
         </div>
       );
   }
-}
+});

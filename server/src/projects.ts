@@ -27,6 +27,15 @@ export function projectExists(name: string): boolean {
   return fs.existsSync(path.join(projectDir(name), "package.json"));
 }
 
+export function deleteProject(name: string): void {
+  const dir = projectDir(name);
+  if (!fs.existsSync(dir)) throw new Error(`Project "${name}" not found`);
+  // maxRetries/retryDelay : sur Windows un fichier que vient de lâcher le dev
+  // server reste verrouillé quelques ms (EBUSY/EPERM) — rmSync réessaie au lieu
+  // d'échouer du premier coup.
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 150 });
+}
+
 /** Starter templates: each dir under server/templates/ overlays the base template. */
 export function listTemplates(): string[] {
   if (!fs.existsSync(TEMPLATES_DIR)) return [];
