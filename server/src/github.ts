@@ -91,13 +91,20 @@ async function git(dir: string, args: string[]): Promise<string> {
 }
 
 /** Pushes the project's full git history to GitHub, creating the repo if
- * needed. Returns the repo's web URL. */
+ * needed. Returns the repo's web URL.
+ * @param targetRepo  Optional override for the GitHub repo name (e.g. "Projet-valid-").
+ *                    If omitted, the repo is named after the project. */
 export async function pushToGitHub(
   dir: string,
   name: string,
   isPrivate = true,
+  targetRepo?: string,
 ): Promise<{ url: string; repo: string }> {
-  const repo = sanitizeRepoName(name);
+  // User-supplied targetRepo is used as-is (only illegal chars replaced, no
+  // leading/trailing hyphen strip — GitHub allows names ending with "-").
+  const repo = targetRepo
+    ? targetRepo.replace(/[^A-Za-z0-9._-]/g, "-").slice(0, 100)
+    : sanitizeRepoName(name);
   // The project must have at least one commit to push.
   await ensureRepo(dir);
   const owner = await ensureRemoteRepo(repo, isPrivate);

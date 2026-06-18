@@ -527,8 +527,17 @@ app.post("/api/deploy/:name", async (req, res) => {
 
 // One-click push to GitHub (creates the repo if needed, force-pushes history)
 app.post("/api/github/:name", async (req, res) => {
-  const name = req.params.name;
-  const isPrivate = (req.body as { private?: boolean })?.private !== false;
+  const name = req.params.name as string;
+  const body = req.body as { private?: boolean; targetRepo?: string };
+  const isPrivate = body?.private !== false;
+  // targetRepo: optional custom repo name (e.g. "Projet-valid-"); persisted per project.
+  const targetFile = path.join(projectDir(name), ".github-target");
+  let targetRepo = body?.targetRepo?.trim() || undefined;
+  if (targetRepo) {
+    fs.writeFileSync(targetFile, targetRepo, "utf8");
+  } else {
+    try { targetRepo = fs.readFileSync(targetFile, "utf8").trim() || undefined; } catch { /* no target */ }
+  }
   if (!projectExists(name)) {
     res.status(404).json({ error: `Project "${name}" not found` });
     return;
@@ -538,7 +547,7 @@ app.post("/api/github/:name", async (req, res) => {
     return;
   }
   try {
-    const { url } = await pushToGitHub(projectDir(name), name, isPrivate);
+    const { url } = await pushToGitHub(projectDir(name), name, isPrivate, targetRepo);
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

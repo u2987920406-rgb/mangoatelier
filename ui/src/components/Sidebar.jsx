@@ -117,11 +117,23 @@ function BackendPanel({ status, onScaffold, onStart, onStop, onClose }) {
 
 // ─── Panneau GitHub ────────────────────────────────────────────────────────────
 function GithubPanel({ pushingGithub, onGithub, githubUrl, onClose }) {
+  const [customRepo, setCustomRepo] = useState("");
   return (
     <PanelShell title="GitHub" onClose={onClose}>
       <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-faint">Repo cible (optionnel)</label>
+          <input
+            type="text"
+            value={customRepo}
+            onChange={(e) => setCustomRepo(e.target.value)}
+            placeholder="nom-du-repo existant"
+            className="rounded-lg border border-edge bg-panel px-3 py-1.5 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          />
+          <p className="text-xs text-faint">Laisser vide = repo nommé d'après le projet.</p>
+        </div>
         <button
-          onClick={onGithub}
+          onClick={() => onGithub(customRepo.trim() || undefined)}
           disabled={pushingGithub}
           className="flex items-center gap-2 rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-dim hover:border-faint hover:text-ink disabled:opacity-60 transition-colors"
         >

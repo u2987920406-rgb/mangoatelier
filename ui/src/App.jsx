@@ -341,14 +341,14 @@ export default function App() {
     }
   }
 
-  async function pushGithub() {
+  async function pushGithub(targetRepo) {
     if (pushingGithub) return;
     setPushingGithub(true);
     try {
       const res = await fetch(`/api/github/${encodeURIComponent(projectName)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ private: true }),
+        body: JSON.stringify({ private: true, ...(targetRepo ? { targetRepo } : {}) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
