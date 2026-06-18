@@ -56,6 +56,7 @@ import { registerNocturnalRoutes } from "./nocturnal.js";
 import { registerPromptEvolutionRoutes } from "./prompt-evolution.js";
 import { registerRadarRoutes } from "./radar.js";
 import { registerBuildReviewRoutes } from "./build-review-routes.js";
+import { bootstrapProfile, hasProfile, type OnboardingAnswers } from "./onboarding.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -588,7 +589,20 @@ registerRadarRoutes(app);
 registerPromptEvolutionRoutes(app);
 registerBuildReviewRoutes(app);
 
-app.listen(PORT, () => {
+app.get("/api/onboarding/status", (_req, res) => {
+  res.json({ hasProfile: hasProfile(WORKSPACE_DIR) });
+});
+
+app.post("/api/onboarding", (req, res) => {
+  try {
+    bootstrapProfile(req.body as OnboardingAnswers, WORKSPACE_DIR);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+const httpServer = app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);
   // MangoAI passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
@@ -597,3 +611,6 @@ app.listen(PORT, () => {
     console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoAI utilise l'abonnement Claude Code, pas les crédits API.");
   }
 });
+// Node.js 18+ ferme les connexions après requestTimeout=300s (HTTP 408) par défaut.
+// Les sessions SSE Claude Élite durent jusqu'à 1h → on désactive cette limite.
+httpServer.requestTimeout = 0;

@@ -9,6 +9,7 @@ import Toasts from "./components/Toast.jsx";
 import ConfirmModal from "./components/ConfirmModal.jsx";
 import SidePanel from "./components/SidePanel.jsx";
 import QuickNoteMic from "./components/QuickNoteMic.jsx";
+import Onboarding from "./components/Onboarding.jsx";
 import { NEUTRAL } from "./neutral.js";
 
 // Panneaux lourds chargés à la demande (code-splitting)
@@ -95,6 +96,7 @@ export default function App() {
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialId, setTutorialId] = useState(null);
   const [tutorialNextId, setTutorialNextId] = useState(1);
+  const [onboardingNeeded, setOnboardingNeeded] = useState(false);
   const toastId = useRef(1);
 
   const pushToast = useCallback((kind, text, linkUrl) => {
@@ -127,6 +129,13 @@ export default function App() {
   useEffect(() => {
     refreshProjects();
   }, [refreshProjects]);
+
+  useEffect(() => {
+    fetch("/api/onboarding/status")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d && !d.hasProfile) setOnboardingNeeded(true); })
+      .catch(() => {});
+  }, []);
 
   // Progression du tutoriel (#56) : détermine le prochain tuto à proposer.
   const refreshTutorialProgress = useCallback(() => {
@@ -434,6 +443,10 @@ export default function App() {
   if (screen === "design") panelContent = <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
   if (screen === "nocturnal") panelContent = <NocturnalReview onBack={() => setScreen("home")} onOpenProject={(name, entry) => openProject(name, { origin: "nocturnal", task: entry?.task ?? null, nocturnal: entry ? { id: entry.id, reviewed: Boolean(entry.reviewed) } : null })} />;
   if (screen === "radar") panelContent = <Radar onBack={() => setScreen("home")} />;
+
+  if (onboardingNeeded) {
+    return <Onboarding onDone={() => setOnboardingNeeded(false)} />;
+  }
 
   if (panelContent) {
     return (
