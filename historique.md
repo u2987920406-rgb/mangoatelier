@@ -64,6 +64,67 @@ Résumé du `business-model.pdf` produit à l'atelier (source complète : `D:\IA
 
 ---
 
+### 🏯 Vision architecturale — Le dojo et l'élève (2026-06-18)
+
+*Gravée le 2026-06-18, après une analyse complète de l'architecture et des compétences de MangoAI.*
+
+**Le principe fondateur :**
+MangoAI n'est pas un wrapper autour d'un LLM. C'est un **système de bases** — axiomes, mémoire, design system, profil, lexique, skills, contrat d'E/S — tellement solides que n'importe quel modèle peut s'y brancher et être immédiatement efficace.
+
+Le modèle change. Les bases restent et s'enrichissent.
+
+```
+LE DOJO (permanent — s'enrichit avec le temps)
+├── Axiomes          → règles universelles apprises des erreurs réelles
+├── Mémoire projet   → faits, conventions, décisions par projet
+├── Design system    → identité visuelle établie cross-projets
+├── Profil           → qui est Raf, son ton, ses préférences
+├── Lexique          → ses mots, son vocabulaire, son Ubiquitous Language
+├── Skills           → les savoir-faire prouvés et réutilisables
+├── Contrat d'E/S    → le protocole <mangoai> (stable, portable)
+└── Coque Souple     → les règles en blocs de texte portables
+
+L'ÉLÈVE (remplaçable — consomme et enrichit les bases)
+└── Qwen → Gemma 4 → ??? → lit les bases → produit dans le contrat
+                              → enrichit les bases en retour (axiomes, skills)
+```
+
+**Ce que cette vision implique concrètement :**
+
+1. **Le modèle ne doit jamais être la colonne vertébrale.** Un LLM est appelé ponctuellement pour les tâches irremplaçables (comprendre une intention, générer du code, juger). La logique, le routing, le parsing, l'exécution — c'est du TypeScript pur.
+
+2. **Les bases doivent être en langage naturel simple.** Portables vers n'importe quel modèle. Jamais liées à une syntaxe Claude-spécifique (thinking, tool_use format…).
+
+3. **Un nouveau modèle hérite de tout sans reconfigurer.** Quand Gemma 4 sera remplacé par un modèle encore plus puissant, il lira les axiomes, le design system, le profil, le lexique — et sera immédiatement aussi efficace que Gemma après 6 mois de pratique.
+
+**Ce que les fichiers peuvent apprendre (80%) :**
+
+| Ce qu'on stocke | Comment ça se transfère |
+|----------------|------------------------|
+| Règles explicites (axiomes) | N'importe quel modèle capable peut lire et appliquer |
+| Contexte projet (mémoire, lexique) | Le modèle utilise ton vocabulaire dès le premier tour |
+| Format de sortie (contrat `<mangoai>`) | Force la conformité indépendamment du modèle |
+| Préférences visuelles (design system) | Palette, typo — reproductibles |
+
+**Ce que seuls les poids peuvent apprendre (20%) :**
+
+| Ce qui résiste aux fichiers | Pourquoi |
+|----------------------------|---------|
+| L'intuition tacite | Ce qu'on sait sans savoir qu'on le sait |
+| Le style profond | Suivre les règles de Raf ≠ ressembler naturellement à Raf |
+| La généralisation fine | Un cas similaire non écrit = le modèle peut rater le lien |
+
+**Conséquence :** commencer par les fichiers (portable, vérifiable, corrigeable à la main) est la bonne stratégie. Le fine-tuning LoRA (#55) viendra plus tard pour le 20% restant — quand les bases seront assez riches pour constituer un vrai dataset d'entraînement.
+
+**Ce qui contredit encore cette vision dans l'architecture actuelle :**
+- Le thinking adaptatif (`claude-specific`) — à désactiver si on change de modèle
+- La génération principale via le SDK Claude Code (`query()`) — seul point non encore switchable
+- Certains blocs de prompt écrits en anglais orientés Claude — portables mais à surveiller
+
+**Priorité qui en découle :** enrichir les bases en permanence. Chaque session doit laisser des axiomes meilleurs, une mémoire plus précise, un design system plus affiné. Pas forcément plus de features.
+
+---
+
 ## 🗓️ Journal des sessions
 
 > **🟢 2026-06-17 (session « Mise au point vision + leviers #65-67, lot free style, mode ✨ Esthétique #68 »)** — **(1) Mise au point « fonction vision »** demandée par Raf : diagnostic forces (archi tool/prompt model-agnostic ; 5 portes multimodales Read/clone_url/scrape_url/sharingan_url 6 couches/sharingan_image ; garde-fous budget+soft-stop ; drive interactif `inputs`) / limites (aveugle sans aperçu vivant — ex. la nuit ; critique auto-déclarative non mesurée ; budget sous-exploité ; faible sur l'interactif ; juge #59 note le code pas le rendu ; rien persisté pour audit). **3 leviers chiffrés ajoutés (#65 aperçu headless nocturne ⚖️M, #66 juge sur capture du rendu ⚖️M, #67 diff visuel objectif 🧠L), rattachés à #53.** **(2) Lot free style** : option `freeStyle` ajoutée (`composeTask`/`generateUniquePrompts(n,{freeStyle})` dans train-loop.ts + `runNocturnalBatch(count,{freeStyle})` + route `/api/nocturnal/run`) → prompts SANS DA imposée pour juger l'apport réel du moodboard. Lot de 3 : 3/3 compilent, **moodboard Sharingan massivement utilisé** (multipage ×7+3web, slides ×6+1, wizard ×2) — vs quasi rien avec DA imposée → preuve que nocturne POUSSE le moodboard quand le design est libre ; design 8/10 (biais : juge=code, pas rendu → #66) ; 0 réparation. **(3) Analyse d'un doc « Graphic Design Generator »** fourni par Raf : ~80 % déjà couvert (clic→source #5, édition visuelle #6, blueprints #8, moodboard #46, sharingan_image #51, clarification #52, design-system #A) ; pépite = la phase esthétique manquante. **(4) #68 « mode ✨ Esthétique » ✅ livré** (délégué à agent ⚖️ Sonnet, vérif Opus) : nouveau mode UTILISATEUR `esthetique` sur le modèle de la Finition mais orienté BEAUTÉ (la Finition durcit la robustesse, pas l'esthétique). `agent.ts` (ALLOWED_MODES + analytic ; pas de web), `vision.ts` (budget élite, boucle complète), `scenario.ts` (`MODE_RULES.esthetique` + `GRAPHIC_POLISH_RULES` marqueur « Graphic polish — high-fidelity aesthetic pass » : micro-interactions hover/zoom/ombres, animations & défilement, profondeur, tokens par composant, vérif snapshot obligatoire, clôture proactive, FEATURE FREEZE + bloc `graphicPolish` + `SCENARIOS.esthetique` sans plan/cadrage/miroir/tests/tutorial), `Header.jsx` (sélecteur ✨ Esthétique, icône Sparkles). `test-scenario.ts` +10 assertions (52/52). `tsc` 0, build UI vert. Backend redémarré.
