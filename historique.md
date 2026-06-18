@@ -971,3 +971,57 @@ Quand Mango édite un projet déjà rendu, capturer le rendu **avant** la 1ʳᵉ
 
 ### État du plan
 Le bloc d'idées prioritaires #73→#80 est **vidé**. Restent en idées : #77 (veille thématique sur sites ciblés), #78 (mode Godot, plus tard).
+
+---
+
+## 📅 Session 2026-06-18 (atelier) — #93 Revue rétroactive du build ✅
+
+### Concept
+Permettre à l'utilisateur de noter chaque étape du raisonnement d'un build (1–5 étoiles + commentaire optionnel) directement depuis la sidebar, après la génération. Le signal va au-delà du résultat final : on note le PROCESSUS, pas seulement le rendu.
+
+### Implémentation
+- `server/src/build-review.ts` : `loadReview` / `saveReview` (persiste `.build-review.json` dans le répertoire du projet) + `analyzeAndSave` (lit `.chat-history.json`, extrait les étapes `role:"agent"`, prompt LLM → axiomes `[AXIOME-UX/AVOID-XX]` formatés, appends dans `.axioms.md`, LLM via `askLLM`/`FEEDBACK_PROVIDER`).
+- `server/src/build-review-routes.ts` : 3 routes (`GET /api/projects/:name/build-review`, `POST …/rate`, `POST …/analyze`). Fix TypeScript : `req.params["name"] as string` requis pour `@types/express` v5 (union `string | string[]`).
+- Panneau sidebar « Revue du build » (icône ClipboardCheck) : liste les étapes agent avec étoiles + commentaire, score moyen.
+- Persisté dans `.build-review.json` dans le workspace projet (gitignored).
+
+### État
+`tsc` 0, build UI vert.
+
+---
+
+## 📅 Session 2026-06-18 (stratégie + multi-user) — #100 #101 Couche universelle + Onboarding ✅
+
+### Contexte stratégique
+Discussion fondatrice : faut-il créer son propre app builder en 2026 ? Conclusion : **oui**, la valeur de MangoAI = le cerveau (axiomes + profil + procédures + identité) pas le générateur de code. Vision actée : un modèle Mango adaptable à tous les utilisateurs — valeurs universelles partagées + profil per-user minimal sans BDD lourde.
+
+### Solution 1 — Couche universelle (idée #100)
+**Fichiers** : `server/src/axioms.ts` + `workspace/.axioms-universal.md` (runtime, gitignored).
+
+`AXIOMS_UNIVERSAL_FILE_NAME = ".axioms-universal.md"` exporté. `axiomsPromptSection(workspaceDir)` charge les deux couches :
+- Universel en premier → bloc `CORE PRINCIPLES (universal — apply to all users)`
+- Personnel ensuite → bloc `PERSONAL RULES (learned from this user's work)`
+- Backward-compatible : si universel absent → comportement inchangé.
+
+`selectAxioms` par défaut : `[AXIOMS_UNIVERSAL_FILE_NAME, AXIOMS_FILE_NAME]` → l'Élève local en bénéficie aussi.
+
+**6 axiomes universaux créés** (format AXIOME-CAT-NNN) : A11Y-U01/U02 (labels aria, contraste WCAG AA), RESP-U01 (320px), PERF-U01 (anti-patterns React), BUILD-U01 (pas de secrets côté client), ARCH-U01 (une responsabilité par fichier).
+
+### Solution 2 — Onboarding < 15 min (idée #101)
+**Fichiers** : `server/src/onboarding.ts` + `ui/src/components/Onboarding.jsx` + routes dans `index.ts` + détection dans `App.jsx`.
+
+`onboarding.ts` :
+- `hasProfile(workspaceDir)` : true si `.user-profile.md` > 10 chars.
+- `bootstrapProfile(answers, workspaceDir)` : génère `.user-profile.md` avec labels lisibles (5 dimensions : domaine/stack/style/usage/niveau) + amorce `.axioms.md` depuis l'universel si vide.
+
+Routes : `GET /api/onboarding/status` → `{hasProfile: bool}` / `POST /api/onboarding` → bootstrapProfile.
+
+`Onboarding.jsx` : modal plein-écran `fixed inset-0 z-[100]`, 5 steps progressifs (progress dots animés, radio-cards avec radio visuelles, navigation Précédent/Suivant), dark theme MangoAI (`bg-bg`, `accent`).
+
+`App.jsx` : `useEffect` au mount → `fetch /api/onboarding/status` → `setOnboardingNeeded(true)` si profil absent → affiche `<Onboarding onDone={...}>` avant le reste de l'app.
+
+### Git — rebase + fix TypeScript
+Pull `--rebase` sur origin : 2 conflits (`index.ts` : garder BOTH imports `registerBuildReviewRoutes` ET `bootstrapProfile/hasProfile/OnboardingAnswers` · `statut.md` : merger les deux lignes "Dernière mise à jour"). Résolu, rebase appliqué, push. Fix bonus : `build-review-routes.ts` utilise `req.params["name"] as string` pour compiler avec `@types/express` v5.
+
+### État
+`tsc` 0, build UI vert. Phase 3 (switch utilisateur dynamique `workspace/users/{name}/`) = idée #102, à faire avant Phase B.
