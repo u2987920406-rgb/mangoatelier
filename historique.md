@@ -222,6 +222,10 @@ Pourquoi : le test A/B Mango Crypt a prouvé que le mode Elite produit 154 tests
 
 ## 🗓️ Journal des sessions
 
+> **🟢 2026-06-18 (session maison — Stratégie multi-user + rebase, #100 #101)** — Discussion fondatrice : faut-il créer son propre app builder en 2026 ? Verdict : oui — la valeur de MangoAI = le cerveau (axiomes + profil + procédures + identité) pas le générateur de code. Vision actée : un Mango adaptable à tous les utilisateurs — **Solution 1 (couche universelle)** : `axioms.ts` lit deux couches (`workspace/.axioms-universal.md` CORE PRINCIPLES + `.axioms.md` PERSONAL RULES), backward-compatible ; 6 axiomes universaux créés (A11Y-U01/U02, RESP-U01, PERF-U01, BUILD-U01, ARCH-U01). **Solution 2 (onboarding < 15 min)** : `onboarding.ts` (`hasProfile` + `bootstrapProfile`), 2 routes (`GET /api/onboarding/status`, `POST /api/onboarding`), `Onboarding.jsx` modal plein-écran 5 steps visuels, détection dans `App.jsx` au mount. **Solution 3 (switch utilisateur dynamique)** = idée #102, planifiée avant Phase B. **Git rebase** : pull `--rebase` depuis origin (2 conflits : `index.ts` garder BOTH imports + `statut.md` merger les deux descriptions → résolu) + fix TypeScript bonus (`build-review-routes.ts` : `@types/express` v5 donne `string | string[]` pour `req.params` → cast `as string`). `tsc` 0, build UI vert (8.57s). 3 commits pushés.
+
+> **🟢 2026-06-18 (session atelier matin — 9 nouvelles idées + Refonte Home + #93 Revue build + #94-#99)** — **(1) Vision architecturale « Le dojo et l'élève »** gravée dans `historique.md` (section dédiée) + **9 nouvelles idées actées** en 3 groupes : #84–#89 (idées futures : Briefing de Vestiaire / Lexique Identitaire / Table de Mixage des Agents / Bifurcation Quantique / Mode Chuchotement / Fil d'Ariane Visuel) + #90–#92 (auto-amélioration : STaR rationalisé / meta-juge nocturne / train-loop ciblé sur les faiblesses). Toutes marquées « après audit #13 » ou « plus tard ». **(2) Refonte `Home.jsx`** : écran d'accueil épuré — champ nom seul (placeholder artistique, `submit()` accepte un nom vide), templates avec popover au survol, tutoriels en carte dédiée avec accès rapide, projets en grille 2 colonnes avec filtre (−322 l., +195 l.). **(3) #93 Revue rétroactive du build ✅** : noter le raisonnement étape par étape (1–5 étoiles + commentaire) + analyse LLM → axiomes (détail section dédiée). **(4) Idées #94–#98** : 5 projets vitrines MangoAI sélectionnés (studio architecture intérieure / analytics SaaS / landing SaaS / flashcards fullstack / RPG top-down), détail section dédiée. **(5) #99 Perfect Plan** : questionnaire guidé + dossier références = contrat contraignant ; accord-insurance-map 💎 Élite testé en live (Cytoscape mind map, 24 polices, 6 collabs, Material Design, **16/16 tests**) → fix template cytoscape (`@tailwindcss/vite` manquant).
+
 > **🟢 2026-06-17 (session « Mise au point vision + leviers #65-67, lot free style, mode ✨ Esthétique #68 »)** — **(1) Mise au point « fonction vision »** demandée par Raf : diagnostic forces (archi tool/prompt model-agnostic ; 5 portes multimodales Read/clone_url/scrape_url/sharingan_url 6 couches/sharingan_image ; garde-fous budget+soft-stop ; drive interactif `inputs`) / limites (aveugle sans aperçu vivant — ex. la nuit ; critique auto-déclarative non mesurée ; budget sous-exploité ; faible sur l'interactif ; juge #59 note le code pas le rendu ; rien persisté pour audit). **3 leviers chiffrés ajoutés (#65 aperçu headless nocturne ⚖️M, #66 juge sur capture du rendu ⚖️M, #67 diff visuel objectif 🧠L), rattachés à #53.** **(2) Lot free style** : option `freeStyle` ajoutée (`composeTask`/`generateUniquePrompts(n,{freeStyle})` dans train-loop.ts + `runNocturnalBatch(count,{freeStyle})` + route `/api/nocturnal/run`) → prompts SANS DA imposée pour juger l'apport réel du moodboard. Lot de 3 : 3/3 compilent, **moodboard Sharingan massivement utilisé** (multipage ×7+3web, slides ×6+1, wizard ×2) — vs quasi rien avec DA imposée → preuve que nocturne POUSSE le moodboard quand le design est libre ; design 8/10 (biais : juge=code, pas rendu → #66) ; 0 réparation. **(3) Analyse d'un doc « Graphic Design Generator »** fourni par Raf : ~80 % déjà couvert (clic→source #5, édition visuelle #6, blueprints #8, moodboard #46, sharingan_image #51, clarification #52, design-system #A) ; pépite = la phase esthétique manquante. **(4) #68 « mode ✨ Esthétique » ✅ livré** (délégué à agent ⚖️ Sonnet, vérif Opus) : nouveau mode UTILISATEUR `esthetique` sur le modèle de la Finition mais orienté BEAUTÉ (la Finition durcit la robustesse, pas l'esthétique). `agent.ts` (ALLOWED_MODES + analytic ; pas de web), `vision.ts` (budget élite, boucle complète), `scenario.ts` (`MODE_RULES.esthetique` + `GRAPHIC_POLISH_RULES` marqueur « Graphic polish — high-fidelity aesthetic pass » : micro-interactions hover/zoom/ombres, animations & défilement, profondeur, tokens par composant, vérif snapshot obligatoire, clôture proactive, FEATURE FREEZE + bloc `graphicPolish` + `SCENARIOS.esthetique` sans plan/cadrage/miroir/tests/tutorial), `Header.jsx` (sélecteur ✨ Esthétique, icône Sparkles). `test-scenario.ts` +10 assertions (52/52). `tsc` 0, build UI vert. Backend redémarré.
 
 > **🟢 2026-06-17 (session « #62 — Bloc self-critique (Constitutional AI explicite) »)** — Idée actée : rendre explicite ce que la Coque Souple faisait déjà implicitement. Implémentation : nouveau module **`server/src/self-critique.ts`** (bloc prompt-only, zéro fichier d'état, zéro réseau) exportant `SELF_CRITIQUE_RULES` (3 axes : axioms check → appliquer les patterns/pièges appris proactivement ; user profile & identity check → corriger toute dérive de style/nommage/goût ; project coherence → nommage/architecture/lexique). Bloc injecté **après `notes` et avant `skills`** dans le scénario Elite uniquement (position finale dans la chaîne, après que tous les contextes — axiomes, profil, identité — sont chargés). Import + bloc `selfCritique: () => SELF_CRITIQUE_RULES` ajoutés dans `scenario.ts`. Gating prouvé : +4 assertions dans `test-scenario.ts` (présent Élite, absent MVP/finition/nocturne) → **42/42 ✅**. `tsc --noEmit` 0. Build UI vert (461 kB). *(Bonus : `npm install` lancé après le `git pull` qui a apporté `multer`/`@types/multer` non installés — `tsc` était à 8 erreurs multer avant ; propre après install.)*
@@ -1025,3 +1029,37 @@ Pull `--rebase` sur origin : 2 conflits (`index.ts` : garder BOTH imports `regis
 
 ### État
 `tsc` 0, build UI vert. Phase 3 (switch utilisateur dynamique `workspace/users/{name}/`) = idée #102, à faire avant Phase B.
+
+---
+
+## 📅 Session 2026-06-18 (atelier matin) — Refonte Home.jsx ✅
+
+### Changement
+`ui/src/components/Home.jsx` réécrit (−322 l., +195 l.) :
+- **Champ nom seul** (placeholder artistique type « nexus-app » généré) remplace la textarea multi-lignes — `submit()` accepte un nom vide (Mango en déduit lui-même).
+- **Templates avec popover au survol** : icône + nom + description courte apparaissent au hover (plus de liste déroulante).
+- **Tutoriels** : carte dédiée avec accès rapide (bouton « Reprendre le tutoriel n/10 »), séparée de la zone de prompt.
+- **Projets existants** : grille 2 colonnes avec champ de filtre — plus de liste scrollable sans contexte.
+
+### Motivation
+L'ancien écran était chargé : grande textarea, liste dropdown de templates, carte tutoriel fusionnée avec les projets. Le nouvel écran force à nommer le projet d'abord (ancre l'intention) et laisse le prompt et la configuration pour le chat.
+
+---
+
+## 📅 Session 2026-06-18 (atelier matin) — #99 Perfect Plan · accord-insurance-map ✅
+
+### Idée #99 — Perfect Plan
+Avant d'écrire un prompt, l'utilisateur passe par un questionnaire guidé + un dossier de références. Les réponses + les références forment un **contrat contraignant** : Mango les suit sans les réinterpréter ; pour tout ce que le plan ne couvre pas, il comble librement.
+
+**Deux étapes :**
+1. **Questionnaire** : 5-8 questions courtes avec 2-3 choix nommés + exemples de références réelles. Zéro jargon. Ex. *Style jeu → « Plutôt Vampire Survivors ou Mario Bros ? »* · *Ambiance → « Luxe épuré façon Apple ou chaleureux façon Airbnb ? »*.
+2. **Dossier références** : l'utilisateur dépose URLs (→ Sharingan les scanne) · palette hex/image · photos/images · musiques (le nom + description capte l'esprit). Mango pioche dans ce dossier avant de coder, comme un moodboard posé devant lui.
+
+Le contrat JSON généré est injecté en tête du prompt. Le bloc `cadrage` le verrouille en premier, `clarification` ne repose pas les questions déjà couvertes. Optionnel pour les utilisateurs avancés.
+
+Note : l'idée #100 (d'abord distincte) a été fusionnée dans #99 lors de la session atelier.
+
+### Build live — accord-insurance-map 💎 Élite
+**Résultat** : mind map d'une assurance automobile en 💎 Élite. Cytoscape.js + Dagre, 24 polices Google, 6 collaborateurs, style Material Design, **16/16 tests** Vitest.
+
+**Fix découvert** : template `cytoscape` manquait `@tailwindcss/vite` → build KO au premier essai → package.json du template corrigé (`server/templates/cytoscape/package.json`).
