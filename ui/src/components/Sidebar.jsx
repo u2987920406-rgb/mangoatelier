@@ -2,11 +2,12 @@ import { useState } from "react";
 import {
   BarChart3, BrainCircuit, Briefcase, Download,
   Eye, EyeOff, GitFork, HelpCircle, History,
-  Loader2, Server, X,
+  Loader2, Server, ClipboardCheck, X,
 } from "lucide-react";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
 import Guide from "./Guide.jsx";
+import BuildReview from "./BuildReview.jsx";
 import { NEUTRAL } from "../neutral.js";
 
 // ─── Bouton icône ────────────────────────────────────────────────────────────
@@ -216,6 +217,12 @@ export default function Sidebar({
         <Sep />
 
         {/* Groupe 2 — actions projet */}
+        <SideBtn
+          icon={ClipboardCheck}
+          label="Revue du build"
+          active={active === "revue"}
+          onClick={() => toggle("revue")}
+        />
         {versions.length > 0 && (
           <SideBtn
             icon={History}
@@ -286,6 +293,11 @@ export default function Sidebar({
           {active === "aide" && (
             <PanelShell title="Aide" onClose={close}>
               <Guide />
+            </PanelShell>
+          )}
+          {active === "revue" && (
+            <PanelShell title="Revue du build" onClose={close}>
+              <BuildReview projectName={projectName} />
             </PanelShell>
           )}
           {active === "versions" && (
