@@ -547,138 +547,142 @@ export default function Chat({
               );
             })}
           </div>
-          <div className="flex items-end gap-1.5 pl-1.5">
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-faint hover:text-ink disabled:opacity-30 transition-colors"
-            title="Joindre une image ou un PDF (ou colle/glisse-le ici)"
-          >
-            <Paperclip size={16} />
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            multiple
-            accept=".png,.jpg,.jpeg,.webp,.gif,.pdf"
-            className="hidden"
-            onChange={(e) => {
-              addFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <button
-            onClick={() => setSnapMode(true)}
-            disabled={busy || snapBusy}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
-              snapBusy ? "animate-pulse text-accent" : "text-faint hover:text-ink"
-            }`}
-            title="Snap : capturer une zone de l'aperçu"
-          >
-            <Scan size={16} />
-          </button>
-          <button
-            onClick={toggleMic}
-            disabled={busy || transcribing}
-            data-tour="mic"
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
-              listening ? "animate-pulse text-err" : transcribing ? "animate-pulse text-accent" : "text-faint hover:text-ink"
-            }`}
-            title={listening ? "Arrêter l'enregistrement" : transcribing ? "Transcription Whisper…" : "Dicter (Whisper local)"}
-          >
-            {listening ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
-          <div className="relative" ref={pickerRef}>
-            <button
-              onClick={() => { setFilePicker((v) => !v); setFileSearch(""); }}
-              disabled={busy}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
-                contextFile ? "text-accent" : "text-faint hover:text-ink"
-              }`}
-              title="Cibler un fichier du projet comme contexte"
-            >
-              <FolderOpen size={16} />
-            </button>
-            {filePicker && (
-              <div className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border border-edge bg-panel shadow-xl shadow-black/30 z-50">
-                <div className="p-2 border-b border-edge">
-                  <input
-                    autoFocus
-                    value={fileSearch}
-                    onChange={(e) => setFileSearch(e.target.value)}
-                    placeholder="Rechercher un fichier…"
-                    className="w-full rounded-lg border border-edge bg-bg px-2.5 py-1.5 text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
-                  />
-                </div>
-                <ul className="nice-scroll max-h-52 overflow-y-auto p-1">
-                  {fileList
-                    .filter((f) => !fileSearch || f.toLowerCase().includes(fileSearch.toLowerCase()))
-                    .map((f) => (
-                      <li key={f}>
-                        <button
-                          onClick={() => { setContextFile(f); setFilePicker(false); }}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
-                            contextFile === f
-                              ? "bg-accent/15 text-accent"
-                              : "text-dim hover:bg-edge-soft hover:text-ink"
-                          }`}
-                        >
-                          <FileCode size={12} className="shrink-0 text-faint" />
-                          <span className="truncate font-mono">{f}</span>
-                        </button>
-                      </li>
-                    ))}
-                  {fileList.length === 0 && (
-                    <li className="px-2.5 py-3 text-center text-xs text-faint">Aucun fichier trouvé</li>
-                  )}
-                </ul>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-end gap-1.5 pl-1.5">
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-faint hover:text-ink disabled:opacity-30 transition-colors"
+                title="Joindre une image ou un PDF (ou colle/glisse-le ici)"
+              >
+                <Paperclip size={16} />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                accept=".png,.jpg,.jpeg,.webp,.gif,.pdf"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => setSnapMode(true)}
+                disabled={busy || snapBusy}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+                  snapBusy ? "animate-pulse text-accent" : "text-faint hover:text-ink"
+                }`}
+                title="Snap : capturer une zone de l'aperçu"
+              >
+                <Scan size={16} />
+              </button>
+              <div className="relative" ref={pickerRef}>
+                <button
+                  onClick={() => { setFilePicker((v) => !v); setFileSearch(""); }}
+                  disabled={busy}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+                    contextFile ? "text-accent" : "text-faint hover:text-ink"
+                  }`}
+                  title="Cibler un fichier du projet comme contexte"
+                >
+                  <FolderOpen size={16} />
+                </button>
+                {filePicker && (
+                  <div className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border border-edge bg-panel shadow-xl shadow-black/30 z-50">
+                    <div className="p-2 border-b border-edge">
+                      <input
+                        autoFocus
+                        value={fileSearch}
+                        onChange={(e) => setFileSearch(e.target.value)}
+                        placeholder="Rechercher un fichier…"
+                        className="w-full rounded-lg border border-edge bg-bg px-2.5 py-1.5 text-xs text-ink placeholder:text-faint focus:border-accent focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <ul className="nice-scroll max-h-52 overflow-y-auto p-1">
+                      {fileList
+                        .filter((f) => !fileSearch || f.toLowerCase().includes(fileSearch.toLowerCase()))
+                        .map((f) => (
+                          <li key={f}>
+                            <button
+                              onClick={() => { setContextFile(f); setFilePicker(false); }}
+                              className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
+                                contextFile === f
+                                  ? "bg-accent/15 text-accent"
+                                  : "text-dim hover:bg-edge-soft hover:text-ink"
+                              }`}
+                            >
+                              <FileCode size={12} className="shrink-0 text-faint" />
+                              <span className="truncate font-mono">{f}</span>
+                            </button>
+                          </li>
+                        ))}
+                      {fileList.length === 0 && (
+                        <li className="px-2.5 py-3 text-center text-xs text-faint">Aucun fichier trouvé</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <textarea
-            ref={inputRef}
-            data-tour="composer"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onInput={autoGrow}
-            onPaste={(e) => {
-              const pasted = [...e.clipboardData.items]
-                .filter((it) => it.kind === "file")
-                .map((it) => it.getAsFile())
-                .filter(Boolean);
-              if (pasted.length > 0) {
-                e.preventDefault();
-                addFiles(pasted);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            placeholder="Décris ton app ou demande une modification…"
-            rows={1}
-            className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-sm leading-relaxed placeholder:text-faint focus:outline-none"
-          />
-          {busy ? (
-            <button
-              onClick={() => fetch("/api/stop", { method: "POST" }).catch(() => {})}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-err/90 text-white hover:bg-err transition-colors"
-              title="Arrêter l'agent"
-            >
-              <Square size={14} fill="currentColor" />
-            </button>
-          ) : (
-            <button
-              onClick={send}
-              disabled={!input.trim() && attachments.length === 0}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white hover:bg-accent-soft disabled:opacity-30 transition"
-              title="Envoyer (Entrée)"
-            >
-              <ArrowUp size={17} strokeWidth={2.5} />
-            </button>
-          )}
+              <textarea
+                ref={inputRef}
+                data-tour="composer"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onInput={autoGrow}
+                onPaste={(e) => {
+                  const pasted = [...e.clipboardData.items]
+                    .filter((it) => it.kind === "file")
+                    .map((it) => it.getAsFile())
+                    .filter(Boolean);
+                  if (pasted.length > 0) {
+                    e.preventDefault();
+                    addFiles(pasted);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder="Décris ton app ou demande une modification…"
+                rows={1}
+                className="max-h-40 flex-1 resize-none bg-transparent py-1.5 text-sm leading-relaxed placeholder:text-faint focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-1.5 pr-1.5">
+              <button
+                onClick={toggleMic}
+                disabled={busy || transcribing}
+                data-tour="mic"
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30 ${
+                  listening ? "animate-pulse text-err" : transcribing ? "animate-pulse text-accent" : "text-faint hover:text-ink"
+                }`}
+                title={listening ? "Arrêter l'enregistrement" : transcribing ? "Transcription Whisper…" : "Dicter (Whisper local)"}
+              >
+                {listening ? <MicOff size={16} /> : <Mic size={16} />}
+              </button>
+              {busy ? (
+                <button
+                  onClick={() => fetch("/api/stop", { method: "POST" }).catch(() => {})}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-err/90 text-white hover:bg-err transition-colors"
+                  title="Arrêter l'agent"
+                >
+                  <Square size={14} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  onClick={send}
+                  disabled={!input.trim() && attachments.length === 0}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white hover:bg-accent-soft disabled:opacity-30 transition"
+                  title="Envoyer (Entrée)"
+                >
+                  <ArrowUp size={17} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
