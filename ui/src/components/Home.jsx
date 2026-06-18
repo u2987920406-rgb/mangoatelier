@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import PerfectPlan from "./PerfectPlan.jsx";
+import ConfirmDelete from "./ConfirmDelete.jsx";
 
 const TEMPLATES = [
   { id: "",          label: "Vierge",     icon: Package,         family: "Base",          hint: "Page blanche — structure libre",                                          examples: [] },
@@ -345,20 +346,17 @@ export default function Home({ projects, templates, onOpen, onDelete, onDeleteMa
                     </button>
                   )}
                 </div>
-                <button
+                <ConfirmDelete
+                  onConfirm={() => { onDeleteMany?.([...selected]); exitSelectMode(); }}
+                  message={`Supprimer ${selected.size} projet${selected.size > 1 ? "s" : ""} ? Cette action est irréversible.`}
+                  align="right"
                   disabled={selected.size === 0}
-                  onClick={() => {
-                    const names = [...selected];
-                    if (window.confirm(`Supprimer ${names.length} projet${names.length > 1 ? "s" : ""} ? Cette action est irréversible.`)) {
-                      onDeleteMany?.(names);
-                      exitSelectMode();
-                    }
-                  }}
-                  className="flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/25 disabled:opacity-30 disabled:hover:bg-red-500/15 transition-colors"
+                  triggerTitle="Supprimer la sélection"
+                  triggerClassName="flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/25 disabled:opacity-30 disabled:hover:bg-red-500/15 transition-colors"
                 >
                   <Trash2 size={13} />
                   Supprimer ({selected.size})
-                </button>
+                </ConfirmDelete>
               </div>
             )}
 
@@ -386,27 +384,26 @@ export default function Home({ projects, templates, onOpen, onDelete, onDeleteMa
                 return (
                   <div
                     key={p}
-                    className="group flex items-center rounded-xl border border-edge bg-panel/60 hover:border-accent/50 hover:bg-panel transition-colors overflow-hidden"
+                    className="group relative flex items-center rounded-xl border border-edge bg-panel/60 hover:border-accent/50 hover:bg-panel transition-colors"
                   >
                     <button
                       onClick={() => onOpen(p, {})}
-                      className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left"
+                      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-l-xl px-3.5 py-3 text-left"
                     >
                       <FolderOpen size={14} className="shrink-0 text-dim group-hover:text-accent-soft transition-colors" />
                       <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{p}</span>
                       <ArrowRight size={12} className="shrink-0 text-faint group-hover:text-accent-soft transition-colors" />
                     </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Supprimer le projet "${p}" ? Cette action est irréversible.`)) {
-                          onDelete?.(p);
-                        }
-                      }}
-                      title="Supprimer le projet"
-                      className="hidden group-hover:flex items-center justify-center h-full px-2.5 text-faint hover:text-red-400 transition-colors border-l border-edge"
+                    <ConfirmDelete
+                      onConfirm={() => onDelete?.(p)}
+                      message={`Supprimer « ${p} » ? Cette action est irréversible.`}
+                      align="right"
+                      className="self-stretch"
+                      triggerTitle="Supprimer le projet"
+                      triggerClassName="hidden group-hover:flex h-full items-center justify-center rounded-r-xl border-l border-edge px-2.5 text-faint hover:text-red-400 transition-colors"
                     >
                       <Trash2 size={13} />
-                    </button>
+                    </ConfirmDelete>
                   </div>
                 );
               })}

@@ -690,10 +690,8 @@ export default function App() {
             context={context}
             canDelete={projects.includes(projectName) && projectName !== "__mirror__"}
             onDeleteProject={async () => {
-              if (window.confirm(`Supprimer le projet "${projectName}" ? Cette action est irréversible.`)) {
-                const ok = await handleDeleteProject(projectName);
-                if (ok) goHome();
-              }
+              const ok = await handleDeleteProject(projectName);
+              if (ok) goHome();
             }}
           />
           {projectName === "__mirror__" && (

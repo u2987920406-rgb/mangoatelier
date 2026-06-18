@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Brain, Cloud, Gauge, Gem, Globe, GraduationCap, Loader2, Rocket, Shield, Sparkles, Trash2, Triangle, Zap } from "lucide-react";
 import Dropdown, { DropdownItem } from "./Dropdown.jsx";
 import { NEUTRAL, t } from "../neutral.js";
@@ -175,17 +176,66 @@ export default function Header({
         {canDelete && onDeleteProject && (
           <>
             <span className="text-edge">|</span>
-            <button
-              onClick={onDeleteProject}
-              title="Supprimer ce projet et revenir à l'accueil"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500"
-            >
-              <Trash2 size={16} />
-            </button>
+            <DeleteProjectButton onConfirm={onDeleteProject} />
           </>
         )}
       </div>
     </header>
+  );
+}
+
+// Poubelle + confirmation ancrée JUSTE sous le bouton (popover), au lieu du
+// window.confirm() natif centré en haut d'écran : le curseur n'a quasi pas à
+// bouger pour confirmer.
+function DeleteProjectButton({ onConfirm }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Supprimer ce projet et revenir à l'accueil"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500"
+      >
+        <Trash2 size={16} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-edge bg-panel p-3 shadow-xl shadow-black/30">
+          <p className="mb-2.5 text-xs leading-relaxed text-dim">
+            Supprimer ce projet ? Cette action est irréversible.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setOpen(false); onConfirm?.(); }}
+              className="flex-1 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors"
+            >
+              Supprimer
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="flex-1 rounded-lg border border-edge px-2.5 py-1.5 text-xs text-dim hover:text-ink transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
