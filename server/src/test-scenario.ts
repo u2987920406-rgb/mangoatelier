@@ -128,6 +128,19 @@ check("esthetique — graphic polish ABSENT en Élite", !elite.includes(GRAPHIC_
 check("esthetique — graphic polish ABSENT en MVP", !mvp.includes(GRAPHIC_POLISH));
 check("esthetique — graphic polish ABSENT en finition", !finition.includes(GRAPHIC_POLISH));
 
+// Idée #99 — Perfect Plan : bloc injecté UNIQUEMENT quand perfectPlanSection fourni,
+// présent en élite+mvp, absent en finition+esthetique+nocturne (SAUF si section fournie).
+const PERFECT_PLAN = "PERFECT PLAN — CONTRAT CONTRAIGNANT";
+const elitePP = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, perfectPlanSection: "## PERFECT PLAN — CONTRAT CONTRAIGNANT\ntest" });
+const mvpPP   = assembleSystemPrompt({ mode: "mvp",   model: "sonnet", projectDir: dir, perfectPlanSection: "## PERFECT PLAN — CONTRAT CONTRAIGNANT\ntest" });
+check("perfectPlan absent en Élite sans section (zéro poids)", !elite.includes(PERFECT_PLAN));
+check("perfectPlan absent en MVP sans section (zéro poids)", !mvp.includes(PERFECT_PLAN));
+check("perfectPlan présent en Élite quand section fournie", elitePP.includes(PERFECT_PLAN));
+check("perfectPlan présent en MVP quand section fournie", mvpPP.includes(PERFECT_PLAN));
+check("perfectPlan absent en finition", !finition.includes(PERFECT_PLAN));
+check("perfectPlan absent en esthetique", !esthetique.includes(PERFECT_PLAN));
+check("perfectPlan absent en nocturne", !nocturne.includes(PERFECT_PLAN));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 

@@ -97,6 +97,7 @@ export default function App() {
   const [tutorialId, setTutorialId] = useState(null);
   const [tutorialNextId, setTutorialNextId] = useState(1);
   const [onboardingNeeded, setOnboardingNeeded] = useState(false);
+  const [perfectPlanContract, setPerfectPlanContract] = useState(null);
   const toastId = useRef(1);
 
   const pushToast = useCallback((kind, text, linkUrl) => {
@@ -255,6 +256,15 @@ export default function App() {
     refreshVersions();
   }, [refreshVersions]);
 
+  // Charger le Perfect Plan du projet courant quand on entre dans le workspace.
+  useEffect(() => {
+    if (screen !== "workspace" || !projectName.trim()) { setPerfectPlanContract(null); return; }
+    fetch(`/api/perfect-plan/${encodeURIComponent(projectName)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setPerfectPlanContract(d))
+      .catch(() => setPerfectPlanContract(null));
+  }, [screen, projectName]);
+
   const refreshBackendStatus = useCallback(() => {
     if (!projectName.trim()) { setBackendStatus(null); return; }
     fetch(`/api/backend-server/${encodeURIComponent(projectName)}/status`)
@@ -291,7 +301,16 @@ export default function App() {
     refreshBackendStatus();
   }
 
-  function openProject(name, { template: tpl = "", prompt = null, origin = null, task = null, nocturnal = null } = {}) {
+  async function openProject(name, { template: tpl = "", prompt = null, origin = null, task = null, nocturnal = null, contract = null } = {}) {
+    if (contract) {
+      try {
+        await fetch(`/api/perfect-plan/${encodeURIComponent(name)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(contract),
+        });
+      } catch { /* non-bloquant */ }
+    }
     setProjectName(name);
     setTemplate(tpl);
     setPendingPrompt(prompt);
@@ -303,6 +322,7 @@ export default function App() {
     setDeployedUrl(null);
     setGithubUrl(null);
     setContext(null);
+    setPerfectPlanContract(null);
     // Restaure le mode client sauvegardé pour ce projet (ou false par défaut).
     setClientMode(localStorage.getItem(`mangoai.clientMode.${name}`) === "true");
     setScreen("workspace");
@@ -614,6 +634,11 @@ export default function App() {
             }}
             clientMode={clientMode}
             onClientMode={handleClientMode}
+            perfectPlanContract={perfectPlanContract}
+            onDeletePerfectPlan={async () => {
+              await fetch(`/api/perfect-plan/${encodeURIComponent(projectName)}`, { method: "DELETE" }).catch(() => {});
+              setPerfectPlanContract(null);
+            }}
           />
           <div className="flex min-w-0 flex-1 flex-col">
           <Header

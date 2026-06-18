@@ -23,9 +23,11 @@ import {
   Plus,
   Search,
   ShoppingCart,
+  Sparkles,
   Store,
   Workflow,
 } from "lucide-react";
+import PerfectPlan from "./PerfectPlan.jsx";
 
 const TEMPLATES = [
   { id: "",          label: "Vierge",     icon: Package,         family: "Base",          hint: "Page blanche — structure libre",                                          examples: [] },
@@ -71,6 +73,7 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
   const [showTutorials, setShowTutorials] = useState(false);
   const [tutorialsList, setTutorialsList] = useState([]);
   const [tutorialsDone, setTutorialsDone] = useState([]);
+  const [showPerfectPlan, setShowPerfectPlan] = useState(false);
 
   const available = TEMPLATES.filter((t) => t.id === "" || templates.includes(t.id));
   const filtered = search.trim()
@@ -93,12 +96,19 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
     }
   }
 
-  function submit() {
+  function submit(contract = null) {
     const safeName = slugify(name) || "mon-projet";
-    onOpen(safeName, { template: tpl, prompt: "" });
+    onOpen(safeName, { template: tpl, prompt: "", contract });
   }
 
   return (
+    <>
+    {showPerfectPlan && (
+      <PerfectPlan
+        onClose={() => setShowPerfectPlan(false)}
+        onLaunch={(contract) => { setShowPerfectPlan(false); submit(contract); }}
+      />
+    )}
     <div className="flex min-h-screen flex-col items-center overflow-y-auto nice-scroll bg-bg px-6 py-14">
       <div className="flex w-full max-w-xl flex-col gap-8">
 
@@ -128,13 +138,22 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
               autoFocus
             />
             <button
-              onClick={submit}
+              onClick={() => submit()}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-md shadow-accent/30 hover:opacity-90 transition"
               title="Créer le projet (Entrée)"
             >
               <Plus size={20} strokeWidth={2.5} />
             </button>
           </div>
+
+          {/* Bouton Perfect Plan */}
+          <button
+            onClick={() => setShowPerfectPlan(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-edge bg-bg py-2 text-xs text-dim hover:border-accent/50 hover:text-ink transition-colors"
+          >
+            <Sparkles size={12} className="text-accent-soft" />
+            Préparer un Perfect Plan avant de démarrer
+          </button>
 
           {/* Templates */}
           <div className="mt-4 flex flex-wrap gap-1.5">
@@ -309,5 +328,6 @@ export default function Home({ projects, templates, onOpen, onStartTutorial, nex
 
       </div>
     </div>
+    </>
   );
 }

@@ -57,6 +57,7 @@ import { registerPromptEvolutionRoutes } from "./prompt-evolution.js";
 import { registerRadarRoutes } from "./radar.js";
 import { registerBuildReviewRoutes } from "./build-review-routes.js";
 import { bootstrapProfile, hasProfile, type OnboardingAnswers } from "./onboarding.js";
+import { registerPerfectPlanRoutes } from "./perfect-plan-routes.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -597,6 +598,7 @@ registerNocturnalRoutes(app);
 registerRadarRoutes(app);
 registerPromptEvolutionRoutes(app);
 registerBuildReviewRoutes(app);
+registerPerfectPlanRoutes(app);
 
 app.get("/api/onboarding/status", (_req, res) => {
   res.json({ hasProfile: hasProfile(WORKSPACE_DIR) });

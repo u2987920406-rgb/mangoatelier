@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   BarChart3, BrainCircuit, Briefcase, Download,
   Eye, EyeOff, GitFork, HelpCircle, History,
-  Loader2, Server, ClipboardCheck, X,
+  Loader2, Server, ClipboardCheck, Sparkles, Trash2, X,
 } from "lucide-react";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
@@ -115,6 +115,68 @@ function BackendPanel({ status, onScaffold, onStart, onStop, onClose }) {
   );
 }
 
+// ─── Panneau Perfect Plan ─────────────────────────────────────────────────────
+function PerfectPlanPanel({ contract, onDelete, onClose }) {
+  if (!contract) {
+    return (
+      <PanelShell title="Perfect Plan" onClose={onClose}>
+        <div className="p-4">
+          <p className="text-xs text-dim">Aucun Perfect Plan actif pour ce projet.</p>
+          <p className="mt-2 text-[11px] text-faint">Créez un nouveau projet depuis l'accueil et cliquez « Préparer un Perfect Plan » pour définir les contraintes avant de démarrer.</p>
+        </div>
+      </PanelShell>
+    );
+  }
+
+  const LABELS = { type: "Type", style: "Style", navigation: "Navigation", data: "Données", ambiance: "Ambiance" };
+  const activeRefs = contract.refs?.filter((r) => r.value?.trim()) ?? [];
+
+  return (
+    <PanelShell title="Perfect Plan" onClose={onClose}>
+      <div className="flex flex-col gap-3 p-4">
+        <div className="rounded-lg border border-accent/30 bg-accent/[0.06] px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-accent-soft">Contrat actif</p>
+        </div>
+
+        {/* Réponses */}
+        <div className="flex flex-col gap-1.5">
+          {contract.answers?.map((a) => (
+            <div key={a.id} className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-faint min-w-[72px]">{LABELS[a.id] ?? a.id}</span>
+              <span className="text-[12px] text-ink font-medium text-right">{a.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Références */}
+        {activeRefs.length > 0 && (
+          <>
+            <div className="border-t border-edge" />
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">Références</p>
+              {activeRefs.map((r, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[9px] font-semibold uppercase text-faint min-w-[36px] pt-0.5">{r.kind}</span>
+                  <span className="min-w-0 flex-1 break-all text-[11px] text-dim">{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Bouton supprimer */}
+        <button
+          onClick={onDelete}
+          className="mt-1 flex items-center gap-2 rounded-lg border border-err/30 bg-err/5 px-3 py-1.5 text-xs text-err hover:bg-err/10 transition-colors"
+        >
+          <Trash2 size={12} />
+          Supprimer ce plan
+        </button>
+      </div>
+    </PanelShell>
+  );
+}
+
 // ─── Panneau GitHub ────────────────────────────────────────────────────────────
 function GithubPanel({ pushingGithub, onGithub, githubUrl, onClose }) {
   const [customRepo, setCustomRepo] = useState("");
@@ -193,6 +255,8 @@ export default function Sidebar({
   onToggleThinking,
   clientMode = false,
   onClientMode,
+  perfectPlanContract = null,
+  onDeletePerfectPlan,
 }) {
   const [active, setActive] = useState(null);
   const toggle = (id) => setActive((v) => (v === id ? null : id));
@@ -262,6 +326,12 @@ export default function Sidebar({
             dataTour="github"
           />
         )}
+        <SideBtn
+          icon={Sparkles}
+          label={perfectPlanContract ? "Perfect Plan actif" : "Perfect Plan"}
+          active={active === "perfectPlan" || Boolean(perfectPlanContract)}
+          onClick={() => toggle("perfectPlan")}
+        />
         <a
           href={`/api/export/${encodeURIComponent(projectName)}`}
           download
@@ -333,6 +403,13 @@ export default function Sidebar({
               pushingGithub={pushingGithub}
               onGithub={onGithub}
               githubUrl={githubUrl}
+              onClose={close}
+            />
+          )}
+          {active === "perfectPlan" && (
+            <PerfectPlanPanel
+              contract={perfectPlanContract}
+              onDelete={() => { onDeletePerfectPlan?.(); close(); }}
               onClose={close}
             />
           )}

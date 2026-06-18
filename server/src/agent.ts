@@ -9,6 +9,7 @@ import { constellationsSection } from "./constellations.js";
 import { proceduresPromptSection } from "./procedures.js";
 import { inferProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
+import { perfectPlanSection } from "./perfect-plan.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -163,6 +164,8 @@ export async function* runAgent(
   } catch {
     proceduresBlock = "";
   }
+  // Idée #99 — Perfect Plan : contrat de démarrage (synchrone, lecture JSON).
+  const perfectPlanBlock = (() => { try { return perfectPlanSection(projectDir); } catch { return ""; } })();
   try {
     const q = query({
       prompt,
@@ -188,7 +191,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode, perfectPlanSection: perfectPlanBlock }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },
