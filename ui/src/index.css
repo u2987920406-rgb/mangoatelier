@@ -19,6 +19,9 @@
   --color-ok: #3ecf8e;
   --color-warn: #f0b35e;
   --color-err: #ff5c5c;
+  --color-code-bg: #0b0d12;
+  --color-scroll: #2a2f3e;
+  --color-scroll-hover: #363c4f;
 
   --animate-fade-up: fade-up 0.25s ease-out both;
   --animate-shimmer: shimmer 1.8s linear infinite;
@@ -54,10 +57,36 @@
   }
 }
 
+/* ☀️ Mode clair — alternative dérivée de la même palette (violet signature gardé).
+   Surcharge les tokens sous [data-theme="light"] ; les utilitaires Tailwind v4
+   référencent les var() au runtime, donc la bascule est instantanée. */
+:root[data-theme="light"] {
+  --color-bg: #f6f6fb;
+  --color-panel: #ffffff;
+  --color-raised: #ffffff;
+  --color-edge: #e7e8f0;
+  --color-edge-soft: #eef0f5;
+  --color-ink: #16181f;
+  --color-dim: #6b7185;
+  --color-faint: #9aa0b0;
+  --color-accent: #6a48ff;
+  --color-accent-soft: #7c5cff;
+  --color-bubble: #efeaff;
+  --color-ok: #12a06d;
+  --color-warn: #c98a2e;
+  --color-err: #e23b3b;
+  --color-code-bg: #1a1d28; /* bloc de code volontairement sombre, lisible sur clair */
+  --color-scroll: #cdd0db;
+  --color-scroll-hover: #b4b8c7;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--color-bg);
   color: var(--color-ink);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 /* Subtle violet glow used behind the Home hero */
@@ -82,11 +111,11 @@ body {
   width: 8px;
 }
 .nice-scroll::-webkit-scrollbar-thumb {
-  background: #2a2f3e;
+  background: var(--color-scroll);
   border-radius: 4px;
 }
 .nice-scroll::-webkit-scrollbar-thumb:hover {
-  background: #363c4f;
+  background: var(--color-scroll-hover);
 }
 
 /* Markdown rendered inside agent bubbles */
@@ -127,7 +156,7 @@ body {
   padding: 1px 5px;
 }
 .md pre {
-  background: #0b0d12;
+  background: var(--color-code-bg);
   border: 1px solid var(--color-edge);
   border-radius: 8px;
   padding: 10px 12px;

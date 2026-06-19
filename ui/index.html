@@ -14,6 +14,15 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <!-- Applique le thème (clair/sombre) AVANT le premier rendu → pas de flash. -->
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("mangoos.theme") || "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

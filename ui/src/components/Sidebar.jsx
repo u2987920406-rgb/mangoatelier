@@ -2,13 +2,14 @@ import { useState } from "react";
 import {
   BarChart3, Bot, BrainCircuit, Briefcase, Download,
   Eye, EyeOff, GitFork, HelpCircle, History,
-  Loader2, Server, ClipboardCheck, Sparkles, Trash2, X,
+  Loader2, Moon, Server, ClipboardCheck, Sparkles, Sun, Trash2, X,
 } from "lucide-react";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
 import Guide from "./Guide.jsx";
 import BuildReview from "./BuildReview.jsx";
 import { NEUTRAL } from "../neutral.js";
+import { getTheme, toggleTheme } from "../theme.js";
 
 // ─── Bouton icône ────────────────────────────────────────────────────────────
 function SideBtn({ icon: Icon, label, active = false, onClick, dataTour }) {
@@ -263,6 +264,9 @@ export default function Sidebar({
   const toggle = (id) => setActive((v) => (v === id ? null : id));
   const close = () => setActive(null);
 
+  const [theme, setThemeState] = useState(getTheme);
+  const flipTheme = () => setThemeState(toggleTheme());
+
   return (
     <div className="relative flex h-full shrink-0">
       {/* Bande d'icônes */}
@@ -365,6 +369,11 @@ export default function Sidebar({
           icon={showThinking ? Eye : EyeOff}
           label={showThinking ? "Masquer réflexion" : "Afficher réflexion"}
           onClick={onToggleThinking}
+        />
+        <SideBtn
+          icon={theme === "dark" ? Sun : Moon}
+          label={theme === "dark" ? "Mode clair" : "Mode sombre"}
+          onClick={flipTheme}
         />
       </div>
 
