@@ -8,13 +8,19 @@
 //   - 'deepseek' → DeepSeek API (OpenAI-compat) — DEEPSEEK_API_KEY
 //   - 'mistral'  → Mistral API (OpenAI-compat) — MISTRAL_API_KEY
 //   - 'groq'     → Groq API (OpenAI-compat)    — GROQ_API_KEY
+//   - 'litellm'  → proxy LiteLLM (OpenAI-compat) ouvrant 100+ modèles d'un coup
+//                  via un seul endpoint — LITELLM_BASE_URL (défaut localhost:4000),
+//                  LITELLM_MODEL, LITELLM_API_KEY. Le proxy gère le routage et le
+//                  fallback ; côté MangoOS c'est un provider OpenAI-compat de plus.
+//                  (Note : le cerveau Claude reste via 'claude'/query() à $0 — le
+//                   proxy LiteLLM ne sait pas faire l'abonnement Claude Code.)
 //
 // Réglage par feature : <FEATURE>_PROVIDER dans .env (ex. SUPERAGENT_PROVIDER),
 // sinon LLM_PROVIDER global, sinon le défaut passé par la feature.
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { askOllama } from './ollama.js'
 
-export type LLMProvider = 'claude' | 'ollama' | 'openai' | 'deepseek' | 'mistral' | 'groq'
+export type LLMProvider = 'claude' | 'ollama' | 'openai' | 'deepseek' | 'mistral' | 'groq' | 'litellm'
 
 export interface AskLLMOptions {
   provider?: LLMProvider
@@ -52,7 +58,7 @@ export const PROVIDER_PRESETS: Record<'deepseek' | 'mistral' | 'groq', ProviderP
  * 6 valeurs valides. `envValue` = la variable dédiée d'une feature. */
 export function resolveProvider(envValue?: string, fallback: LLMProvider = 'claude'): LLMProvider {
   const raw = (envValue ?? process.env.LLM_PROVIDER ?? '').trim().toLowerCase()
-  const valid: LLMProvider[] = ['claude', 'ollama', 'openai', 'deepseek', 'mistral', 'groq']
+  const valid: LLMProvider[] = ['claude', 'ollama', 'openai', 'deepseek', 'mistral', 'groq', 'litellm']
   return (valid.includes(raw as LLMProvider) ? raw : fallback) as LLMProvider
 }
 
@@ -62,6 +68,7 @@ function defaultModel(provider: LLMProvider): string {
   if (provider === 'deepseek' || provider === 'mistral' || provider === 'groq') {
     return PROVIDER_PRESETS[provider].defaultModel
   }
+  if (provider === 'litellm') return process.env.LITELLM_MODEL ?? 'gpt-4o-mini'
   // openai generic
   return process.env.LLM_OPENAI_MODEL ?? process.env.ELEVE_MODEL ?? 'deepseek-chat'
 }
@@ -189,6 +196,14 @@ export async function askLLM(system: string, user: string, opts: AskLLMOptions =
     const key = (process.env[preset.apiKeyEnv] ?? process.env.LLM_OPENAI_KEY ?? process.env.ELEVE_API_KEY ?? '').trim()
     if (!key) throw new Error(`Clé manquante pour le provider "${provider}" (${preset.apiKeyEnv} dans server/.env).`)
     return askOpenAI(system, user, model, maxTokens, timeoutMs, preset.baseURL, key)
+  }
+  if (provider === 'litellm') {
+    // Proxy LiteLLM = endpoint OpenAI-compat unique vers 100+ modèles. Le proxy
+    // local n'exige souvent pas d'auth ; on passe une clé placeholder que le
+    // proxy ignore (sa propre master-key gère l'accès s'il en a une).
+    const baseURL = (process.env.LITELLM_BASE_URL ?? 'http://localhost:4000/v1').trim()
+    const key = (process.env.LITELLM_API_KEY ?? 'sk-litellm-local').trim()
+    return askOpenAI(system, user, model, maxTokens, timeoutMs, baseURL, key)
   }
   if (provider === 'openai') return askOpenAI(system, user, model, maxTokens, timeoutMs)
   return askClaude(system, user, model)

@@ -39,17 +39,18 @@ function withEnv(vars: Record<string, string | undefined>, fn: () => void): void
 }
 
 line('═')
-console.log('resolveProvider — 6 valid providers')
+console.log('resolveProvider — 7 valid providers')
 line()
 
 withEnv({ LLM_PROVIDER: undefined }, () => {
-  // All 6 valid providers accepted when passed directly
+  // All 7 valid providers accepted when passed directly
   check("'claude' → 'claude'", resolveProvider('claude') === 'claude')
   check("'ollama' → 'ollama'", resolveProvider('ollama') === 'ollama')
   check("'openai' → 'openai'", resolveProvider('openai') === 'openai')
   check("'deepseek' → 'deepseek'", resolveProvider('deepseek') === 'deepseek')
   check("'mistral' → 'mistral'", resolveProvider('mistral') === 'mistral')
   check("'groq' → 'groq'", resolveProvider('groq') === 'groq')
+  check("'litellm' → 'litellm'", resolveProvider('litellm') === 'litellm')
 })
 
 line()
