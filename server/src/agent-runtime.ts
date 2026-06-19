@@ -113,7 +113,9 @@ export async function startAgent(
   };
   delete env["ANTHROPIC_API_KEY"];
 
-  const proc = deps.spawn("node", [agentJs], {
+  // Passer "agent.js" en relatif (cwd=dir) pour éviter les problèmes de
+  // chemin avec espaces sur Windows quand shell=true.
+  const proc = deps.spawn("node", ["agent.js"], {
     cwd:   dir,
     env:   env as NodeJS.ProcessEnv,
     stdio: ["pipe", "pipe", "pipe"],
