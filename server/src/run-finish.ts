@@ -91,27 +91,35 @@ async function runPhase(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const parts = buf.split("\n\n");
-    buf = parts.pop() ?? "";
-    for (const part of parts) {
-      const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
-      if (!dataLine) continue;
-      let ev: any;
-      try { ev = JSON.parse(dataLine.slice(6)); } catch { continue; }
-      switch (ev.type) {
-        case "status": log(`    · [${phase.id}] ${ev.text}`); break;
-        case "text": if (ev.text?.trim()) log(`    💬 [${phase.id}] ${ev.text.trim().slice(0, 140)}`); break;
-        case "tool": log(`    🔧 [${phase.id}] ${ev.name} ${String(ev.detail ?? "").slice(0, 80)}`); break;
-        case "result":
-          ok = !!ev.ok; costUsd = ev.costUsd ?? 0; numTurns = ev.numTurns ?? 0; error = ev.error;
-          if (ev.sessionId) newSession = ev.sessionId; break;
-        case "error": error = ev.message; log(`    ❌ [${phase.id}] ${ev.message}`); break;
+  // Durci #104 : une coupure du flux SSE (backend redémarré, socket fermé) ne
+  // doit PAS tuer le run — on la capture, on marque la phase incomplète (ok reste
+  // false sauf si le result est déjà arrivé) → la reprise repartira de là.
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop() ?? "";
+      for (const part of parts) {
+        const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
+        if (!dataLine) continue;
+        let ev: any;
+        try { ev = JSON.parse(dataLine.slice(6)); } catch { continue; }
+        switch (ev.type) {
+          case "status": log(`    · [${phase.id}] ${ev.text}`); break;
+          case "text": if (ev.text?.trim()) log(`    💬 [${phase.id}] ${ev.text.trim().slice(0, 140)}`); break;
+          case "tool": log(`    🔧 [${phase.id}] ${ev.name} ${String(ev.detail ?? "").slice(0, 80)}`); break;
+          case "result":
+            ok = !!ev.ok; costUsd = ev.costUsd ?? 0; numTurns = ev.numTurns ?? 0; error = ev.error;
+            if (ev.sessionId) newSession = ev.sessionId; break;
+          case "error": error = ev.message; log(`    ❌ [${phase.id}] ${ev.message}`); break;
+        }
       }
     }
+  } catch (e) {
+    if (!ok) error = error ?? `flux interrompu: ${(e as Error).message}`;
+    log(`    ⚠ [${phase.id}] flux interrompu: ${(e as Error).message} (reprenable)`);
   }
   return { result: { id: phase.id, mode: phase.mode, ok, costUsd, numTurns, ms: Date.now() - started, error }, sessionId: newSession };
 }
