@@ -32,6 +32,8 @@ import { getBus } from "./kernel-bus.js";
 import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
+import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
+import { loadContract } from "./perfect-plan.js";
 import { generateLexique } from "./lexique.js";
 import { registerPromptLabRoutes } from "./promptlab.js";
 import { registerTokenizerRoutes } from "./tokenizer.js";
@@ -224,6 +226,18 @@ app.post("/api/chat", async (req, res) => {
     // JAMAIS la réponse de chat.
     if (!isMirror) void generateLexique(dir, prompt).catch(() => {});
 
+    // Kernel — publie la CIBLE design sur le Bus (palette de référence du Perfect
+    // Plan) → l'Œil Design (MangoQA) la lit comme `brief` et mesure enfin la
+    // conformité au brief (briefDrift). Fire-and-forget, rien si pas de palette.
+    if (!isMirror) {
+      try {
+        const refPalette = paletteFromContract(loadContract(dir));
+        publishDesignReference({ project: projectName, palette: refPalette, source: "perfect-plan" });
+      } catch {
+        /* publier la cible ne casse jamais un tour */
+      }
+    }
+
     // Édition visuelle ciblée (#6) : si le tour vient d'un clic→source, on enrichit
     // la tâche envoyée à l'agent avec le fichier:ligne EXACT + l'extrait (edit
     // chirurgical), sans polluer le message affiché ni le titre de version. On
@@ -366,6 +380,27 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "version", ...version });
         // Capture the turn's delta for the patrol (#73) — spawned in `finally`.
         patrolFiles.current = await changedFilesInLastCommit(dir).catch(() => []);
+
+        // Kernel — publie le RENDU design sur le Bus : palette déclarée + couleurs
+        // + paires de contraste extraites des fichiers de STYLE changés ce tour.
+        // L'Œil observe ce flux ; fire-and-forget, rien si le tour n'a pas touché
+        // au design. Lecture bornée aux fichiers changés (pas tout le projet).
+        try {
+          const styleFiles = patrolFiles.current
+            .filter((f) => /\.(css|scss|jsx|tsx|html|vue|svelte)$/.test(f))
+            .slice(0, 20)
+            .map((f) => {
+              try {
+                return { path: f, content: fs.readFileSync(path.join(dir, f), "utf8") };
+              } catch {
+                return null;
+              }
+            })
+            .filter((x): x is { path: string; content: string } => x !== null);
+          if (styleFiles.length > 0) publishDesignProduced({ project: projectName, files: styleFiles });
+        } catch {
+          /* publier le rendu ne casse jamais un tour */
+        }
 
         // Mango QA — audit autonome (si le runner est actif — détection automatique par sentinelle)
         if (isMangoQaActive()) {
