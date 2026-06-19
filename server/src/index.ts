@@ -31,6 +31,7 @@ import { runRelay } from "./eleve.js";
 import { getBus } from "./kernel-bus.js";
 import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
+import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
@@ -674,6 +675,7 @@ app.post("/api/stop", async (_req, res) => {
 });
 
 registerPromptLabRoutes(app);
+registerTraceRoutes(app);
 registerTokenizerRoutes(app);
 registerIdeationRoutes(app);
 registerVeilleRoutes(app);
@@ -717,6 +719,9 @@ const httpServer = app.listen(PORT, () => {
   // d'export — l'observateur '*' déverse le flux du bus dans .mangoqa/ que le
   // fantôme lit. Silencieux tant que rien ne publie (migration du chat à venir).
   installMangoQaBridge(getBus());
+  // Kernel : collecteur de traces — s'abonne aux spans `kernel.trace` du Bus pour
+  // alimenter le tableau de bord (/api/traces). Voit chat.turn ET brain.complete.
+  installTraceCollector(getBus());
   // Kernel : persistance du Blackboard si BLACKBOARD_DB est défini (sinon mémoire,
   // comportement historique). node:sqlite est intégré au runtime → import DYNAMIQUE
   // pour ne charger le module que quand la persistance est activée. Fallback mémoire
