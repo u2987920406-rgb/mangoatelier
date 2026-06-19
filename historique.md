@@ -1370,3 +1370,32 @@ fs.writeFileSync(path.join(qaDir, 'phase-complete.json'), JSON.stringify({
 **Impact :** Aucun sur le workflow normal (MangoOS écrit le signal via Node.js). Uniquement lors de déclenchements manuels depuis Claude Code.
 
 **État en fin de session :** cycle complet Feu Rouge → correction → Feu Vert validé · bug chokidar documenté · `statut.md` mis à jour (entête + entrée #105).
+
+---
+
+### Session 2026-06-19 (PC MAISON) — Fusion atelier↔maison · Mango QA reconstruit · #106
+
+**Contexte :** Tout le travail des sessions ci-dessus (#103 Agent Factory, #105 Mango QA V2, renommage MangoOS) a été fait **à l'atelier**. Sur le PC maison, en parallèle, la branche `feature/104-learning-loop` portait la **boucle d'apprentissage par reverse-engineering** (2 commits). Les deux lignes avaient divergé depuis le même point commun (`376b7ce`). Raf revient à la maison sans avoir transféré Mango QA par clé USB et demande de tout réconcilier.
+
+**1. Fusion des deux lignes de développement**
+- Remote `atelier` (= `https://github.com/u2987920406-rgb/mangoatelier`) ajouté en lecture seule, `git fetch` (rien mergé d'abord).
+- Diagnostic : divergence en Y depuis `376b7ce`. Maison = #104 (boucle apprentissage) ; atelier = #103 Agent Factory + #105 Mango QA V2 + renommage MangoAI→MangoOS (106 fichiers, **contenu** uniquement, aucun renommage de chemin).
+- WIP local jetable (7 fichiers) écrasé, branche backup `backup-104-maison-avant-merge` créée par sécurité.
+- `git merge atelier/master` → **stratégie `ort`, zéro conflit** (renommage et modifs #104 sur zones distinctes). Nouveaux modules atelier présents (`agent-factory.ts`, `agent-bus.ts`, `agent-coordinator.ts`, `mangoqa.ts`…) ET code #104 (`run-learn.ts`, `run-finish.ts`).
+- **Collision de numérotation** dans `statut.md` (l'atelier avait pris #104 = test e2e Agent Factory) → la boucle d'apprentissage maison **renumérotée #104→#106**, sa description réintégrée.
+
+**2. Correction des 2 erreurs `tsc` `discuss` (dette atelier)**
+- Le mode `discuss` (ajouté à l'atelier) manquait dans `MODE_RULES` (TS7053) et dans le param de `setVisionContext` (TS2345). Corrigé. `tsc` 0, `test-scenario` vert, build UI vert.
+
+**3. Mango QA RECONSTRUIT (`D:\IA\MangoQA`)** ⚠️ *À NE PAS confondre avec l'original atelier décrit plus haut dans ce journal.*
+- Clé USB absente → le runner original (testé à l'atelier) était introuvable (n'est sur aucun remote : seul `mangoqa.ts`, le côté MangoOS, est versionné). **Reconstruit à partir du contrat d'interface figé `mangoqa.ts`** + le guide de transfert V2 + la spec « Production Aveugle / Audit Fantôme ».
+- 12 fichiers : `index.ts` (sentinelle heartbeat 10 s + watcher chokidar + orchestration), `llm.ts` (cerveau abonnement Claude Code $0, répliqué de `llm-engine.ts` ; parse JSON robuste ; `auditWithLLM` générique fail-open), `types.ts` (contrat figé), `verdict.ts` (agrégation : red dès qu'une branche bloquante échoue, design-system non bloquant), `retex.ts` (Boîte Noire JSONL), `src/branches/` × 6 (architecture, security, accessibility, performance, tests, design-system), + config.
+- **Compatible MangoOS** car aligné sur le même contrat I/O. Réimplémentation ≠ code byte-identique de l'atelier : si la clé revient, comparer/fusionner.
+- **Validé e2e** (self-test : Feu Rouge ♿ inputs sans label / `div onClick` / `img` sans alt → Retex journalisé → correction → Feu Vert, 14-15 s) **ET en conditions réelles** (backend MangoOS + runner lancés, build MVP todo list réel via `/api/chat` → commit `b823a4e` → audit 6 branches 28 s → ✅ Feu Vert injecté dans le chat ; Claude a livré une todo accessible, conseil design pertinent de la branche DS sur le rythme 8 px).
+
+**4. Clôture git**
+- `git init` du repo séparé Mango QA + commit initial `7405ddc` (`.env`/`node_modules` ignorés). Repo local only (conforme au transfert par clé USB).
+- `master` consolidé en fast-forward sur `feature/104` (= `f002cd1`), poussé sur **les deux remotes** : `origin` (mangoai) `911a2a7..f002cd1` + `atelier` (mangoatelier) `78a4fa9..f002cd1`. Aucun force-push.
+- Branches temporaires `feature/104-learning-loop` et `backup-104-maison-avant-merge` supprimées après vérification d'intégration.
+
+**État en fin de session :** `tsc` 0 · build UI vert · `master` synchronisé sur mangoai + mangoatelier · Mango QA reconstruit, versionné localement, validé e2e + réel · boucle d'apprentissage = #106. Reste ouvert : Multi-user Phase 3 (#102, avant Phase B), audit coûts #13 (2026-06-22).
