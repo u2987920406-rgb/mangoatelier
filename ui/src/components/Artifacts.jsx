@@ -14,6 +14,7 @@ export default function Artifacts() {
   const [arts, setArts] = useState(null);
   const [reuse, setReuse] = useState(null);
   const [impact, setImpact] = useState(null);
+  const [curation, setCuration] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -37,6 +38,11 @@ export default function Artifacts() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => alive && d && setImpact(d))
         .catch(() => {});
+      // Priorité de curation nocturne (#125) : quelle famille enrichir d'abord ?
+      fetch("/api/curation/priority")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && d && setCuration(d))
+        .catch(() => {});
     };
     load();
     const id = setInterval(load, 4000);
@@ -57,6 +63,7 @@ export default function Artifacts() {
     <div className="space-y-2 px-2 py-2">
       {reuse && reuse.totalTurns > 0 && <ReuseSummary reuse={reuse} />}
       {impact && impact.reuse.turns + impact.noReuse.turns > 0 && <ReuseImpact impact={impact} />}
+      {curation && <CurationPriority curation={curation} />}
 
       {arts.length === 0 ? (
         <p className="px-1 py-2 text-xs leading-relaxed text-dim">
@@ -207,6 +214,41 @@ function ReuseImpact({ impact }) {
           Échantillon encore mince — la comparaison se fiabilise avec plus de tours dans chaque cas.
         </p>
       )}
+    </div>
+  );
+}
+
+// Priorité de curation nocturne (#125) : la boucle nocturne enrichit en priorité
+// les familles au meilleur rendement mesuré. Reflète /api/curation/priority.
+const REASON = {
+  exploit: { label: "fort rendement", tone: "text-ok" },
+  explore: { label: "à explorer", tone: "text-dim" },
+  deprioritize: { label: "rendement faible", tone: "text-faint" },
+};
+function CurationPriority({ curation }) {
+  const ranked = (curation.ranked ?? []).filter((f) => f.reason !== "deprioritize");
+  if (ranked.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-accent/30 bg-accent/[0.06] px-2.5 py-2">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
+        Priorité de curation nocturne
+      </div>
+      <p className="mb-1 text-[10px] leading-snug text-faint">
+        La nuit, MangoOS récolte d'abord les familles qui rapportent le plus.
+      </p>
+      <ol className="space-y-0.5">
+        {ranked.slice(0, 4).map((f, i) => {
+          const r = REASON[f.reason] ?? REASON.explore;
+          return (
+            <li key={f.kind} className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-dim">
+                <span className="font-mono text-faint">{i + 1}.</span> {KIND_LABEL[f.kind] ?? f.kind}
+              </span>
+              <span className={`text-[10px] ${r.tone}`}>{r.label}</span>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

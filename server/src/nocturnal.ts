@@ -20,6 +20,7 @@ import { getBrain } from "./kernel.js";
 import { loadPreferences } from "./preferences.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
+import { getCurationPriority } from "./kernel-curation-priority.js";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "nocturnal.json");
@@ -222,7 +223,12 @@ export async function ensureBuildPasses(
   return { ok: inspection.ok, signal: inspection.signal, attempts };
 }
 
-async function buildOne(prompt: { task: string; kind: string; projectType: string }, batchId: string, index: number): Promise<NocturnalEntry> {
+async function buildOne(
+  prompt: { task: string; kind: string; projectType: string },
+  batchId: string,
+  index: number,
+  curationDirective = "",
+): Promise<NocturnalEntry> {
   const name = `nuit-${batchId}-${index}`;
   const dir = projectDir(name);
   const provider = resolveProvider(process.env.NOCTURNAL_PROVIDER, "claude");
@@ -256,8 +262,10 @@ async function buildOne(prompt: { task: string; kind: string; projectType: strin
     // provider claude → runAgent (Claude/abonnement). (Un provider non-claude
     // resterait à câbler en vague 2 ; aujourd'hui défaut = claude.)
     void provider;
-    // 1) Génération initiale.
-    await consumeTurn(prompt.task + AUTONOMOUS_SUFFIX);
+    // 1) Génération initiale. La directive de curation (#125) oriente la récolte
+    //    d'artefacts vers les familles au meilleur rendement mesuré (#124). Elle
+    //    n'est posée qu'au tour initial — les tours de réparation ne récoltent rien.
+    await consumeTurn(prompt.task + AUTONOMOUS_SUFFIX + curationDirective);
     // 2) Vérification OBJECTIVE du build + auto-réparation. La voie Claude ne le
     //    faisait pas (≠ runRelay/Élève) : un projet pouvait être "success" sans
     //    compiler — d'où des projets cassés en galerie, notés par le juge. On
@@ -314,9 +322,17 @@ export async function runNocturnalBatch(count: number, opts: { freeStyle?: boole
   try {
     const prompts = generateUniquePrompts(n, opts);
     const entries = loadEntries();
+    // Curation pondérée par le rendement (#125) : calculée UNE fois pour la nuit,
+    // partagée par tous les projets du lot. Best-effort (jamais bloquante).
+    let curationDirective = "";
+    try {
+      curationDirective = getCurationPriority().directive;
+    } catch {
+      /* pas de priorité → récolte non orientée (comportement historique) */
+    }
     for (let i = 0; i < prompts.length; i++) {
       progress = { current: i + 1, total: n, label: prompts[i].task.slice(0, 60) };
-      const entry = await buildOne(prompts[i], batchId, i + 1);
+      const entry = await buildOne(prompts[i], batchId, i + 1, curationDirective);
       entries.unshift(entry);
       saveEntries(entries); // persiste au fil de l'eau (récupérable si crash)
     }
