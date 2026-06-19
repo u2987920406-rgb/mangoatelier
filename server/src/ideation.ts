@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from 'express'
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { resolveProvider } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 
 interface IdeationResult {
   wireframe: string      // ASCII art de la page principale (max 50 chars de large)
@@ -28,7 +29,7 @@ export function registerIdeationRoutes(app: Express): void {
     try {
       // askLLM enforces its own 30s timeout (timeoutMs) for ollama/openai providers,
       // raising an AbortError caught below; claude (default) is bounded by maxTurns:1.
-      const raw = await askLLM(SYSTEM_PROMPT, userMessage, {
+      const raw = await getBrain().complete(SYSTEM_PROMPT, userMessage, {
         provider: resolveProvider(process.env.IDEATION_PROVIDER),
         maxTokens: 1500,
         timeoutMs: 30_000,

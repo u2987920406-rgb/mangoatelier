@@ -10,7 +10,7 @@
 // pas du code), que le builder lit ensuite pour appliquer pas à pas.
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { findSourceFiles } from "./multi-project.js";
 import { projectDir as resolveProjectDir } from "./projects.js";
 import { loadMemory } from "./memory.js";
@@ -154,7 +154,7 @@ export interface OrchestratorDeps {
 }
 
 const defaultDeps: OrchestratorDeps = {
-  ask: (system, user) => askLLM(system, user, { maxTokens: 1400 }),
+  ask: (system, user) => getBrain().complete(system, user, { maxTokens: 1400 }),
 };
 
 /** One expert's READ-ONLY diagnosis through a single lens. Never proposes code

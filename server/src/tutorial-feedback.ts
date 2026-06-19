@@ -10,7 +10,7 @@
 // checkpoints" du plan : un petit passage du modèle qui extrait la règle.
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
 import type { FeedbackRating } from "./feedback.js";
 
@@ -27,7 +27,7 @@ export interface TutorialFeedbackDeps {
 }
 
 const defaultDeps: TutorialFeedbackDeps = {
-  ask: (system, user) => askLLM(system, user, { maxTokens: 400 }),
+  ask: (system, user) => getBrain().complete(system, user, { maxTokens: 400 }),
 };
 
 function isValid(input: TutorialFeedbackInput): boolean {

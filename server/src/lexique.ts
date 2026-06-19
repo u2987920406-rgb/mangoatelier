@@ -21,7 +21,8 @@
 // living maintenance by the agent.
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM, claudeWebResearch } from "./llm-engine.js";
+import { claudeWebResearch } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 
 export const LEXIQUE_FILE_NAME = ".lexique.md";
 const LEXIQUE_MAX_CHARS = 3000;
@@ -70,7 +71,7 @@ export interface LexiqueDeps {
 }
 
 const defaultDeps: LexiqueDeps = {
-  ask: (system, user) => askLLM(system, user, { maxTokens: 1500 }),
+  ask: (system, user) => getBrain().complete(system, user, { maxTokens: 1500 }),
   webResearch: (prompt) => claudeWebResearch(prompt),
 };
 

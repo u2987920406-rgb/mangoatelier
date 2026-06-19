@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { resolveProvider } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 
 const WORKSPACE_DIR = path.join(process.cwd(), '..', 'workspace')
 
@@ -289,7 +290,7 @@ async function summarizeFile(f: ScannedFile): Promise<{ summary: string; degrade
 
   try {
     const provider = resolveProvider(process.env.INDEX_PROVIDER, 'ollama')
-    const text = await askLLM(SUMMARY_SYSTEM, `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
+    const text = await getBrain().complete(SUMMARY_SYSTEM, `Résume ce fichier source (catégorie : ${f.category}) en français, en 2 phrases maximum, ` +
       `style « Ce ${f.category} fait X. Utile quand Y. ». Sois concis, pas de markdown, pas de code.\n\n` +
       `Fichier : ${f.project}/${f.file}\n\n` +
       '```\n' + snippet + '\n```', { provider, timeoutMs: 180_000 })

@@ -3,7 +3,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { WORKSPACE_DIR } from "./projects.js";
 import { AGENTS_DIR } from "./agent-bus.js";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 import type { AgentDef, AgentCategory } from "./agent-types.js";
 
@@ -18,7 +19,7 @@ export interface FactoryDeps {
 
 const defaultFactoryDeps: FactoryDeps = {
   ask: (system, user) =>
-    askLLM(system, user, {
+    getBrain().complete(system, user, {
       provider: resolveProvider(process.env["AGENT_FACTORY_PROVIDER"]),
       maxTokens: 2000,
     }),

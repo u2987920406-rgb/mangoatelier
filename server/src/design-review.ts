@@ -1,6 +1,7 @@
 // Idée #2 — Design Pair-Programming
 // Analyse les fichiers source d'un projet et retourne des recommandations UX/UI structurées.
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { resolveProvider } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 import type { Express, Request, Response } from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -178,7 +179,7 @@ export function registerDesignReviewRoutes(app: Express): void {
 
     let rawJson: string
     try {
-      rawJson = await askLLM(
+      rawJson = await getBrain().complete(
         SYSTEM_PROMPT,
         `Voici le code source du projet "${projectName}" (${files.length} fichiers analysés) :\n${context}\n\nRetourne le JSON de recommandations design.`,
         { provider, maxTokens: 2048 },

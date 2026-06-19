@@ -1,7 +1,8 @@
 // Idée #103 — Mango Agent Factory. Coordinateur : planifie et orchestre les missions.
 // Un coordinateur décompose un objectif en étapes, délègue chaque étape à un agent
 // spécialisé via le bus de messages, puis agrège les résultats.
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { sendMessage, readInbox } from "./agent-bus.js";
 import { loadAgentRegistry } from "./agent-factory.js";
 import type { AgentDef, AgentMessage, MissionPlan, MissionStep } from "./agent-types.js";
@@ -16,7 +17,7 @@ export interface CoordinatorDeps {
 }
 
 function defaultAsk(system: string, user: string): Promise<string> {
-  return askLLM(system, user, {
+  return getBrain().complete(system, user, {
     provider:  resolveProvider(process.env["AGENT_LLM_PROVIDER"]),
     maxTokens: 1200,
   });

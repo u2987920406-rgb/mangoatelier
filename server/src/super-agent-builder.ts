@@ -1,6 +1,7 @@
 // Idée #40 — Super-agent spécialisé : génère un agent expert complet depuis un domaine.
 import type { Express, Request, Response } from 'express'
-import { askLLM, resolveProvider, claudeWebResearch } from './llm-engine.js'
+import { resolveProvider, claudeWebResearch } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { SKILLS_DIR } from './skills.js'
@@ -216,7 +217,7 @@ Règles :
 
     try {
       const provider = resolveProvider(process.env.SUPERAGENT_PROVIDER, 'claude')
-      const rawText = await askLLM(systemPrompt, userPrompt, { provider, maxTokens: 2048 })
+      const rawText = await getBrain().complete(systemPrompt, userPrompt, { provider, maxTokens: 2048 })
 
       // Extraire le JSON même si Claude entoure d'un code fence
       const jsonMatch = rawText.match(/\{[\s\S]*\}/)

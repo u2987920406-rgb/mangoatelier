@@ -7,7 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Express, Request, Response } from "express";
 import { fetchVeilleItems } from "./veille.js";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ export async function analyzeRadar(
     `  ]\n` +
     `}`;
 
-  return askLLM(SYSTEM_PROMPT, userPrompt, {
+  return getBrain().complete(SYSTEM_PROMPT, userPrompt, {
     provider: resolveProvider(process.env.RADAR_PROVIDER, "claude"),
     maxTokens: 1500,
   });

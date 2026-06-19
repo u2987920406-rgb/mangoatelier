@@ -14,7 +14,8 @@
 import path from "node:path";
 import fs from "node:fs";
 import type { Express, Request, Response } from "express";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { AXIOMS_FILE_NAME, capRegistry, loadAxioms, axiomStats } from "./axioms.js";
 import { WORKSPACE_DIR } from "./projects.js";
 
@@ -47,7 +48,7 @@ export interface EvolutionDeps {
 }
 const defaultDeps: EvolutionDeps = {
   ask: (system, user) =>
-    askLLM(system, user, {
+    getBrain().complete(system, user, {
       provider: resolveProvider(process.env.PROMPT_EVOLUTION_PROVIDER, "claude"),
       maxTokens: 1600,
     }),

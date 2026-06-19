@@ -2,7 +2,8 @@ import { Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { embedOllama } from "./ollama.js";
 
 const DATA_DIR = path.join(process.cwd(), "..", "server", "data");
@@ -96,7 +97,7 @@ export function filterByProject(notes: Note[], project: string): Note[] {
 async function generateTags(content: string): Promise<string[]> {
   try {
     const provider = resolveProvider(process.env.NOTES_PROVIDER, "claude");
-    const raw = await askLLM(
+    const raw = await getBrain().complete(
       "",
       `Generate 2 to 4 short tags (one or two words each, lowercase, no #) for the following note. Return only the tags separated by commas, nothing else.\n\nNote: ${content}`,
       { provider, maxTokens: 60 }
@@ -267,7 +268,7 @@ export function registerNotesRAGRoutes(app: Express): void {
 
     try {
       if (relevant.length === 0) {
-        const answer = await askLLM(
+        const answer = await getBrain().complete(
           "",
           `Tu es un assistant personnel. L'utilisateur n'a pas encore de notes enregistrées (ou aucune note ne correspond à sa question).\n\nQuestion : ${question}\n\nRéponds brièvement en le précisant.`,
           { provider, maxTokens: 1024 }
@@ -280,7 +281,7 @@ export function registerNotesRAGRoutes(app: Express): void {
         .map((n, i) => `[Note ${i + 1} — ${n.ts.slice(0, 10)}${n.tags.length ? ` | tags: ${n.tags.join(", ")}` : ""}]\n${n.content}`)
         .join("\n\n");
 
-      const answer = await askLLM(
+      const answer = await getBrain().complete(
         "",
         `Tu es un assistant personnel qui répond en te basant sur les notes de l'utilisateur.\n\nNotes pertinentes :\n${context}\n\nQuestion : ${question}\n\nRéponds de façon concise et précise en t'appuyant sur les notes ci-dessus.`,
         { provider, maxTokens: 1024 }

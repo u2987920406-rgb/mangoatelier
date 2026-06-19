@@ -25,6 +25,7 @@ import {
   type LLMProvider,
   type AskLLMOptions,
 } from './llm-engine.js'
+import { getTracer, type KernelTracer } from './kernel-trace.js'
 
 // ── Le contrat universel du cerveau ──────────────────────────────────────────
 // Tout ce que MangoOS demande à un LLM passe par cette interface. Rien d'autre.
@@ -41,6 +42,10 @@ export interface MangosBrain {
 }
 
 export interface BrainCompleteOptions {
+  /** Surcharge ponctuelle du PROVIDER pour cet appel (ex. un juge sur claude,
+   * un résumé sur ollama). Préserve le routage par feature : chaque appel garde
+   * son `resolveProvider(<FEATURE>_PROVIDER)`. Absent → provider du cerveau. */
+  provider?: LLMProvider
   /** Surcharge ponctuelle du modèle pour cet appel. */
   model?: string
   maxTokens?: number
@@ -61,6 +66,10 @@ export interface BrainConfig {
 // `ask` pour valider le routage sans aucun appel réseau.
 export interface BrainDeps {
   ask?: (system: string, user: string, opts?: AskLLMOptions) => Promise<string>
+  /** Tracer pour envelopper chaque complete() dans un span (observabilité sur le
+   * Bus). Absent → aucun traçage (createBrain reste pur/testable). Le singleton
+   * `getBrain()` l'active avec `getTracer()`. */
+  tracer?: KernelTracer
 }
 
 /** Résout la config du cerveau depuis l'environnement (BRAIN_PROVIDER /
@@ -79,6 +88,7 @@ export function resolveBrainConfig(env: NodeJS.ProcessEnv = process.env): {
  * d'injecter un faux `ask` (tests). */
 export function createBrain(config: BrainConfig = {}, deps: BrainDeps = {}): MangosBrain {
   const ask = deps.ask ?? askLLM
+  const tracer = deps.tracer
   const base = resolveBrainConfig()
   const provider = config.provider ?? base.provider
   const model = (config.model ?? base.model).trim()
@@ -89,15 +99,32 @@ export function createBrain(config: BrainConfig = {}, deps: BrainDeps = {}): Man
     provider,
     model,
     async complete(system, user, opts = {}) {
-      const chosenModel = (opts.model ?? model).trim()
+      // Résolution provider/model IDENTIQUE à askLLM, pour rester un sur-ensemble
+      // strict : un appel qui surcharge le provider reçoit le modèle PAR DÉFAUT
+      // de ce provider (et non le BRAIN_MODEL d'un autre), comme le ferait askLLM.
+      const callProvider = opts.provider ?? provider
+      const explicitModel = (opts.model ?? '').trim()
+      const chosenModel = explicitModel
+        ? explicitModel
+        : opts.provider
+          ? undefined // provider surchargé → laisse llm-engine choisir son défaut
+          : model || undefined // sinon modèle du cerveau ('' → undefined)
       const askOpts: AskLLMOptions = {
-        provider,
-        // '' → undefined : laisse llm-engine appliquer son defaultModel(provider).
-        model: chosenModel || undefined,
+        provider: callProvider,
+        model: chosenModel,
         maxTokens: opts.maxTokens ?? maxTokens,
         timeoutMs: opts.timeoutMs ?? timeoutMs,
       }
-      return ask(system, user, askOpts)
+      // Traçage (si tracer) : chaque appel one-shot devient un span sur le Bus,
+      // visible par MangoQA — comme chat.turn. Fire-and-forget : un span n'altère
+      // ni le résultat ni l'erreur (withSpan rejette si ask lève, comportement
+      // inchangé). Sans tracer, appel direct (createBrain reste pur).
+      if (!tracer) return ask(system, user, askOpts)
+      return tracer.withSpan(
+        'brain.complete',
+        () => ask(system, user, askOpts),
+        { attributes: { provider: callProvider, model: chosenModel ?? 'default' } },
+      )
     },
     describe() {
       return `MangosBrain(provider=${provider}, model=${model || 'default'})`
@@ -111,9 +138,11 @@ export function createBrain(config: BrainConfig = {}, deps: BrainDeps = {}): Man
 // la config au prochain accès.
 let current: MangosBrain | null = null
 
-/** Le cerveau courant de MangoOS (créé à la première demande). */
+/** Le cerveau courant de MangoOS (créé à la première demande). Le singleton de
+ * PRODUCTION active le traçage (getTracer) → chaque appel one-shot est observé
+ * sur le Bus. Les tests utilisent createBrain() nu (sans tracer). */
 export function getBrain(): MangosBrain {
-  if (current === null) current = createBrain()
+  if (current === null) current = createBrain({}, { tracer: getTracer() })
   return current
 }
 

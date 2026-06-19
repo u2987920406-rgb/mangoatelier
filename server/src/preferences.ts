@@ -9,7 +9,7 @@
 // Stored at workspace/.preferences.md alongside .design-system.md.
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { loadDesignSystem } from "./design-system.js";
 import { loadLanguage, loadThinkingStyle } from "./identity.js";
 import { listProjects, projectDir } from "./projects.js";
@@ -57,7 +57,7 @@ export interface PreferencesDeps {
 }
 
 const defaultDeps: PreferencesDeps = {
-  ask: (system, user) => askLLM(system, user, { maxTokens: 1200 }),
+  ask: (system, user) => getBrain().complete(system, user, { maxTokens: 1200 }),
 };
 
 /**

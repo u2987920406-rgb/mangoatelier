@@ -10,7 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { askLLM } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { saveProcedure, type ProcedureEntry } from "./procedures.js";
 
 // ── Diff borné Gemma(avant) → Claude(après) ────────────────────────────────────
@@ -105,7 +105,7 @@ export interface ReverseLearnDeps {
   ask: (system: string, user: string) => Promise<string>;
 }
 const defaultDeps: ReverseLearnDeps = {
-  ask: (s, u) => askLLM(s, u, { maxTokens: 1500 }),
+  ask: (s, u) => getBrain().complete(s, u, { maxTokens: 1500 }),
 };
 
 /** Parse robuste du JSON (tolère ```json … ``` et du bruit autour). */

@@ -14,6 +14,7 @@ import {
   type BrainDeps,
 } from './kernel.js'
 import type { AskLLMOptions } from './llm-engine.js'
+import { KernelTracer, type SpanData } from './kernel-trace.js'
 
 const line = (c = '─') => console.log(c.repeat(64))
 let pass = 0
@@ -135,6 +136,70 @@ async function main(): Promise<void> {
     check('per-call model override applied', last()?.opts?.model === 'opus')
     check('per-call maxTokens forwarded', last()?.opts?.maxTokens === 42)
     check('per-call timeoutMs forwarded', last()?.opts?.timeoutMs === 1234)
+  }
+
+  line('═')
+  console.log('complete — per-call provider override (préserve le routage feature)')
+  line()
+
+  {
+    // Un appel qui surcharge le provider doit le transmettre ET laisser le
+    // modèle au défaut de CE provider (model undefined), comme askLLM — pas le
+    // BRAIN_MODEL d'un autre provider.
+    const { deps, last } = spyDeps()
+    const b = createBrain({ provider: 'claude', model: 'sonnet' }, deps)
+    await b.complete('S', 'U', { provider: 'ollama' })
+    check('per-call provider override forwarded', last()?.opts?.provider === 'ollama')
+    check('provider override → model laissé au défaut (undefined)', last()?.opts?.model === undefined)
+  }
+
+  {
+    // provider ET model surchargés par appel : les deux passent.
+    const { deps, last } = spyDeps()
+    const b = createBrain({ provider: 'claude' }, deps)
+    await b.complete('S', 'U', { provider: 'litellm', model: 'qwen2.5:72b' })
+    check('override provider+model : provider', last()?.opts?.provider === 'litellm')
+    check('override provider+model : model', last()?.opts?.model === 'qwen2.5:72b')
+  }
+
+  line('═')
+  console.log('complete — traçage (span sur le Bus) quand un tracer est fourni')
+  line()
+
+  {
+    const ended: SpanData[] = []
+    const tracer = new KernelTracer({ onEnd: (s) => ended.push(s) })
+    const { deps } = spyDeps()
+    const b = createBrain({ provider: 'litellm', model: 'gpt-4o-mini' }, { ...deps, tracer })
+    const out = await b.complete('S', 'U')
+    check('résultat inchangé avec traçage', out === 'ECHO:U')
+    check('un span brain.complete terminé', ended.length === 1 && ended[0].name === 'brain.complete')
+    check('span statut ok', ended[0].status === 'ok')
+    check('span attribut provider', ended[0].attributes.provider === 'litellm')
+  }
+
+  {
+    // Sans tracer, createBrain reste pur (aucun span, aucun effet de bord).
+    const { deps } = spyDeps()
+    const b = createBrain({ provider: 'claude' }, deps)
+    const out = await b.complete('S', 'U')
+    check('sans tracer → résultat normal', out === 'ECHO:U')
+  }
+
+  {
+    // Une erreur de ask est propagée (span passe en error) — sémantique inchangée.
+    const ended: SpanData[] = []
+    const tracer = new KernelTracer({ onEnd: (s) => ended.push(s) })
+    const failing: BrainDeps = { ask: async () => { throw new Error('provider down') }, tracer }
+    const b = createBrain({ provider: 'claude' }, failing)
+    let threw = false
+    try {
+      await b.complete('S', 'U')
+    } catch {
+      threw = true
+    }
+    check('ask qui lève → complete propage l’erreur', threw === true)
+    check('span passé en error', ended.length === 1 && ended[0].status === 'error')
   }
 
   line('═')

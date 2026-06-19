@@ -1,6 +1,12 @@
-// Routeur de moteur LLM — porte d'entrée UNIQUE pour toutes les features IA de
-// MangoOS. Chaque feature appelle askLLM() ; le moteur réel se choisit dans
-// `.env`, sans toucher au code. Généralise le askEleveDispatch de l'Élève.
+// Routeur de moteur LLM — le MOTEUR des appels one-shot de MangoOS. Le routage
+// par provider vit ici ; le moteur réel se choisit dans `.env`, sans toucher au
+// code. Généralise le askEleveDispatch de l'Élève.
+//
+// NOTE (Kernel) : les features n'appellent plus askLLM() directement — elles
+// passent par `getBrain().complete()` (kernel.ts), qui enveloppe askLLM pour
+// ajouter l'observabilité (chaque appel = un span sur le Bus, lu par MangoQA) et
+// préparer retry/fallback centralisés. askLLM reste la porte de routage dessous,
+// et le Brain lui transmet provider/model à l'identique (sur-ensemble strict).
 //
 //   - 'claude'   → query() via l'ABONNEMENT Claude Code (qualité, pas de crédits API)
 //   - 'ollama'   → modèle local (Gemma) — $0, souverain

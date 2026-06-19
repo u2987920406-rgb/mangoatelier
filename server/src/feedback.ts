@@ -3,7 +3,8 @@
 // et l'enregistre dans .axioms.md avec le tag validé-utilisateur ou à-éviter.
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
 
 export type FeedbackRating = "like" | "dislike";
@@ -62,7 +63,7 @@ AXIOME-${axiomCat}-XX [candidat] [${tag}]
 - Règle d'or: (ce qu'il faut faire à la place)
 - Source: 👎 utilisateur (${today}) — projet ${projectName}`;
 
-  const axiomText = await askLLM('', prompt, {
+  const axiomText = await getBrain().complete('', prompt, {
     provider: resolveProvider(process.env.FEEDBACK_PROVIDER),
     maxTokens: 400,
   });
@@ -96,7 +97,7 @@ AXIOME-UX-XX [candidat] [validé-utilisateur]
 - Règle d'or: (ce que l'utilisateur préfère visuellement)
 - Source: 🎯 escalade utilisateur (${today}) — projet ${projectName}`;
 
-  const axiomText = await askLLM('', prompt, {
+  const axiomText = await getBrain().complete('', prompt, {
     provider: resolveProvider(process.env.FEEDBACK_PROVIDER),
     maxTokens: 400,
   });

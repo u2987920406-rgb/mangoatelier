@@ -3,7 +3,8 @@
 import path from "node:path";
 import fs from "node:fs";
 import { projectDir, WORKSPACE_DIR } from "./projects.js";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
 
 const HISTORY_FILE = ".chat-history.json";
@@ -78,7 +79,7 @@ AXIOME-${cat}-XX [candidat] [${tag}]
 - Règle d'or: (ce qu'il faut faire à la place)
 - Source: ${score >= 4 ? "👍" : "👎"} revue projet ${score}/5 (${today}) — ${projectName}`;
 
-  const raw = await askLLM("", prompt, {
+  const raw = await getBrain().complete("", prompt, {
     provider: resolveProvider(process.env.FEEDBACK_PROVIDER),
     maxTokens: 600,
   });

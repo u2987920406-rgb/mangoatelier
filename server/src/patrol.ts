@@ -11,7 +11,8 @@
 // injectable via `deps` pour des tests déterministes (modèle orchestrator.ts).
 import path from "node:path";
 import fs from "node:fs";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { appendHistory } from "./history.js";
 import type { ProjectType } from "./blueprints.js";
 
@@ -48,7 +49,7 @@ export interface PatrolDeps {
 
 const defaultDeps: PatrolDeps = {
   ask: (system, user) =>
-    askLLM(system, user, {
+    getBrain().complete(system, user, {
       provider: resolveProvider(process.env.PATROL_PROVIDER), // défaut claude/abonnement $0
       maxTokens: 600,
     }),

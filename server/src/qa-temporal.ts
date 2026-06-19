@@ -2,7 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { Express, Request, Response } from 'express'
 import { WORKSPACE_DIR } from './projects.js'
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { resolveProvider } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 
 interface ControleurResult {
   projectName: string
@@ -105,7 +106,7 @@ async function runControleurAnalysis(projectName: string): Promise<ControleurRes
   const system =
     'Tu es un expert Contrôleur senior. Analyse le code fourni et retourne UNIQUEMENT un JSON valide (sans markdown) avec : score (0-100), issues (tableau de {severity: critical|warning|info, file, description}), suggestions (tableau de strings), strengths (tableau de strings). Sois concis et précis.'
 
-  const raw = await askLLM(system, `Analyse ce projet :\n${filesContent}`, {
+  const raw = await getBrain().complete(system, `Analyse ce projet :\n${filesContent}`, {
     provider: resolveProvider(process.env.CONTROLEUR_PROVIDER),
     maxTokens: 2000,
   })

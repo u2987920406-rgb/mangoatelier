@@ -15,7 +15,8 @@ import { runAgent } from "./agent.js";
 import { appendHistory, formatToolLine, loadHistory, type ChatEntry } from "./history.js";
 import { inspectProject, type InspectionSignal } from "./inspection.js";
 import { generateUniquePrompts } from "./train-loop.js";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import { loadPreferences } from "./preferences.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
@@ -169,7 +170,7 @@ export async function judgeProject(dir: string, task: string): Promise<{ score: 
     "Tu es un juge esthétique et technique senior. Tu notes une app web générée sur 5 axes, de 0 à 10. Tu réponds UNIQUEMENT par un JSON valide, sans markdown.";
   const user = `Tâche demandée : ${task}\n${prefs ? `\nPréférences connues de l'utilisateur :\n${prefs.slice(0, 800)}\n` : ""}\nCode du projet (échantillon) :\n${source}\n\nNote ce projet de 0 à 10 sur chaque axe et donne un commentaire bref (1 phrase). Réponds EXACTEMENT par :\n{"dims":{"design":N,"fonctionnel":N,"originalite":N,"coherence":N,"qualite":N},"score":N,"comment":"…"}\n- design = esthétique/UI · fonctionnel = ça marche/complet · originalite = sort de l'ordinaire · coherence = fidèle au goût utilisateur ci-dessus · qualite = qualité du code.`;
   try {
-    const raw = await askLLM(system, user, { provider: resolveProvider(process.env.NOCTURNAL_JUDGE_PROVIDER, "claude"), maxTokens: 400 });
+    const raw = await getBrain().complete(system, user, { provider: resolveProvider(process.env.NOCTURNAL_JUDGE_PROVIDER, "claude"), maxTokens: 400 });
     return parseJudgeOutput(raw);
   } catch {
     return null;
@@ -362,7 +363,7 @@ AXIOME-UX-XX [candidat] [validé-utilisateur] [review-nocturne]
 
     let text = "";
     try {
-      text = (await askLLM(system, user, { provider: resolveProvider(process.env.NOCTURNAL_JUDGE_PROVIDER, "claude"), maxTokens: 500 })).trim();
+      text = (await getBrain().complete(system, user, { provider: resolveProvider(process.env.NOCTURNAL_JUDGE_PROVIDER, "claude"), maxTokens: 500 })).trim();
     } catch {
       return;
     }

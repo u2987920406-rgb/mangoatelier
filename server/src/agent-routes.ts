@@ -1,6 +1,7 @@
 // Idée #103 — Mango Agent Factory. Routes REST de l'Agent Factory.
 import type { Express } from "express";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 import {
   loadAgentRegistry, loadAgentDef, saveAgentDef, deleteAgent,
   generateAgentId, scaffoldAgent, generateAgentCode, agentDir,
@@ -181,7 +182,7 @@ export function registerAgentFactoryRoutes(app: Express): void {
       return;
     }
     try {
-      const text = await askLLM(body.system, body.user, {
+      const text = await getBrain().complete(body.system, body.user, {
         provider:  resolveProvider(process.env["AGENT_LLM_PROVIDER"]),
         maxTokens: body.maxTokens ?? 800,
       });

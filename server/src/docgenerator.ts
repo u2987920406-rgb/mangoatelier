@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Express, Request, Response } from "express";
 import { WORKSPACE_DIR } from "./projects.js";
-import { askLLM, resolveProvider } from "./llm-engine.js";
+import { resolveProvider } from "./llm-engine.js";
+import { getBrain } from "./kernel.js";
 
 const MAX_FILES = 20;
 const MAX_LINES = 500;
@@ -66,7 +67,7 @@ async function generateDocumentation(
   const system =
     "Tu es un expert en documentation technique. Génère une documentation complète et professionnelle en Markdown pour le projet analysé. Structure : ## Vue d'ensemble, ## Architecture, ## Composants clés, ## API & Endpoints, ## Guide d'utilisation rapide.";
 
-  const text = await askLLM(system, userPrompt, {
+  const text = await getBrain().complete(system, userPrompt, {
     provider: resolveProvider(process.env.DOC_PROVIDER),
     maxTokens: 4000,
   });

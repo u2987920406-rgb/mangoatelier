@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Express } from 'express'
-import { askLLM, resolveProvider } from './llm-engine.js'
+import { resolveProvider } from './llm-engine.js'
+import { getBrain } from './kernel.js'
 
 interface CronTask {
   id: string
@@ -49,7 +50,7 @@ function shouldRun(task: CronTask): boolean {
 
 async function executeTask(task: CronTask): Promise<string> {
   const systemPrompt = `Tu es MangoOS, un agent autonome. Le projet cible est "${task.projectName}". Exécute la tâche demandée de façon concise et utile.`
-  const result = await askLLM(systemPrompt, task.prompt, {
+  const result = await getBrain().complete(systemPrompt, task.prompt, {
     provider: resolveProvider(process.env.CRON_PROVIDER),
     maxTokens: 500,
   })
