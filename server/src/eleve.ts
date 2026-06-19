@@ -22,9 +22,13 @@ import { executeContract } from "./executor.js";
 import { inspectProject, type Inspection } from "./inspection.js";
 import { axiomsFingerprint, selectAxioms } from "./axioms.js";
 import { loadMemory } from "./memory.js";
-import { detectProjectType } from "./blueprints.js";
+import { detectProjectType, inferProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
 import { resolveProfile } from "./models/profile.js";
+// #104 Phase 3 — moyens text-injectables dont Gemma était privé (procédures #75,
+// constellations #74). Import sync, sans cycle (ces modules n'importent pas eleve).
+import { listProcedures, loadProcedure } from "./procedures.js";
+import { constellationsSection } from "./constellations.js";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const ELEVE_MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
@@ -77,6 +81,15 @@ export interface RelayOptions {
   maitreModel?: string;
   /** Reçoit chaque ligne de trace en direct (pour le streaming SSE). */
   onLog?: (line: string) => void;
+  // #104 Phase 2 — porte FONCTIONNELLE : ne pas s'arrêter à « build vert » si
+  // l'app est vide. Ne s'active que si gate=true (ou .env RELAY_FUNCTIONAL_GATE=1)
+  // ET qu'un `judge` est fourni dans les deps. OFF par défaut → boucle inchangée.
+  functionalGate?: boolean;
+  /** Score fonctionnel minimal (/10) accepté quand la porte est active (défaut 5). */
+  functionalMin?: number;
+  // #104 Phase 3 — injecter à l'Élève les moyens text qu'il n'avait pas
+  // (procédures #75, constellations #74). OFF par défaut (ou .env RELAY_INJECT_MEANS=1).
+  injectMeans?: boolean;
 }
 
 /** Les deux cerveaux + les effets de bord, injectables pour les tests. */
@@ -85,6 +98,9 @@ export interface RelayDeps {
   inspect: (projectDir: string) => Promise<Inspection>;
   ensureDeps: (projectDir: string, log: (s: string) => void) => Promise<void>;
   escalate: (ctx: EscalationContext) => Promise<{ axiom: boolean; costUsd: number }>;
+  // #104 Phase 2 — juge fonctionnel optionnel (injectable). Absent de
+  // defaultRelayDeps → la porte ne peut JAMAIS se déclencher par défaut.
+  judge?: (projectDir: string, task: string) => Promise<{ fonctionnel: number; note: string } | null>;
 }
 
 export interface EscalationContext {
@@ -159,7 +175,48 @@ function readListedFiles(
 
 /** Message « utilisateur » envoyé à l'Élève : tâche + contexte + axiomes +
  * (en cas de reprise) la raison objective de l'échec précédent à corriger. */
-function buildEleveUser(task: string, projectDir: string, lastError: string): string {
+// #104 Phase 3 — moyens text injectés à l'Élève (procédures #75 + constellations
+// #74), matching mots-clés SYNCHRONE (pas d'embeddings dans le tour), CAPPÉ dur
+// pour ne pas saturer un petit modèle. "" si rien / désactivé.
+const INJECT_PROC_CAP = Number(process.env.RELAY_INJECT_PROC_CAP ?? 2); // procédures max
+const INJECT_PROC_BODY_MAX = Number(process.env.RELAY_INJECT_PROC_BODY_MAX ?? 1100); // car./procédure
+
+function injectedMeansSection(task: string): string {
+  const parts: string[] = [];
+  // 1. Procédures pertinentes (mots-clés : ≥2 tokens du problème/tags dans la tâche).
+  try {
+    const taskLow = task.toLowerCase();
+    const scored = listProcedures(WORKSPACE_DIR)
+      .map((m) => {
+        const toks = `${m.name} ${m.problem} ${m.tags.join(" ")}`.toLowerCase().match(/[a-zà-ÿ0-9]{4,}/g) ?? [];
+        const hits = new Set(toks.filter((t) => taskLow.includes(t))).size;
+        return { m, hits };
+      })
+      .filter((s) => s.hits >= 2)
+      .sort((a, b) => b.hits - a.hits)
+      .slice(0, INJECT_PROC_CAP);
+    for (const { m } of scored) {
+      const entry = loadProcedure(WORKSPACE_DIR, m.slug);
+      if (!entry) continue;
+      const body = entry.body.length > INJECT_PROC_BODY_MAX ? entry.body.slice(0, INJECT_PROC_BODY_MAX) + "\n…" : entry.body;
+      parts.push(`### Procédure apprise : ${m.name}\n${body}`);
+    }
+  } catch { /* best-effort */ }
+  // 2. Constellations (packs de règles, déjà cappés et purs).
+  try {
+    const c = constellationsSection(task, inferProjectType(task), WORKSPACE_DIR);
+    if (c) parts.push(c);
+  } catch { /* best-effort */ }
+  if (!parts.length) return "";
+  return [
+    "",
+    "═══ MÉTHODES & RÈGLES APPLICABLES (suis-les, elles viennent de solutions validées) ═══",
+    ...parts,
+    "═══ fin méthodes ═══",
+  ].join("\n");
+}
+
+function buildEleveUser(task: string, projectDir: string, lastError: string, injectMeans = false): string {
   const files = listProjectFiles(projectDir);
   // v2.1 : type de projet détecté de façon robuste — la tâche d'abord, puis la
   // MÉMOIRE du projet si la tâche est neutre (ex. "ajoute un bouton" sur un
@@ -195,6 +252,11 @@ function buildEleveUser(task: string, projectDir: string, lastError: string): st
     );
   }
   if (axioms) parts.push("", axioms);
+  // #104 Phase 3 — moyens injectés (procédures #75 + constellations #74), cappés.
+  if (injectMeans) {
+    const means = injectedMeansSection(task);
+    if (means) parts.push(means);
+  }
   if (lastError) {
     parts.push(
       "",
@@ -346,6 +408,11 @@ export async function runRelay(
 ): Promise<RelayResult> {
   const maxAttempts = opts.maxEleveAttempts ?? MAX_ELEVE_ATTEMPTS;
   const maitreModel = opts.maitreModel ?? "sonnet";
+  // #104 — options lues au moment de l'appel (env = défaut global, option =
+  // override par appel). OFF par défaut → boucle historique inchangée.
+  const functionalGate = opts.functionalGate ?? (process.env.RELAY_FUNCTIONAL_GATE === "1");
+  const functionalMin = opts.functionalMin ?? Number(process.env.RELAY_FUNCTIONAL_MIN ?? 5);
+  const injectMeans = opts.injectMeans ?? (process.env.RELAY_INJECT_MEANS === "1");
   const log: string[] = [];
   const push = (s: string) => {
     log.push(s);
@@ -364,7 +431,7 @@ export async function runRelay(
 
     let raw: string;
     try {
-      raw = await deps.askEleve(ELEVE_SYSTEM, buildEleveUser(task, projectDir, lastError));
+      raw = await deps.askEleve(ELEVE_SYSTEM, buildEleveUser(task, projectDir, lastError, injectMeans));
     } catch (e) {
       lastError = `appel Élève impossible : ${(e as Error).message}`;
       push(`✗ ${lastError}`);
@@ -389,6 +456,25 @@ export async function runRelay(
 
     lastInspection = await deps.inspect(projectDir);
     if (lastInspection.ok) {
+      // #104 Phase 2 — porte FONCTIONNELLE : un build vert ne suffit pas si l'app
+      // est vide. Si la porte est active ET qu'un juge est fourni ET qu'il reste
+      // des tentatives, on vérifie le score fonctionnel ; trop bas → on RELANCE
+      // l'Élève avec un feedback STRUCTURÉ (ce qui manque + comment), pas
+      // « réessaie ». Sans judge (cas par défaut) la porte est inerte.
+      if (functionalGate && deps.judge && attempt < maxAttempts) {
+        let verdict: { fonctionnel: number; note: string } | null = null;
+        try { verdict = await deps.judge(projectDir, task); } catch { verdict = null; }
+        if (verdict && verdict.fonctionnel < functionalMin) {
+          lastError =
+            `Le build PASSE mais l'app est FONCTIONNELLEMENT INCOMPLÈTE ` +
+            `(score fonctionnel ${verdict.fonctionnel}/10 < ${functionalMin} requis). ` +
+            `Ne te contente JAMAIS d'un projet qui compile et ne livre JAMAIS le template de démo : ` +
+            `IMPLÉMENTE réellement CHAQUE fonctionnalité de la tâche (interactions au clic, états, ` +
+            `persistance, validation — pas du décoratif). Diagnostic : ${verdict.note}`;
+          push(`⚠ build vert MAIS fonctionnel ${verdict.fonctionnel}/10 < ${functionalMin} — relance avec feedback structuré`);
+          continue;
+        }
+      }
       push(`✓ build vert — résolu par l'ÉLÈVE en ${attempt} tentative(s), coût 0`);
       return { resolvedBy: "eleve", attempts: attempt, success: true, inspection: lastInspection, axiom: false, costUsd: 0, log };
     }

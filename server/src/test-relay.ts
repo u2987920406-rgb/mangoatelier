@@ -119,6 +119,43 @@ async function deterministic(): Promise<void> {
     check("resolvedBy = none, success = false", r.resolvedBy === "none" && !r.success);
     fs.rmSync(dir, { recursive: true, force: true });
   }
+
+  // E) #104 Phase 2 — porte FONCTIONNELLE : build vert mais app vide → relance.
+  {
+    // E1 — gate ON + juge bas : force une 2e tentative (le build seul ne suffit plus)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "relay-E1-"));
+    let judgeCalls = 0, eleveCalls = 0;
+    const deps: RelayDeps = {
+      askEleve: async () => { eleveCalls++; return writeMarker("OK"); }, // build TOUJOURS vert
+      inspect: async (d) => markerInspect(d),
+      ensureDeps: noEnsure,
+      escalate: async () => ({ axiom: false, costUsd: 0 }),
+      judge: async () => { judgeCalls++; return { fonctionnel: 2, note: "template vide" }; },
+    };
+    const r = await runRelay("tâche", dir, { maxEleveAttempts: 2, functionalGate: true, functionalMin: 5 }, deps);
+    console.log("\n  [E1] Build vert mais fonctionnel bas → porte relance :");
+    check("juge appelé (porte active)", judgeCalls === 1);
+    check("2 tentatives Élève (la porte a forcé un 2e tour)", eleveCalls === 2 && r.attempts === 2);
+    check("succès final (dernière tentative non re-jugée)", r.success && r.resolvedBy === "eleve");
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  {
+    // E2 — gate OFF (défaut) : build vert = succès immédiat, juge JAMAIS appelé
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "relay-E2-"));
+    let judgeCalls = 0, eleveCalls = 0;
+    const deps: RelayDeps = {
+      askEleve: async () => { eleveCalls++; return writeMarker("OK"); },
+      inspect: async (d) => markerInspect(d),
+      ensureDeps: noEnsure,
+      escalate: async () => ({ axiom: false, costUsd: 0 }),
+      judge: async () => { judgeCalls++; return { fonctionnel: 1, note: "vide" }; },
+    };
+    const r = await runRelay("tâche", dir, { maxEleveAttempts: 2 }, deps); // gate non passé → OFF
+    console.log("\n  [E2] Porte OFF par défaut → comportement historique :");
+    check("succès dès la 1re tentative", eleveCalls === 1 && r.attempts === 1 && r.success);
+    check("juge JAMAIS appelé (porte inerte)", judgeCalls === 0);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // ── LIVE : vrai Gemma sur une copie junctionnée de test-pipeline ───────────────

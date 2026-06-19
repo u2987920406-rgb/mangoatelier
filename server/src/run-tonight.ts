@@ -1,0 +1,334 @@
+// Run nocturne 2026-06-19 — 3 projets M / L / XL
+// OBJECTIF (consigne Raf) : « moins utiliser Claude ».
+//   - Sharingan PRÉ-CALCULÉ par sharinganAnalyze() (Playwright pur, $0, zéro LLM)
+//     puis INJECTÉ dans le prompt de Gemma → l'Élève bâtit avec une vraie charte.
+//   - Construction = Gemma 4 12B via runRelay ($0). Claude n'intervient QUE par
+//     ESCALADE si un build casse (mécanisme intégré à runRelay).
+//   - Snap AVANT (template nu) / APRÈS (app construite) via capturePreview() ($0).
+//   - Juge #59 par projet, analyse d'évolution des règles #76 en clôture.
+//
+// Lancer :   npx tsx src/run-tonight.ts
+// Reprendre : même commande (état gardé dans .tonight.state.json).
+
+import fs from "node:fs";
+import path from "node:path";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createProject, projectDir, projectExists, WORKSPACE_DIR } from "./projects.js";
+import { runRelay, defaultRelayDeps } from "./eleve.js";
+import { judgeProject } from "./nocturnal.js";
+import { runEvolution } from "./prompt-evolution.js";
+import { sharinganAnalyze, capturePreview, type SharinganResult } from "./vision.js";
+
+const STATE_FILE   = path.join(WORKSPACE_DIR, ".tonight.state.json");
+const LOG_FILE     = path.join(WORKSPACE_DIR, ".tonight.log");
+const RESULTS_FILE = path.join(WORKSPACE_DIR, ".tonight.results.json");
+const BILAN_FILE   = path.join(WORKSPACE_DIR, ".tonight.bilan.md");
+const SHOTS_DIR    = path.join(WORKSPACE_DIR, ".tonight-shots");
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg: string): void {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  console.log(line);
+  try { fs.appendFileSync(LOG_FILE, line + "\n"); } catch { /* ignore */ }
+}
+
+// ── State (résumabilité) ───────────────────────────────────────────────────────
+interface State { done: string[]; }
+function loadState(): State {
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) as State; }
+  catch { return { done: [] }; }
+}
+function saveState(s: State): void { fs.writeFileSync(STATE_FILE, JSON.stringify(s, null, 2)); }
+function markDone(s: State, id: string): void { if (!s.done.includes(id)) s.done.push(id); saveState(s); }
+
+// ── Résultats ───────────────────────────────────────────────────────────────────
+interface ProjectResult {
+  name: string; effort: string; template: string;
+  buildOk: boolean; resolvedBy: string; attempts: number; usedClaude: boolean;
+  score?: number; dims?: Record<string, number>; judgeComment?: string;
+  costUsd: number; durationMs: number;
+  sharinganLeaders: string[]; paletteInjected: string[];
+  shotBefore?: string; shotAfter?: string; error?: string;
+}
+
+// ── Snapshot best-effort : démarre un preview Vite, capture, tue le serveur ─────
+function spawnDev(dir: string, port: number): ChildProcess {
+  const isWin = process.platform === "win32";
+  // npm run dev -- --port N --strictPort ; stdio ignoré (on poll le port).
+  return spawn(isWin ? "npm.cmd" : "npm",
+    ["run", "dev", "--", "--port", String(port), "--strictPort"],
+    { cwd: dir, shell: isWin, windowsHide: true, stdio: "ignore" });
+}
+function killTree(child: ChildProcess): void {
+  if (!child.pid) return;
+  if (process.platform === "win32") {
+    try { spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }); } catch { /* */ }
+  } else {
+    try { child.kill("SIGKILL"); } catch { /* */ }
+  }
+}
+async function waitForServer(url: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try { if ((await fetch(url)).ok) return true; } catch { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  return false;
+}
+/** Démarre la preview du projet, capture l'écran, tue le serveur. Renvoie le
+ *  chemin du JPEG ou undefined. 100 % best-effort : ne casse jamais le run. */
+async function snap(dir: string, port: number, label: string): Promise<string | undefined> {
+  let child: ChildProcess | undefined;
+  try {
+    fs.mkdirSync(SHOTS_DIR, { recursive: true });
+    child = spawnDev(dir, port);
+    const url = `http://localhost:${port}`;
+    const up = await waitForServer(url, 40_000);
+    if (!up) { log(`  · snap ${label} : preview non démarrée (skip)`); return undefined; }
+    await new Promise((r) => setTimeout(r, 1500)); // settle fonts/HMR
+    const buf = await capturePreview(url);
+    const file = path.join(SHOTS_DIR, `${label}.jpg`);
+    fs.writeFileSync(file, buf);
+    log(`  · snap ${label} : ${Math.round(buf.length / 1024)} Ko → ${file}`);
+    return file;
+  } catch (e) {
+    log(`  · snap ${label} : échec (${(e as Error).message}) — best-effort, on continue`);
+    return undefined;
+  } finally {
+    if (child) killTree(child);
+    await new Promise((r) => setTimeout(r, 800)); // laisse le port se libérer
+  }
+}
+
+// ── Sharingan pré-calculé ($0) → bloc moodboard compact pour Gemma ─────────────
+async function buildMoodboard(leaders: string[]): Promise<{ block: string; palette: string[] }> {
+  const blocks: string[] = [];
+  const allPalette: string[] = [];
+  for (const url of leaders) {
+    try {
+      log(`  🔮 Sharingan ($0) sur ${url}…`);
+      const r: SharinganResult = await sharinganAnalyze(url);
+      allPalette.push(...r.palette);
+      const fonts = r.fonts.length ? r.fonts.slice(0, 3) : r.typography.families.slice(0, 3);
+      blocks.push(
+        `• ${url}\n` +
+        `  Palette : ${r.palette.slice(0, 6).join(", ") || "(n/a)"}\n` +
+        `  Fonts   : ${fonts.join(", ") || "(système)"}\n` +
+        `  Tailles : ${r.typography.sizes.slice(0, 4).join(", ") || "(n/a)"} · Graisses : ${r.typography.weights.slice(0, 3).join(", ") || "(n/a)"}`,
+      );
+      log(`  ✓ ${url} → ${r.palette.length} couleurs, ${fonts.length} fonts`);
+    } catch (e) {
+      log(`  ⚠ Sharingan ${url} : ${(e as Error).message} (on continue sans)`);
+    }
+  }
+  if (!blocks.length) return { block: "", palette: [] };
+  // Palette consolidée (dédoublonnée, cap 8) pour la consigne finale.
+  const palette = [...new Set(allPalette)].slice(0, 8);
+  const block =
+    `\n\n## MOODBOARD — charte extraite de leaders réels (Sharingan, $0)\n` +
+    blocks.join("\n") +
+    `\n\nCONSIGNE DESIGN : ancre la charte graphique sur CES couleurs (${palette.join(", ")}) ` +
+    `et CES typographies. Importe les fonts via Google Fonts si absentes du système. ` +
+    `Définis les couleurs comme variables CSS :root. Vise une identité soignée et cohérente, ` +
+    `pas un copier-coller : inspire-toi de l'ambiance, garde une vraie hiérarchie visuelle.`;
+  return { block, palette };
+}
+
+// ── Un projet : snap avant → moodboard → Gemma → snap après → juge ─────────────
+interface Spec {
+  name: string; effort: string; template: string;
+  task: string; leaders: string[]; port: number;
+}
+
+async function runProject(spec: Spec, state: State): Promise<ProjectResult | null> {
+  if (state.done.includes(`done-${spec.name}`)) {
+    log(`⏭  ${spec.name} déjà fait.`);
+    return null;
+  }
+  const started = Date.now();
+  const dir = projectDir(spec.name);
+  log(`\n═══════════════════════════════════════════════════════════════`);
+  log(`▶ [${spec.effort}] ${spec.name} (template ${spec.template})`);
+
+  // 1. Création
+  if (!projectExists(spec.name)) {
+    try { await createProject(spec.name, spec.template); log(`  ✓ projet créé`); }
+    catch (e) {
+      const error = `createProject: ${(e as Error).message}`;
+      log(`  ✗ ${error}`);
+      return { name: spec.name, effort: spec.effort, template: spec.template, buildOk: false,
+        resolvedBy: "none", attempts: 0, usedClaude: false, costUsd: 0, durationMs: Date.now() - started,
+        sharinganLeaders: spec.leaders, paletteInjected: [], error };
+    }
+  } else {
+    log(`  · projet existant — reprise`);
+  }
+
+  // 2. Snap AVANT (template nu) — best-effort
+  const shotBefore = await snap(dir, spec.port, `${spec.name}-avant`);
+
+  // 3. Sharingan pré-calculé → moodboard injecté ($0, zéro Claude)
+  const { block, palette } = await buildMoodboard(spec.leaders);
+  const fullTask = spec.task + block +
+    `\n\nIMPORTANT : session autonome. Prends toutes les décisions toi-même. ` +
+    `La FONCTION prime : chaque feature listée doit MARCHER. Le build doit passer.`;
+
+  // 4. Construction par Gemma (escalade Claude SEULEMENT si build casse)
+  let buildOk = false, resolvedBy = "none", attempts = 0, costUsd = 0;
+  let error: string | undefined;
+  try {
+    const r = await runRelay(fullTask, dir,
+      { maitreModel: "sonnet", onLog: (l) => log(`    [relay] ${l}`) },
+      defaultRelayDeps);
+    buildOk = r.success; resolvedBy = r.resolvedBy; attempts = r.attempts; costUsd = r.costUsd;
+    if (r.success) log(`  ✓ build OK — résolu par ${r.resolvedBy} en ${r.attempts} tentative(s)${costUsd > 0 ? `, escalade Claude $${costUsd.toFixed(3)}` : " ($0, 100% Gemma)"}`);
+    else { error = r.inspection.detail.slice(-200); log(`  ✗ build KO (${r.inspection.signal})`); }
+  } catch (e) {
+    error = `runRelay: ${(e as Error).message}`;
+    log(`  ✗ ${error}`);
+  }
+
+  // 5. Snap APRÈS (app construite) — best-effort
+  const shotAfter = buildOk ? await snap(dir, spec.port, `${spec.name}-apres`) : undefined;
+
+  // 6. Juge #59
+  let score: number | undefined, dims: Record<string, number> | undefined, judgeComment: string | undefined;
+  if (buildOk) {
+    try {
+      const j = await judgeProject(dir, spec.task);
+      if (j) { score = j.score; dims = j.dims as unknown as Record<string, number>; judgeComment = j.comment;
+        log(`  🏆 ${j.score}/10 — « ${j.comment} »`); }
+    } catch { log(`  ⚠ juge indisponible`); }
+  }
+
+  markDone(state, `done-${spec.name}`);
+  return { name: spec.name, effort: spec.effort, template: spec.template, buildOk, resolvedBy, attempts,
+    usedClaude: costUsd > 0, score, dims, judgeComment, costUsd, durationMs: Date.now() - started,
+    sharinganLeaders: spec.leaders, paletteInjected: palette, shotBefore, shotAfter, error };
+}
+
+// ── Bilan matinal ────────────────────────────────────────────────────────────
+function writeBilan(results: ProjectResult[], evolutionSummary: string): void {
+  const now = new Date().toISOString();
+  const L: string[] = [
+    `# Bilan run nocturne — ${now}`, "",
+    `Objectif : 3 projets (M/L/XL) construits par **Gemma 4 12B** avec un **Sharingan pré-calculé** ($0),`,
+    `Claude réduit à l'**escalade** sur échec de build.`, "",
+    "## Tableau", "",
+    "| Projet | Effort | Template | Build | Brain | Claude ? | Score | Coût | Durée |",
+    "|--------|--------|----------|-------|-------|----------|-------|------|-------|",
+  ];
+  for (const r of results) {
+    L.push(`| ${r.name} | ${r.effort} | ${r.template} | ${r.buildOk ? "✅" : "❌"} | ${r.resolvedBy} | ${r.usedClaude ? "⚠ oui (escalade)" : "non ($0)"} | ${r.score != null ? r.score + "/10" : "—"} | $${r.costUsd.toFixed(3)} | ${Math.round(r.durationMs / 60000)} min |`);
+  }
+  L.push("", "## Détail par projet", "");
+  for (const r of results) {
+    L.push(`### ${r.name} (${r.effort})`);
+    L.push(`- Sharingan : ${r.sharinganLeaders.join(", ")}`);
+    L.push(`- Palette injectée : ${r.paletteInjected.join(", ") || "(aucune)"}`);
+    if (r.shotBefore) L.push(`- Snap avant : \`${r.shotBefore}\``);
+    if (r.shotAfter) L.push(`- Snap après : \`${r.shotAfter}\``);
+    if (r.dims) L.push(`- Axes juge : ${Object.entries(r.dims).map(([k, v]) => `${k}=${v}`).join(" · ")}`);
+    if (r.judgeComment) L.push(`- Avis : ${r.judgeComment}`);
+    if (r.error) L.push(`- ⚠ Erreur : ${r.error}`);
+    L.push("");
+  }
+  const ok = results.filter((r) => r.buildOk).length;
+  const claudeCount = results.filter((r) => r.usedClaude).length;
+  const totalCost = results.reduce((s, r) => s + r.costUsd, 0);
+  const withScore = results.filter((r) => r.score != null);
+  const avg = withScore.reduce((s, r) => s + (r.score ?? 0), 0) / Math.max(1, withScore.length);
+  L.push("## Évolution des règles #76", "", evolutionSummary || "(indisponible)", "");
+  L.push("## Résumé", "",
+    `- Builds OK : **${ok}/${results.length}**`,
+    `- Projets ayant nécessité Claude (escalade) : **${claudeCount}/${results.length}**`,
+    `- Score moyen : **${avg.toFixed(1)}/10**`,
+    `- Coût Claude total : **$${totalCost.toFixed(4)}**`,
+    `- Snapshots : \`${SHOTS_DIR}\``);
+  fs.writeFileSync(BILAN_FILE, L.join("\n") + "\n");
+  log(`\n📋 Bilan : ${BILAN_FILE}`);
+}
+
+// ── Specs des 3 projets ────────────────────────────────────────────────────────
+const SPECS: Spec[] = [
+  {
+    name: "landing-tonight", effort: "M", template: "daisy", port: 5191,
+    leaders: ["https://stripe.com", "https://linear.app"],
+    task: `Crée une landing page SaaS complète et 100% FONCTIONNELLE en React + DaisyUI/Tailwind v4 : ` +
+      `(1) header sticky avec navigation + bouton CTA ; (2) hero avec titre fort, sous-titre, 2 boutons et un mockup produit en CSS ; ` +
+      `(3) section 6 fonctionnalités avec icônes et descriptions ; (4) social proof (rangée de logos + 3 témoignages avec avatar) ; ` +
+      `(5) pricing 3 paliers avec un toggle mensuel/annuel qui CHANGE réellement les prix au clic ; ` +
+      `(6) FAQ en accordéon de 8 questions (ouverture/fermeture fonctionnelle) ; ` +
+      `(7) section CTA finale avec formulaire email VALIDÉ (regex, message d'erreur si invalide, message de succès si ok) ; ` +
+      `(8) footer complet multi-colonnes. Responsive mobile-first.`,
+  },
+  {
+    name: "dashboard-tonight", effort: "L", template: "mantine", port: 5192,
+    leaders: ["https://linear.app", "https://vercel.com"],
+    task: `Crée un dashboard analytics SaaS complet et 100% FONCTIONNEL en React + Mantine v7 : ` +
+      `barre latérale de navigation ; toggle dark/light mode FONCTIONNEL ; ` +
+      `page Vue d'ensemble avec 4 cartes KPI chiffrées ; un graphique en courbe sur 30 jours et un graphique en barres par catégorie (recharts, données factices réalistes) ; ` +
+      `une table de données FONCTIONNELLE : tri par colonne au clic, recherche texte, pagination. ` +
+      `Gère les états loading (skeletons) et empty (message clair). Architecture propre (composants < 200 lignes, hooks séparés).`,
+  },
+  {
+    name: "flashcards-tonight", effort: "XL", template: "shadcn", port: 5193,
+    leaders: ["https://quizlet.com", "https://linear.app"],
+    task: `Crée une application de flashcards type Anki, complète et 100% FONCTIONNELLE, en React + shadcn/Tailwind v4, ` +
+      `PERSISTÉE EN localStorage (AUCUN backend, aucune clé requise — tout survit au refresh) : ` +
+      `(1) CRUD de paquets (créer / renommer / supprimer un deck) ; (2) CRUD de cartes recto/verso dans un deck ; ` +
+      `(3) mode révision : afficher le recto → clic pour révéler le verso → boutons Facile / Difficile ; ` +
+      `(4) algorithme de répétition espacée simple : Facile = prochaine révision +4 jours, Difficile = +1 jour, date stockée par carte ; ` +
+      `(5) page stats : nombre de cartes dues aujourd'hui, streak de jours consécutifs, progression par deck (graphe recharts). ` +
+      `Sépare la logique en hooks (useDecks, useReview) et utils (spacing.js). Responsive.`,
+  },
+];
+
+// ── Main ────────────────────────────────────────────────────────────────────────
+async function main(): Promise<void> {
+  log("\n🌙 ═══════════════════════════════════════════════════════════════");
+  log("   RUN NOCTURNE — 2026-06-19 · 3 projets M/L/XL");
+  log("   Gemma 4 12B + Sharingan pré-calculé ($0) · Claude = escalade seule");
+  log("═══════════════════════════════════════════════════════════════════\n");
+
+  // Prérequis
+  const ollamaOk = await fetch(`${process.env.OLLAMA_URL ?? "http://localhost:11434"}/api/tags`).then((r) => r.ok).catch(() => false);
+  if (!ollamaOk) { console.error("❌ Ollama injoignable sur :11434 — lance : ollama serve"); process.exit(1); }
+  log("✓ Ollama :11434 OK");
+
+  const state = loadState();
+  const results: ProjectResult[] = [];
+
+  for (const spec of SPECS) {
+    try {
+      const r = await runProject(spec, state);
+      if (r) { results.push(r); fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2)); }
+    } catch (e) {
+      log(`✗ ${spec.name} exception : ${(e as Error).stack ?? e}`);
+    }
+  }
+
+  // Évolution des règles #76 (passe finale)
+  log("\n🔄 Analyse d'évolution des règles #76…");
+  let evolutionSummary = "";
+  try {
+    const evo = await runEvolution(WORKSPACE_DIR, `tonight-${Date.now().toString(36)}`, new Date().toISOString());
+    evolutionSummary = `**Run** \`${evo.id}\` — ${evo.proposals.length} proposition(s)\n\n` +
+      evo.proposals.map((p) => `- [\`${p.kind}\`] **${p.title}** : ${p.rationale.slice(0, 120)}`).join("\n");
+    log(`✓ ${evo.proposals.length} proposition(s) — panneau « Évolution des règles ».`);
+  } catch (e) {
+    evolutionSummary = `Erreur : ${(e as Error).message}`;
+    log(`⚠ ${evolutionSummary}`);
+  }
+
+  writeBilan(results, evolutionSummary);
+
+  const ok = results.filter((r) => r.buildOk).length;
+  const claudeCount = results.filter((r) => r.usedClaude).length;
+  log("\n🌅 ═══════════════════════════════════════════════════════════════");
+  log(`   TERMINÉ — Builds OK : ${ok}/${results.length} · Claude (escalade) : ${claudeCount}/${results.length}`);
+  log(`   Bilan : ${BILAN_FILE}`);
+  log("═══════════════════════════════════════════════════════════════════");
+}
+
+main().catch((e) => { console.error("❌", e instanceof Error ? e.stack : e); process.exit(1); });
