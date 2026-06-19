@@ -33,7 +33,7 @@ import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
 import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js";
 import { installArtifactStore, registerArtifactRoutes } from "./kernel-artifacts.js";
-import { installReuseCollector, registerReuseRoutes, detectArtifactReads, detectPaletteReuse, publishReuse } from "./kernel-reuse-metrics.js";
+import { installReuseCollector, installReuseImpactCollector, registerReuseRoutes, detectArtifactReads, detectPaletteReuse, publishReuse } from "./kernel-reuse-metrics.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, buildProducedDesign, paletteFromContract } from "./kernel-design-events.js";
@@ -757,6 +757,11 @@ const httpServer = app.listen(PORT, () => {
   // réutilisations effectives d'artefacts (artifact.reuse) pour mesurer si la
   // réinjection #118→#120 sert vraiment. Alimente /api/reuse.
   installReuseCollector(getBus());
+  // Kernel : collecteur d'IMPACT — corrèle la réutilisation au coût/qualité du
+  // tour (un tour qui réutilise coûte-t-il moins, va-t-il plus vite, réussit-il
+  // mieux ?). Apparie artifact.reuse ↔ chat.turn par projet. Alimente
+  // /api/reuse/impact.
+  installReuseImpactCollector(getBus());
   // Kernel : persistance du Blackboard si BLACKBOARD_DB est défini (sinon mémoire,
   // comportement historique). node:sqlite est intégré au runtime → import DYNAMIQUE
   // pour ne charger le module que quand la persistance est activée. Fallback mémoire

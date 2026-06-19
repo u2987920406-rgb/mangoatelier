@@ -10,9 +10,13 @@ import {
   detectPaletteReuseAmong,
   detectPaletteReuse,
   ReuseCollector,
+  ReuseImpactCollector,
   getReuseCollector,
+  getReuseImpactCollector,
   installReuseCollector,
   uninstallReuseCollector,
+  installReuseImpactCollector,
+  uninstallReuseImpactCollector,
   publishReuse,
   REUSE_EVENT,
 } from './kernel-reuse-metrics.js'
@@ -133,6 +137,64 @@ function check(name: string, cond: boolean): void {
 
   uninstallReuseCollector()
   getReuseCollector().reset()
+}
+
+// ── ReuseImpactCollector : corrélation coût/qualité (#123) ───────────────────
+{
+  const c = new ReuseImpactCollector()
+  // Tour réutilisateur (marqué) : pas cher, rapide, réussi.
+  c.markReuse('p')
+  c.recordTurn('p', { costUsd: 0.01, durationMs: 1000, agentTurns: 2, success: true })
+  // Un marquage ne sert qu'une fois : ce 2e tour n'est PAS réutilisateur.
+  c.recordTurn('p', { costUsd: 0.05, durationMs: 3000, agentTurns: 6, success: false })
+
+  const s = c.snapshot()
+  check('impact : 1 tour avec réutilisation', s.reuse.turns === 1)
+  check('impact : 1 tour sans', s.noReuse.turns === 1)
+  check('impact : marquage consommé une seule fois', s.reuse.avgCostUsd === 0.01)
+  check('impact : coût moyen sans = 0.05', s.noReuse.avgCostUsd === 0.05)
+  check('impact : économie coût 80%', s.delta.costSavingPct === 80) // (.05-.01)/.05
+  check('impact : succès +100 pts', s.delta.successRatePts === 100) // 100% vs 0%
+  check('impact : échantillon insuffisant (<3 chacun)', s.sampleSufficient === false)
+
+  // Un seau vide → deltas null (pas de comparaison possible).
+  const only = new ReuseImpactCollector()
+  only.markReuse('x')
+  only.recordTurn('x', { costUsd: 0.02, durationMs: 500, agentTurns: 1, success: true })
+  const so = only.snapshot()
+  check('impact : delta null si un seau vide', so.delta.costSavingPct === null && so.delta.successRatePts === null)
+
+  c.reset()
+  check('impact : reset', c.snapshot().reuse.turns === 0 && c.snapshot().noReuse.turns === 0)
+}
+
+// ── Branchement Bus de l'impact (appariement reuse → chat.turn) ──────────────
+{
+  getReuseImpactCollector().reset()
+  uninstallReuseImpactCollector()
+  const bus = new KernelBus()
+  installReuseImpactCollector(bus)
+  installReuseImpactCollector(bus) // idempotent
+
+  // Tour 1 : réutilise (artifact.reuse AVANT chat.turn, comme en prod).
+  publishReuse('demo', [{ kind: 'palette', name: 'projX' }], bus)
+  await bus.publish({
+    type: CHAT_TURN_EVENT, sender: 'demo', kind: 'success',
+    payload: { project: 'demo', costUsd: 0.02, durationMs: 1200, turns: 3 },
+  })
+  // Tour 2 : pas de réutilisation.
+  await bus.publish({
+    type: CHAT_TURN_EVENT, sender: 'demo', kind: 'error',
+    payload: { project: 'demo', costUsd: 0.06, durationMs: 4000, turns: 8 },
+  })
+
+  const s = getReuseImpactCollector().snapshot()
+  check('impact bus : tour réutilisateur apparié', s.reuse.turns === 1 && s.reuse.avgCostUsd === 0.02)
+  check('impact bus : tour non-réutilisateur rangé', s.noReuse.turns === 1 && s.noReuse.successRatePct === 0)
+  check('impact bus : économie de coût mesurée', s.delta.costSavingPct === 67) // (.06-.02)/.06
+
+  uninstallReuseImpactCollector()
+  getReuseImpactCollector().reset()
 }
 
 console.log(`\n[reuse-metrics] ${passed} ✅  ${failed ? failed + ' ❌' : '0 ❌'}  (${passed + failed} assertions)`)

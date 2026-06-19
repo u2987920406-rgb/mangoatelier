@@ -13,6 +13,7 @@ const TYPE = {
 export default function Artifacts() {
   const [arts, setArts] = useState(null);
   const [reuse, setReuse] = useState(null);
+  const [impact, setImpact] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -30,6 +31,11 @@ export default function Artifacts() {
       fetch("/api/reuse")
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => alive && d && setReuse(d))
+        .catch(() => {});
+      // Impact (#123) : réutiliser coûte-t-il moins / réussit-il mieux ?
+      fetch("/api/reuse/impact")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && d && setImpact(d))
         .catch(() => {});
     };
     load();
@@ -50,6 +56,7 @@ export default function Artifacts() {
   return (
     <div className="space-y-2 px-2 py-2">
       {reuse && reuse.totalTurns > 0 && <ReuseSummary reuse={reuse} />}
+      {impact && impact.reuse.turns + impact.noReuse.turns > 0 && <ReuseImpact impact={impact} />}
 
       {arts.length === 0 ? (
         <p className="px-1 py-2 text-xs leading-relaxed text-dim">
@@ -131,6 +138,51 @@ function ReuseSummary({ reuse }) {
         <div className="mt-1 text-[10px] text-faint">
           Top : {reuse.topReused.slice(0, 3).map((t) => `${t.key.split(":")[1]} (${t.count})`).join(" · ")}
         </div>
+      )}
+    </div>
+  );
+}
+
+// Impact de la réutilisation (#123) : corrèle réutilisation et coût/qualité.
+// Compare deux seaux de tours — avec vs sans réutilisation d'artefact.
+function fmtCost(v) {
+  return v >= 0.01 ? `$${v.toFixed(3)}` : v > 0 ? `$${v.toFixed(4)}` : "$0";
+}
+function Delta({ value, unit, goodWhenPositive = true }) {
+  if (value === null || value === undefined) return <span className="text-faint">—</span>;
+  const good = goodWhenPositive ? value > 0 : value < 0;
+  const tone = value === 0 ? "text-dim" : good ? "text-ok" : "text-err";
+  const sign = value > 0 ? "+" : "";
+  return <span className={`font-mono font-semibold ${tone}`}>{sign}{value}{unit}</span>;
+}
+function ReuseImpact({ impact }) {
+  const { reuse, noReuse, delta, sampleSufficient } = impact;
+  const Row = ({ label, b }) => (
+    <div className="flex items-center justify-between gap-2 text-[11px]">
+      <span className="text-dim">{label}</span>
+      <span className="flex gap-3 font-mono text-faint">
+        <span title="tours">{b.turns}t</span>
+        <span title="coût moyen">{fmtCost(b.avgCostUsd)}</span>
+        <span title="succès">{b.successRatePct}%</span>
+      </span>
+    </div>
+  );
+  return (
+    <div className="rounded-lg border border-edge bg-bg px-2.5 py-2">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
+        Impact de la réutilisation
+      </div>
+      <Row label="avec réutilisation" b={reuse} />
+      <Row label="sans" b={noReuse} />
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-edge pt-1.5 text-[11px] text-faint">
+        <span>coût <Delta value={delta.costSavingPct} unit="%" /></span>
+        <span>vitesse <Delta value={delta.durationSavingPct} unit="%" /></span>
+        <span>succès <Delta value={delta.successRatePts} unit=" pts" /></span>
+      </div>
+      {!sampleSufficient && (
+        <p className="mt-1 text-[10px] leading-snug text-faint">
+          Échantillon encore mince — la comparaison se fiabilise avec plus de tours dans chaque cas.
+        </p>
       )}
     </div>
   );

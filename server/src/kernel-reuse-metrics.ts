@@ -228,8 +228,159 @@ export function publishReuse(project: string, hits: ReuseHit[], bus: KernelBus =
   }
 }
 
+// ── Corrélation réutilisation ↔ coût / qualité (#123) ────────────────────────
+//
+// #121/#122 prouvent QUE la mémoire sert. Reste la vraie question de valeur :
+// est-ce que réutiliser RAPPORTE ? Un tour qui réutilise un artefact coûte-t-il
+// moins de tokens, va-t-il plus vite, réussit-il mieux ? On apparie deux signaux
+// qui coulent déjà sur le Bus dans le MÊME tour : `artifact.reuse` (part juste
+// AVANT, marque le tour comme réutilisateur) puis `chat.turn` (issue + coût/durée/
+// succès). On range chaque tour dans un seau « avec réutilisation » ou « sans »,
+// et on compare les moyennes. L'appariement est par PROJET (consommé au chat.turn),
+// l'ordre étant garanti : le bus dispatche les handlers synchrones avant de rendre
+// la main, et publishReuse précède finishChatTurn dans le même bloc finally.
+
+export interface ReuseImpactBucket {
+  turns: number
+  avgCostUsd: number
+  avgDurationMs: number
+  avgAgentTurns: number
+  successRatePct: number
+}
+
+export interface ReuseImpactSnapshot {
+  reuse: ReuseImpactBucket
+  noReuse: ReuseImpactBucket
+  /** Positif = la réutilisation est MEILLEURE. null si un seau est vide. */
+  delta: {
+    costSavingPct: number | null // (sans − avec) / sans · économie de coût
+    durationSavingPct: number | null
+    successRatePts: number | null // points de % de succès en plus
+  }
+  /** Assez de tours dans les DEUX seaux pour que la comparaison soit lisible ? */
+  sampleSufficient: boolean
+}
+
+interface RawBucket {
+  turns: number
+  cost: number
+  durationMs: number
+  agentTurns: number
+  success: number
+}
+const emptyRaw = (): RawBucket => ({ turns: 0, cost: 0, durationMs: 0, agentTurns: 0, success: 0 })
+
+export interface TurnMetrics {
+  costUsd: number
+  durationMs: number
+  agentTurns: number
+  success: boolean
+}
+
+export class ReuseImpactCollector {
+  // Projets dont le PROCHAIN chat.turn a réutilisé un artefact (marqué à l'event
+  // artifact.reuse, consommé au chat.turn → un marquage ne sert qu'une fois).
+  private pending = new Set<string>()
+  private reuse = emptyRaw()
+  private noReuse = emptyRaw()
+  private minSample = 3
+
+  /** Le tour à venir de ce projet a réutilisé ≥ 1 artefact. */
+  markReuse(project: string): void {
+    this.pending.add(project)
+  }
+
+  /** Un tour s'est conclu : le ranger dans le bon seau selon qu'il a réutilisé. */
+  recordTurn(project: string, m: TurnMetrics): void {
+    const reused = this.pending.delete(project)
+    const b = reused ? this.reuse : this.noReuse
+    b.turns++
+    b.cost += m.costUsd
+    b.durationMs += m.durationMs
+    b.agentTurns += m.agentTurns
+    if (m.success) b.success++
+  }
+
+  private avg(b: RawBucket): ReuseImpactBucket {
+    const n = b.turns || 1
+    return {
+      turns: b.turns,
+      avgCostUsd: b.cost / n,
+      avgDurationMs: b.durationMs / n,
+      avgAgentTurns: b.agentTurns / n,
+      successRatePct: b.turns ? Math.round((b.success / b.turns) * 100) : 0,
+    }
+  }
+
+  snapshot(): ReuseImpactSnapshot {
+    const reuse = this.avg(this.reuse)
+    const noReuse = this.avg(this.noReuse)
+    const both = this.reuse.turns > 0 && this.noReuse.turns > 0
+    const savingPct = (withV: number, withoutV: number): number | null =>
+      both && withoutV > 0 ? Math.round(((withoutV - withV) / withoutV) * 100) : null
+    return {
+      reuse,
+      noReuse,
+      delta: {
+        costSavingPct: savingPct(reuse.avgCostUsd, noReuse.avgCostUsd),
+        durationSavingPct: savingPct(reuse.avgDurationMs, noReuse.avgDurationMs),
+        successRatePts: both ? reuse.successRatePct - noReuse.successRatePct : null,
+      },
+      sampleSufficient: this.reuse.turns >= this.minSample && this.noReuse.turns >= this.minSample,
+    }
+  }
+
+  reset(): void {
+    this.pending.clear()
+    this.reuse = emptyRaw()
+    this.noReuse = emptyRaw()
+  }
+}
+
+let impact: ReuseImpactCollector | null = null
+let impactUnsubs: Array<() => void> = []
+
+export function getReuseImpactCollector(): ReuseImpactCollector {
+  if (!impact) impact = new ReuseImpactCollector()
+  return impact
+}
+
+/** Abonne le collecteur d'impact : artifact.reuse marque le projet, chat.turn
+ * range le tour (coût/durée/succès) dans le bon seau. Idempotent. */
+export function installReuseImpactCollector(bus: KernelBus = getBus()): void {
+  if (impactUnsubs.length > 0) return
+  const c = getReuseImpactCollector()
+  impactUnsubs.push(
+    bus.subscribe(REUSE_EVENT, 'reuse-impact', (env) => {
+      const project = (env.payload as { project?: string })?.project ?? env.sender
+      if (project) c.markReuse(project)
+    }),
+  )
+  impactUnsubs.push(
+    bus.subscribe(CHAT_TURN_EVENT, 'reuse-impact', (env) => {
+      const p = env.payload as { project?: string; costUsd?: number; durationMs?: number; turns?: number }
+      const project = p?.project ?? env.sender
+      if (!project) return
+      c.recordTurn(project, {
+        costUsd: typeof p?.costUsd === 'number' ? p.costUsd : 0,
+        durationMs: typeof p?.durationMs === 'number' ? p.durationMs : 0,
+        agentTurns: typeof p?.turns === 'number' ? p.turns : 0,
+        success: env.kind === 'success',
+      })
+    }),
+  )
+}
+
+export function uninstallReuseImpactCollector(): void {
+  for (const u of impactUnsubs) u()
+  impactUnsubs = []
+}
+
 export function registerReuseRoutes(app: Express): void {
   app.get('/api/reuse', (_req: Request, res: Response) => {
     res.json(getReuseCollector().snapshot())
+  })
+  app.get('/api/reuse/impact', (_req: Request, res: Response) => {
+    res.json(getReuseImpactCollector().snapshot())
   })
 }
