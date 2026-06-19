@@ -10,11 +10,13 @@
 import type { Express, Request, Response } from 'express'
 import { getBus, type KernelBus } from './kernel-bus.js'
 import { CHAT_TURN_EVENT } from './kernel-chat-bridge.js'
+import { listArtifacts } from './kernel-artifacts.js'
+import { getBlackboard, type Blackboard } from './kernel-blackboard.js'
 
 /** Événement Bus émis quand un tour a réutilisé ≥ 1 artefact de bibliothèque. */
 export const REUSE_EVENT = 'artifact.reuse'
 
-export type ReuseKind = 'component' | 'skill' | 'procedure'
+export type ReuseKind = 'component' | 'skill' | 'procedure' | 'palette'
 export interface ReuseHit {
   kind: ReuseKind
   name: string
@@ -45,6 +47,90 @@ export function detectArtifactReads(readPaths: string[]): ReuseHit[] {
     }
   }
   return hits
+}
+
+// ── Réutilisation de PALETTE (signal par recouvrement de couleurs) ───────────
+//
+// Une palette n'est pas un FICHIER que l'agent lit : elle est réinjectée dans le
+// prompt (#118). Son signal de réutilisation est donc différent — c'est le
+// RECOUVREMENT de couleurs réelles entre la palette PRODUITE par le build
+// (design.produced) et une palette déjà en mémoire d'un AUTRE projet. Si une part
+// suffisante des couleurs produites existe littéralement dans une palette gardée,
+// l'agent a réutilisé cet univers visuel plutôt que d'en réinventer un. Honnête
+// (couleur portée à l'identique, pas une simple ressemblance d'histogramme) et
+// déterministe. On ignore les neutres purs (#000/#fff) : partager seulement du
+// noir/blanc n'est pas « réutiliser une palette ».
+const NEUTRAL = new Set(['#000000', '#ffffff'])
+
+/** Canonise un hex en #rrggbb minuscule (3 → 6 chiffres). null si invalide. */
+function canonHex(c: string): string | null {
+  const h = c.trim().toLowerCase().replace(/^#/, '')
+  if (/^[0-9a-f]{3}$/.test(h)) return '#' + h.split('').map((x) => x + x).join('')
+  if (/^[0-9a-f]{6}$/.test(h)) return '#' + h
+  return null
+}
+
+/** Couleurs produites non-neutres, canonisées et dédupliquées. */
+function meaningfulColors(colors: string[]): string[] {
+  const out = new Set<string>()
+  for (const c of colors) {
+    const h = canonHex(c)
+    if (h && !NEUTRAL.has(h)) out.add(h)
+  }
+  return [...out]
+}
+
+/** Recouvrement palette produite → palette candidate : combien de couleurs
+ * produites (non-neutres) existent littéralement dans la candidate. Pur. */
+export function paletteOverlap(produced: string[], candidate: string[]): { ratio: number; shared: number } {
+  const prod = meaningfulColors(produced)
+  if (prod.length === 0) return { ratio: 0, shared: 0 }
+  const cand = new Set<string>()
+  for (const c of candidate) {
+    const h = canonHex(c)
+    if (h) cand.add(h)
+  }
+  const shared = prod.filter((c) => cand.has(c)).length
+  return { ratio: shared / prod.length, shared }
+}
+
+export interface PaletteCandidate {
+  project: string
+  colors: string[]
+}
+
+/** Détecte la réutilisation de palette parmi des candidates (pur, testable).
+ * Renvoie AU PLUS un hit (la palette la mieux recouverte) : un build produit une
+ * palette, il en réutilise au plus une → comptage propre. */
+export function detectPaletteReuseAmong(
+  producedColors: string[],
+  candidates: PaletteCandidate[],
+  opts: { threshold?: number; minShared?: number } = {},
+): ReuseHit[] {
+  const threshold = opts.threshold ?? 0.5
+  const minShared = opts.minShared ?? 2
+  let best: { project: string; ratio: number } | null = null
+  for (const cand of candidates) {
+    const { ratio, shared } = paletteOverlap(producedColors, cand.colors)
+    if (shared >= minShared && ratio >= threshold && (!best || ratio > best.ratio)) {
+      best = { project: cand.project, ratio }
+    }
+  }
+  return best ? [{ kind: 'palette', name: best.project }] : []
+}
+
+/** Réutilisation de palette pour le tour courant : compare les couleurs produites
+ * aux palettes du Blackboard d'AUTRES projets. "" / [] si rien de probant. */
+export function detectPaletteReuse(
+  producedColors: string[],
+  opts: { exclude?: string; threshold?: number; minShared?: number; bb?: Blackboard } = {},
+): ReuseHit[] {
+  if (!producedColors || producedColors.length === 0) return []
+  const bb = opts.bb ?? getBlackboard()
+  const candidates = listArtifacts(bb)
+    .filter((h) => h.artifact.project !== opts.exclude)
+    .map((h) => ({ project: h.artifact.project, colors: h.artifact.colors }))
+  return detectPaletteReuseAmong(producedColors, candidates, opts)
 }
 
 export interface ReuseSnapshot {

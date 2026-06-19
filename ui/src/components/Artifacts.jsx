@@ -100,7 +100,7 @@ export default function Artifacts() {
   );
 }
 
-const KIND_LABEL = { component: "composants", skill: "skills", procedure: "procédures" };
+const KIND_LABEL = { component: "composants", skill: "skills", procedure: "procédures", palette: "palettes" };
 
 // Réutilisation effective (#121) : la mémoire réinjectée sert-elle vraiment ?
 function ReuseSummary({ reuse }) {

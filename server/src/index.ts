@@ -33,10 +33,10 @@ import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
 import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js";
 import { installArtifactStore, registerArtifactRoutes } from "./kernel-artifacts.js";
-import { installReuseCollector, registerReuseRoutes, detectArtifactReads, publishReuse } from "./kernel-reuse-metrics.js";
+import { installReuseCollector, registerReuseRoutes, detectArtifactReads, detectPaletteReuse, publishReuse } from "./kernel-reuse-metrics.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
-import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
+import { publishDesignReference, publishDesignProduced, buildProducedDesign, paletteFromContract } from "./kernel-design-events.js";
 import { loadContract } from "./perfect-plan.js";
 import { generateLexique } from "./lexique.js";
 import { registerPromptLabRoutes } from "./promptlab.js";
@@ -171,6 +171,9 @@ app.post("/api/chat", async (req, res) => {
   // Kernel : chemins lus par l'agent ce tour — un Read sur .components/.skills/
   // .procedures = réutilisation effective d'un artefact réinjecté (#121).
   const turnToolReads: string[] = [];
+  // Kernel : couleurs produites par le build ce tour (#122) — comparées aux
+  // palettes en mémoire pour détecter la réutilisation de palette.
+  const turnProducedColors: string[] = [];
   // Object refs (not plain lets): assigned inside streamAgentTurn's closure,
   // read in the finally block — TS control-flow can't track the assignment.
   const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
@@ -405,7 +408,13 @@ app.post("/api/chat", async (req, res) => {
               }
             })
             .filter((x): x is { path: string; content: string } => x !== null);
-          if (styleFiles.length > 0) publishDesignProduced({ project: projectName, files: styleFiles });
+          if (styleFiles.length > 0) {
+            // Capture la palette produite pour mesurer la réutilisation de palette
+            // (#122) dans le finally — recouvrement avec les palettes en mémoire.
+            const produced = buildProducedDesign(styleFiles);
+            turnProducedColors.push(...produced.palette, ...produced.usedColors);
+            publishDesignProduced({ project: projectName, files: styleFiles });
+          }
         } catch {
           /* publier le rendu ne casse jamais un tour */
         }
@@ -487,10 +496,15 @@ app.post("/api/chat", async (req, res) => {
         ? { resolvedBy: relayMeta.current.resolvedBy, attempts: relayMeta.current.attempts }
         : {}),
     });
-    // Kernel : publie les réutilisations effectives d'artefacts détectées dans les
-    // lectures de l'agent (Read sur .components/.skills/.procedures). Avant
-    // finishChatTurn pour que le tour soit compté au dénominateur du taux.
-    publishReuse(projectName, detectArtifactReads(turnToolReads));
+    // Kernel : publie les réutilisations effectives d'artefacts de ce tour, en UN
+    // seul événement (un tour = un recordReuse, le taux reste juste) : lectures de
+    // bibliothèque (Read sur .components/.skills/.procedures, #121) + réutilisation
+    // de palette (recouvrement de couleurs avec une palette en mémoire, #122).
+    // Avant finishChatTurn pour que le tour soit compté au dénominateur du taux.
+    publishReuse(projectName, [
+      ...detectArtifactReads(turnToolReads),
+      ...detectPaletteReuse(turnProducedColors, { exclude: projectName }),
+    ]);
     // Kernel : clôt le span et publie l'issue du tour sur l'Event Bus. C'est le
     // signal réel que lisent le Disjoncteur (échecs/coût/emballement) et MangoQA.
     // Fire-and-forget — n'altère ni le SSE ni la réponse.

@@ -2,8 +2,13 @@
 //   npx tsx src/test-kernel-reuse-metrics.ts
 import { KernelBus } from './kernel-bus.js'
 import { CHAT_TURN_EVENT } from './kernel-chat-bridge.js'
+import { Blackboard } from './kernel-blackboard.js'
+import { ARTIFACT_SCOPE, type DesignArtifact } from './kernel-artifacts.js'
 import {
   detectArtifactReads,
+  paletteOverlap,
+  detectPaletteReuseAmong,
+  detectPaletteReuse,
   ReuseCollector,
   getReuseCollector,
   installReuseCollector,
@@ -44,6 +49,44 @@ function check(name: string, cond: boolean): void {
   check('dédup même artefact lu 2×', dedup.length === 1 && dedup[0].name === 'Modal')
 
   check('aucune lecture → []', detectArtifactReads([]).length === 0)
+}
+
+// ── Réutilisation de PALETTE (recouvrement de couleurs) ──────────────────────
+{
+  // paletteOverlap : couleurs produites présentes dans la candidate (non-neutres).
+  const o1 = paletteOverlap(['#ff0000', '#00ff00', '#0000ff'], ['#ff0000', '#00ff00', '#123456'])
+  check('overlap 2/3', o1.shared === 2 && Math.abs(o1.ratio - 2 / 3) < 1e-9)
+
+  // Canonisation 3 → 6 chiffres : #f00 == #ff0000.
+  const o2 = paletteOverlap(['#f00', '#0f0'], ['#ff0000', '#00ff00'])
+  check('overlap canonise 3↔6 chiffres', o2.shared === 2 && o2.ratio === 1)
+
+  // Neutres purs ignorés : partager seulement #000/#fff ne compte pas.
+  const o3 = paletteOverlap(['#000000', '#ffffff'], ['#000', '#fff'])
+  check('neutres purs ignorés', o3.shared === 0 && o3.ratio === 0)
+
+  // detectPaletteReuseAmong : au plus un hit (la mieux recouverte).
+  const cands = [
+    { project: 'projA', colors: ['#ff0000', '#00ff00', '#0000ff'] }, // recouvre tout
+    { project: 'projB', colors: ['#ff0000', '#999999'] }, // recouvre 1
+  ]
+  const hits = detectPaletteReuseAmong(['#ff0000', '#00ff00', '#0000ff'], cands)
+  check('palette reuse : un seul hit', hits.length === 1 && hits[0].kind === 'palette')
+  check('palette reuse : meilleure candidate', hits[0].name === 'projA')
+
+  // Sous le seuil de partage → aucun hit (1 seule couleur partagée).
+  const none = detectPaletteReuseAmong(['#ff0000', '#abcdef', '#fedcba'], cands)
+  check('palette reuse : sous minShared → aucun', none.length === 0)
+
+  // detectPaletteReuse lit le Blackboard et exclut le projet courant.
+  const bb = new Blackboard()
+  const artA: DesignArtifact = { type: 'design.produced', project: 'projA', colors: ['#ff0000', '#00ff00', '#0000ff'], at: 1 }
+  const artSelf: DesignArtifact = { type: 'design.produced', project: 'moi', colors: ['#ff0000', '#00ff00', '#0000ff'], at: 2 }
+  bb.put(ARTIFACT_SCOPE, 'k:projA', artA, [])
+  bb.put(ARTIFACT_SCOPE, 'k:moi', artSelf, [])
+  const fromBb = detectPaletteReuse(['#ff0000', '#00ff00', '#0000ff'], { exclude: 'moi', bb })
+  check('palette reuse (Blackboard) : exclut le projet courant', fromBb.length === 1 && fromBb[0].name === 'projA')
+  check('palette reuse : aucune couleur → []', detectPaletteReuse([], { exclude: 'moi', bb }).length === 0)
 }
 
 // ── ReuseCollector ───────────────────────────────────────────────────────────
