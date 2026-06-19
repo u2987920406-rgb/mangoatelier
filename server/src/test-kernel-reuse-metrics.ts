@@ -168,6 +168,36 @@ function check(name: string, cond: boolean): void {
   check('impact : reset', c.snapshot().reuse.turns === 0 && c.snapshot().noReuse.turns === 0)
 }
 
+// ── Segmentation de l'impact PAR FAMILLE (#124) ──────────────────────────────
+{
+  const c = new ReuseImpactCollector()
+  // Tour A : réutilise un COMPOSANT — pas cher, réussi.
+  c.markReuse('p', ['component'])
+  c.recordTurn('p', { costUsd: 0.01, durationMs: 1000, agentTurns: 2, success: true })
+  // Tour B : réutilise une PALETTE — cher, échoue (palette ne « sauve » rien ici).
+  c.markReuse('p', ['palette'])
+  c.recordTurn('p', { costUsd: 0.08, durationMs: 5000, agentTurns: 9, success: false })
+  // Tour C : aucune réutilisation — coût moyen, réussi.
+  c.recordTurn('p', { costUsd: 0.04, durationMs: 2000, agentTurns: 4, success: true })
+
+  const s = c.snapshot()
+  const byKind = Object.fromEntries(s.byKind.map((f) => [f.kind, f]))
+  // Le seau « avec composant » = tour A seul ; « sans composant » = B et C.
+  check('famille : composant a 1 tour avec', byKind.component.with.turns === 1)
+  check('famille : composant a 2 tours sans (B+C)', byKind.component.without.turns === 2)
+  check('famille : composant avgCost avec = 0.01', byKind.component.with.avgCostUsd === 0.01)
+  check('famille : composant avgCost sans = 0.06', byKind.component.without.avgCostUsd === 0.06) // (.08+.04)/2
+  check('famille : composant économise le coût', byKind.component.delta.costSavingPct === 83) // (.06-.01)/.06
+  // La palette ici est le tour le plus cher → économie NÉGATIVE (segmentation honnête).
+  check('famille : palette a 1 tour avec', byKind.palette.with.turns === 1)
+  check('famille : palette ne fait pas économiser', (byKind.palette.delta.costSavingPct ?? 0) < 0)
+  // Familles jamais réutilisées : 0 tour « avec », delta null.
+  check('famille : skill jamais réutilisé', byKind.skill.with.turns === 0 && byKind.skill.delta.costSavingPct === null)
+  check('famille : les 4 familles présentes', s.byKind.length === 4)
+  // La vue globale reste cohérente : 2 tours avec réutilisation, 1 sans.
+  check('famille : vue globale intacte', s.reuse.turns === 2 && s.noReuse.turns === 1)
+}
+
 // ── Branchement Bus de l'impact (appariement reuse → chat.turn) ──────────────
 {
   getReuseImpactCollector().reset()
@@ -192,6 +222,9 @@ function check(name: string, cond: boolean): void {
   check('impact bus : tour réutilisateur apparié', s.reuse.turns === 1 && s.reuse.avgCostUsd === 0.02)
   check('impact bus : tour non-réutilisateur rangé', s.noReuse.turns === 1 && s.noReuse.successRatePct === 0)
   check('impact bus : économie de coût mesurée', s.delta.costSavingPct === 67) // (.06-.02)/.06
+  // Le kind du hit (palette) remonte jusqu'à la segmentation par famille.
+  const palette = s.byKind.find((f) => f.kind === 'palette')
+  check('impact bus : famille palette créditée du tour', palette?.with.turns === 1)
 
   uninstallReuseImpactCollector()
   getReuseImpactCollector().reset()

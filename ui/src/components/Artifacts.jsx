@@ -156,7 +156,7 @@ function Delta({ value, unit, goodWhenPositive = true }) {
   return <span className={`font-mono font-semibold ${tone}`}>{sign}{value}{unit}</span>;
 }
 function ReuseImpact({ impact }) {
-  const { reuse, noReuse, delta, sampleSufficient } = impact;
+  const { reuse, noReuse, delta, sampleSufficient, byKind } = impact;
   const Row = ({ label, b }) => (
     <div className="flex items-center justify-between gap-2 text-[11px]">
       <span className="text-dim">{label}</span>
@@ -167,6 +167,8 @@ function ReuseImpact({ impact }) {
       </span>
     </div>
   );
+  // Familles qui ont au moins un tour réutilisateur (sinon rien à comparer).
+  const fams = (byKind ?? []).filter((f) => f.with.turns > 0);
   return (
     <div className="rounded-lg border border-edge bg-bg px-2.5 py-2">
       <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
@@ -179,6 +181,27 @@ function ReuseImpact({ impact }) {
         <span>vitesse <Delta value={delta.durationSavingPct} unit="%" /></span>
         <span>succès <Delta value={delta.successRatePts} unit=" pts" /></span>
       </div>
+      {fams.length > 0 && (
+        <div className="mt-1.5 border-t border-edge pt-1.5">
+          <div className="mb-1 text-[9px] font-semibold uppercase tracking-widest text-faint">
+            Par famille — quelle dimension rapporte le plus ?
+          </div>
+          <div className="space-y-0.5">
+            {fams.map((f) => (
+              <div key={f.kind} className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="text-dim">
+                  {KIND_LABEL[f.kind] ?? f.kind}
+                  <span className="ml-1 font-mono text-faint">{f.with.turns}t</span>
+                </span>
+                <span className="flex gap-3">
+                  <span title="économie de coût">coût <Delta value={f.delta.costSavingPct} unit="%" /></span>
+                  <span title="points de succès">succ. <Delta value={f.delta.successRatePts} unit="" /></span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {!sampleSufficient && (
         <p className="mt-1 text-[10px] leading-snug text-faint">
           Échantillon encore mince — la comparaison se fiabilise avec plus de tours dans chaque cas.

@@ -248,17 +248,33 @@ export interface ReuseImpactBucket {
   successRatePct: number
 }
 
-export interface ReuseImpactSnapshot {
-  reuse: ReuseImpactBucket
-  noReuse: ReuseImpactBucket
+/** Comparatif « avec » vs « sans » réutilisation (global ou par famille). */
+export interface ReuseImpactDelta {
+  costSavingPct: number | null // (sans − avec) / sans · économie de coût
+  durationSavingPct: number | null
+  successRatePts: number | null // points de % de succès en plus
+}
+
+export interface ReuseImpactComparison {
+  with: ReuseImpactBucket
+  without: ReuseImpactBucket
   /** Positif = la réutilisation est MEILLEURE. null si un seau est vide. */
-  delta: {
-    costSavingPct: number | null // (sans − avec) / sans · économie de coût
-    durationSavingPct: number | null
-    successRatePts: number | null // points de % de succès en plus
-  }
+  delta: ReuseImpactDelta
   /** Assez de tours dans les DEUX seaux pour que la comparaison soit lisible ? */
   sampleSufficient: boolean
+}
+
+export interface ReuseImpactSnapshot {
+  // Vue GLOBALE (rétro-compatible #123) : le tour a réutilisé QUELQUE CHOSE vs rien.
+  reuse: ReuseImpactBucket
+  noReuse: ReuseImpactBucket
+  delta: ReuseImpactDelta
+  sampleSufficient: boolean
+  // Segmentation PAR FAMILLE (#124) : pour chaque famille, les tours qui ont
+  // réutilisé CETTE famille vs ceux qui ne l'ont pas. Un même tour peut être
+  // « avec » pour une famille et « sans » pour une autre → quelle dimension
+  // (composants/skills/procédures/palettes) rapporte le plus ?
+  byKind: Array<{ kind: ReuseKind } & ReuseImpactComparison>
 }
 
 interface RawBucket {
@@ -269,6 +285,15 @@ interface RawBucket {
   success: number
 }
 const emptyRaw = (): RawBucket => ({ turns: 0, cost: 0, durationMs: 0, agentTurns: 0, success: 0 })
+function addTo(b: RawBucket, m: TurnMetrics): void {
+  b.turns++
+  b.cost += m.costUsd
+  b.durationMs += m.durationMs
+  b.agentTurns += m.agentTurns
+  if (m.success) b.success++
+}
+
+const IMPACT_KINDS: ReuseKind[] = ['component', 'skill', 'procedure', 'palette']
 
 export interface TurnMetrics {
   costUsd: number
@@ -278,27 +303,32 @@ export interface TurnMetrics {
 }
 
 export class ReuseImpactCollector {
-  // Projets dont le PROCHAIN chat.turn a réutilisé un artefact (marqué à l'event
-  // artifact.reuse, consommé au chat.turn → un marquage ne sert qu'une fois).
-  private pending = new Set<string>()
+  // Familles réutilisées par le PROCHAIN chat.turn de chaque projet (marquées à
+  // artifact.reuse, consommées au chat.turn → une marque ne sert qu'une fois).
+  private pending = new Map<string, Set<ReuseKind>>()
   private reuse = emptyRaw()
   private noReuse = emptyRaw()
+  // Par famille : seau « a réutilisé cette famille » et seau « ne l'a pas ».
+  private withKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
+  private withoutKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
   private minSample = 3
 
-  /** Le tour à venir de ce projet a réutilisé ≥ 1 artefact. */
-  markReuse(project: string): void {
-    this.pending.add(project)
+  /** Le tour à venir de ce projet a réutilisé ces familles d'artefact. */
+  markReuse(project: string, kinds: ReuseKind[] = []): void {
+    const set = this.pending.get(project) ?? new Set<ReuseKind>()
+    for (const k of kinds) set.add(k)
+    this.pending.set(project, set) // présent même vide → le tour a réutilisé (vue globale)
   }
 
-  /** Un tour s'est conclu : le ranger dans le bon seau selon qu'il a réutilisé. */
+  /** Un tour s'est conclu : le ranger dans le seau global + dans chaque famille. */
   recordTurn(project: string, m: TurnMetrics): void {
-    const reused = this.pending.delete(project)
-    const b = reused ? this.reuse : this.noReuse
-    b.turns++
-    b.cost += m.costUsd
-    b.durationMs += m.durationMs
-    b.agentTurns += m.agentTurns
-    if (m.success) b.success++
+    const kinds = this.pending.get(project)
+    this.pending.delete(project)
+    addTo(kinds !== undefined ? this.reuse : this.noReuse, m)
+    for (const k of IMPACT_KINDS) {
+      const used = kinds?.has(k) ?? false
+      addTo((used ? this.withKind : this.withoutKind).get(k)!, m)
+    }
   }
 
   private avg(b: RawBucket): ReuseImpactBucket {
@@ -312,21 +342,36 @@ export class ReuseImpactCollector {
     }
   }
 
-  snapshot(): ReuseImpactSnapshot {
-    const reuse = this.avg(this.reuse)
-    const noReuse = this.avg(this.noReuse)
-    const both = this.reuse.turns > 0 && this.noReuse.turns > 0
-    const savingPct = (withV: number, withoutV: number): number | null =>
-      both && withoutV > 0 ? Math.round(((withoutV - withV) / withoutV) * 100) : null
+  /** Compare deux seaux bruts (avec vs sans) → moyennes + deltas + suffisance. */
+  private compare(withRaw: RawBucket, withoutRaw: RawBucket): ReuseImpactComparison {
+    const w = this.avg(withRaw)
+    const wo = this.avg(withoutRaw)
+    const both = withRaw.turns > 0 && withoutRaw.turns > 0
+    const saving = (a: number, b: number): number | null =>
+      both && b > 0 ? Math.round(((b - a) / b) * 100) : null
     return {
-      reuse,
-      noReuse,
+      with: w,
+      without: wo,
       delta: {
-        costSavingPct: savingPct(reuse.avgCostUsd, noReuse.avgCostUsd),
-        durationSavingPct: savingPct(reuse.avgDurationMs, noReuse.avgDurationMs),
-        successRatePts: both ? reuse.successRatePct - noReuse.successRatePct : null,
+        costSavingPct: saving(w.avgCostUsd, wo.avgCostUsd),
+        durationSavingPct: saving(w.avgDurationMs, wo.avgDurationMs),
+        successRatePts: both ? w.successRatePct - wo.successRatePct : null,
       },
-      sampleSufficient: this.reuse.turns >= this.minSample && this.noReuse.turns >= this.minSample,
+      sampleSufficient: withRaw.turns >= this.minSample && withoutRaw.turns >= this.minSample,
+    }
+  }
+
+  snapshot(): ReuseImpactSnapshot {
+    const overall = this.compare(this.reuse, this.noReuse)
+    return {
+      reuse: overall.with,
+      noReuse: overall.without,
+      delta: overall.delta,
+      sampleSufficient: overall.sampleSufficient,
+      byKind: IMPACT_KINDS.map((kind) => ({
+        kind,
+        ...this.compare(this.withKind.get(kind)!, this.withoutKind.get(kind)!),
+      })),
     }
   }
 
@@ -334,6 +379,10 @@ export class ReuseImpactCollector {
     this.pending.clear()
     this.reuse = emptyRaw()
     this.noReuse = emptyRaw()
+    for (const k of IMPACT_KINDS) {
+      this.withKind.set(k, emptyRaw())
+      this.withoutKind.set(k, emptyRaw())
+    }
   }
 }
 
@@ -352,8 +401,11 @@ export function installReuseImpactCollector(bus: KernelBus = getBus()): void {
   const c = getReuseImpactCollector()
   impactUnsubs.push(
     bus.subscribe(REUSE_EVENT, 'reuse-impact', (env) => {
-      const project = (env.payload as { project?: string })?.project ?? env.sender
-      if (project) c.markReuse(project)
+      const payload = env.payload as { project?: string; hits?: ReuseHit[] }
+      const project = payload?.project ?? env.sender
+      if (!project) return
+      const kinds = Array.isArray(payload?.hits) ? payload.hits.map((h) => h.kind) : []
+      c.markReuse(project, kinds)
     }),
   )
   impactUnsubs.push(
