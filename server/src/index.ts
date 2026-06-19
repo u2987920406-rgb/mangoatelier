@@ -30,6 +30,8 @@ import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { getBus } from "./kernel-bus.js";
 import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
+import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
+import type { Span } from "./kernel-trace.js";
 import { generateLexique } from "./lexique.js";
 import { registerPromptLabRoutes } from "./promptlab.js";
 import { registerTokenizerRoutes } from "./tokenizer.js";
@@ -157,6 +159,9 @@ app.post("/api/chat", async (req, res) => {
   // the project's .chat-history.json once the turn ends.
   const turn: ChatEntry[] = [];
   let historyDir: string | null = null;
+  // Kernel : span du tour (getTracer) ouvert dans le try, clos dans le finally
+  // où l'issue est publiée sur l'Event Bus. Ref hors try pour le control-flow TS.
+  let turnSpan: Span | null = null;
   // Object refs (not plain lets): assigned inside streamAgentTurn's closure,
   // read in the finally block — TS control-flow can't track the assignment.
   const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
@@ -177,6 +182,11 @@ app.post("/api/chat", async (req, res) => {
   };
 
   try {
+    // Kernel : ouvre le span de ce tour de chat. Le chat parle enfin au Kernel —
+    // ce span (et l'enveloppe d'issue publiée dans le finally) alimentent les
+    // visages de MangoQA. Fire-and-forget : startChatTurn ne lève jamais.
+    turnSpan = startChatTurn({ project: projectName, mode: chosenMode, model: useEleve ? "eleve" : (chosenModel ?? "sonnet") });
+
     // A background compaction may be rewriting this project's session — stop it
     // and wait so the turn resumes a stable session id (old or new, both valid).
     // Inside the try: if it rejects, the finally still releases agentBusy.
@@ -433,6 +443,21 @@ app.post("/api/chat", async (req, res) => {
       ...(relayMeta.current
         ? { resolvedBy: relayMeta.current.resolvedBy, attempts: relayMeta.current.attempts }
         : {}),
+    });
+    // Kernel : clôt le span et publie l'issue du tour sur l'Event Bus. C'est le
+    // signal réel que lisent le Disjoncteur (échecs/coût/emballement) et MangoQA.
+    // Fire-and-forget — n'altère ni le SSE ni la réponse.
+    finishChatTurn(turnSpan, {
+      project: projectName,
+      mode: chosenMode,
+      model: useEleve ? "eleve" : (chosenModel ?? "sonnet"),
+      ok: !turn.some((e) => e.role === "error"),
+      costUsd: lastResult.current?.costUsd ?? 0,
+      numTurns: lastResult.current?.numTurns ?? 0,
+      durationMs: Date.now() - turnStart,
+      contextTokens: lastContext.current?.tokens,
+      ...(relayMeta.current ? { resolvedBy: relayMeta.current.resolvedBy } : {}),
+      ...(turn.some((e) => e.role === "error") ? { error: "turn ended with error" } : {}),
     });
     send({ type: "done" });
     res.end();
