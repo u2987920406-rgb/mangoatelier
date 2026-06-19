@@ -1434,6 +1434,14 @@ L'état partagé gardé par MangoOS. Deux rôles :
 - **Store d'artefacts** — `put(scope, key, value)` renvoie un `BlackboardRef` (l'analogue du `file_pointer`), `get`/`deref`/`has`/`delete`/`keys(scope)`. En mémoire pour l'instant ; persistance disque + recherche sémantique (SQLite-vec) quand le besoin arrivera (cf. `fondation.md`).
 - Singleton `getBlackboard`/`setBlackboard`/`resetBlackboard`. `test-kernel-blackboard.ts` **21/21** (sérialisation withLock, FIFO 3 attentes, ressources indépendantes concurrentes, libération malgré throw, store CRUD, isolation par scope, singleton).
 
-**Vérifs globales Kernel.** `tsc --noEmit` 0 · **107 tests verts** (kernel 22 · kernel-bus 24 · kernel-blackboard 21 · llm-engine 40). UI non touchée.
+#### Pilier 4 — MCP / Registre d'outils (`kernel-mcp.ts`) ✅
 
-**Reste (Phase suivante).** MCP (outils standard), OpenTelemetry (traçabilité → MangoQA lit les traces), intégration MangoQA 3 visages, persistance/SQLite-vec du Blackboard. Puis brancher progressivement `agent.ts` / le chat sur `getBrain()` + `getBus()` (aujourd'hui `query()`/`askLLM` directs) — migration non bloquante.
+MCP est le standard pour donner des OUTILS à un cerveau ; MangoOS l'utilise déjà via le SDK (`vision.ts` = serveur MCP in-process avec `tool`/`createSdkMcpServer`). Le Kernel ajoute un **registre neutre** : un outil décrit UNE fois, exposable aux deux familles de cerveaux.
+- **`KernelTool`** neutre : `name`, `description`, `inputSchema` (ZodRawShape, comme le SDK), `handler(args) → { text, isError? }`.
+- **`ToolRegistry`** : `register` (anti-doublon, lève si le nom est pris), `has`/`get`/`list`/`names`, `invoke(name, args)` qui **valide les arguments contre le schéma Zod AVANT le handler** (le Kernel fait respecter le contrat) et lève si l'outil est inconnu ou les args invalides.
+- **Deux adaptateurs depuis le même outil** : `toMcpServer(registry)` enveloppe chaque `KernelTool` via `tool()` + `createSdkMcpServer()` → utilisable par `query({ options: { mcpServers } })` (cerveau Claude) ; `toOpenAITools(registry)` produit le format function-calling OpenAI via `z.toJSONSchema(z.object(shape))` (Zod v4 natif) → cerveaux litellm/Ollama. C'est le pendant « outils » du Brain Adapter neutre : standard à la périphérie, registre au cœur.
+- Singleton `getToolRegistry`/`setToolRegistry`/`resetToolRegistry`. `test-kernel-mcp.ts` **23/23** (register/has/get/list/names, doublon lève, invoke + validation Zod + inconnu lève, async + isError, forme OpenAI + JSON Schema, build serveur MCP plein/vide, singleton).
+
+**Vérifs globales Kernel.** `tsc --noEmit` 0 · **130 tests verts** (kernel 22 · kernel-bus 24 · kernel-blackboard 21 · kernel-mcp 23 · llm-engine 40). UI non touchée.
+
+**Reste (Phase suivante).** OpenTelemetry (traçabilité → MangoQA lit les traces), intégration MangoQA 3 visages sur le Bus (observateur `*` déjà prévu), persistance/SQLite-vec du Blackboard. Puis brancher progressivement `agent.ts` / le chat sur `getBrain()` + `getBus()` + `getToolRegistry()` (aujourd'hui `query()`/`askLLM`/`visionServer` directs) — migration non bloquante.
