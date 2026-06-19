@@ -112,6 +112,11 @@ Mode 🌙 Génération nocturne — full autonomy, polished design:
 - You MAY write plan.md as an internal design doc to organise yourself, but it is NEVER a gate: do not stop to have it validated, just build.`,
   esthetique: `
 Mode ✨ Esthétique — high-fidelity graphic polish phase (the project is built and works; now make it BEAUTIFUL). This is a polish phase, NOT a construction phase: the graphic-polish protocol below governs this turn.`,
+  // Mode 💬 Discussion uses the `discuss` block (DISCUSS_RULES) directly in its
+  // scenario rather than this `mode` block; this entry only completes the type
+  // over the Mode union so MODE_RULES[ctx.mode] stays exhaustively indexable.
+  discuss: `
+Mode 💬 Discussion — think and advise, do not build (see the discussion protocol below).`,
 } as const;
 
 // Jalon "mode vision avancé": universal visual inputs + closed feedback loop.
