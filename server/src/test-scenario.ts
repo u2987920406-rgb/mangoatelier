@@ -165,6 +165,12 @@ check("blueprint hint injecté quand fourni", eliteBP.includes("Type de projet d
 check("blueprint hint absent sans section (catalogue seul)", !elite.includes("Type de projet détecté"));
 check("blueprints catalogue toujours présent", elite.includes("Project blueprints") && eliteBP.includes("Project blueprints"));
 
+// Idée #120 — skills pertinents : section injectée quand fournie, sinon dump complet.
+const skillSec = "\n\nLearned skills PERTINENTS pour cette tâche (how-to guides ; lis le SKILL.md et suis-le si l'un correspond) :\n- paginate: pagination";
+const eliteSk = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, skillsSection: skillSec });
+check("skills : section pertinente injectée quand fournie", eliteSk.includes("skills PERTINENTS pour cette tâche"));
+check("skills : relevance absente sans fourniture (comportement historique)", !elite.includes("skills PERTINENTS"));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 

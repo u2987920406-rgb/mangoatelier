@@ -66,6 +66,10 @@ export type PromptContext = {
   componentsSection?: string;
   // Idée #119 — rappel du blueprint du TYPE détecté pour la demande. "" si « autre ».
   blueprintHintSection?: string;
+  // Idée #120 — skills PERTINENTS à la tâche (même mécanisme que les composants :
+  // tri sémantique Blackboard + repli mots-clés), pré-calculés par agent.ts.
+  // Remplace le dump complet quand fourni ; sinon → liste exhaustive.
+  skillsSection?: string;
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -294,7 +298,9 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // profile/memory so the agent reads intent through the user's own language,
   // thinking style and long-term vision. "" when all three layers are empty.
   identity: (ctx) => (ctx.clientMode ? "" : identityPromptSection(WORKSPACE_DIR)),
-  skills: () => skillsPromptSection(),
+  // Idée #120 — skills pertinents (tri sémantique) quand agent.ts les fournit,
+  // sinon le dump complet (non-régression / tests).
+  skills: (ctx) => ctx.skillsSection ?? skillsPromptSection(),
   // Idée #75 — mémoire procédurale: démarches de résolution passées pertinentes
   // (pré-filtrées par similarité dans agent.ts). Divulgation progressive comme
   // skills : métadonnées injectées, corps PROCEDURE.md lu à la demande. "" si aucune.

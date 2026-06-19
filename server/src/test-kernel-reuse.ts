@@ -12,9 +12,12 @@ import {
   blueprintHintSection,
   indexComponents,
   relevantComponentsSection,
+  relevantSkillsSection,
   COMPONENT_SCOPE,
+  SKILL_SCOPE,
   type Embed,
 } from './kernel-reuse.js'
+import type { SkillMeta } from './skills.js'
 
 let passed = 0
 let failed = 0
@@ -91,6 +94,39 @@ function check(name: string, cond: boolean): void {
   check('indexComponents : idempotent (pas de ré-embed)', embedCalls === after1)
 
   fs.rmSync(ws, { recursive: true, force: true })
+}
+
+// ── Skills : même mécanisme (tri sémantique + repli mots-clés) ───────────────
+{
+  const skills: SkillMeta[] = [
+    { name: 'paginate-table', description: 'pagination de table de données', file: '/s/paginate/SKILL.md' },
+    { name: 'auth-flow', description: 'flux d’authentification login signup', file: '/s/auth/SKILL.md' },
+    { name: 'drag-drop', description: 'glisser-déposer réordonnable', file: '/s/dnd/SKILL.md' },
+  ]
+  const fakeEmbed: Embed = async (t) => {
+    const s = t.toLowerCase()
+    return [s.includes('pagination') || s.includes('table') ? 1 : 0, s.includes('auth') || s.includes('login') ? 1 : 0, s.includes('drag') || s.includes('dépos') ? 1 : 0]
+  }
+
+  // Sous le seuil → tout listé.
+  const full = await relevantSkillsSection('peu importe', { skills, embed: fakeEmbed, k: 8 })
+  check('skills : sous le seuil → tout listé', full.includes('paginate-table') && full.includes('auth-flow') && full.includes('drag-drop'))
+  check('skills : chemin SKILL.md présent (divulgation progressive)', full.includes('/s/paginate/SKILL.md'))
+
+  // Au-dessus (k=1) → tri sémantique Blackboard.
+  const bb = new Blackboard()
+  const authReq = await relevantSkillsSection('ajoute un login', { skills, bb, embed: fakeEmbed, k: 1 })
+  check('skills : top-1 sémantique = auth-flow', authReq.includes('auth-flow') && !authReq.includes('drag-drop'))
+  check('skills : en-tête « PERTINENTS »', authReq.includes('PERTINENTS'))
+  check('skills : indexés dans le Blackboard', bb.keys(SKILL_SCOPE).length === 3)
+
+  // Repli mots-clés sans embeddings.
+  const noEmbed: Embed = async () => []
+  const fallback = await relevantSkillsSection('une table à paginer', { skills, bb: new Blackboard(), embed: noEmbed, k: 1 })
+  check('skills : repli mots-clés → paginate-table', fallback.includes('paginate-table') && !fallback.includes('auth-flow'))
+
+  // Aucun skill → "".
+  check('skills : aucun → ""', (await relevantSkillsSection('x', { skills: [], embed: noEmbed })) === '')
 }
 
 // ── Aucun composant → "" ─────────────────────────────────────────────────────

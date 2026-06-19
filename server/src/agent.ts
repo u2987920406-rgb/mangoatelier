@@ -12,7 +12,7 @@ import { WORKSPACE_DIR } from "./projects.js";
 import { perfectPlanSection, loadContract } from "./perfect-plan.js";
 import { paletteFromContract } from "./kernel-design-events.js";
 import { relevantArtifactsSection } from "./kernel-artifacts.js";
-import { relevantComponentsSection, blueprintHintSection } from "./kernel-reuse.js";
+import { relevantComponentsSection, blueprintHintSection, relevantSkillsSection } from "./kernel-reuse.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -192,6 +192,13 @@ export async function* runAgent(
     componentsBlock = "";
   }
   const blueprintHint = (() => { try { return blueprintHintSection(prompt); } catch { return ""; } })();
+  // Idée #120 — skills pertinents (même mécanisme que les composants), async best-effort.
+  let skillsBlock = "";
+  try {
+    skillsBlock = await relevantSkillsSection(prompt);
+  } catch {
+    skillsBlock = "";
+  }
   try {
     const q = query({
       prompt,
@@ -217,7 +224,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode, perfectPlanSection: perfectPlanBlock, artifactsSection: artifactsBlock, componentsSection: componentsBlock, blueprintHintSection: blueprintHint }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode, perfectPlanSection: perfectPlanBlock, artifactsSection: artifactsBlock, componentsSection: componentsBlock, blueprintHintSection: blueprintHint, skillsSection: skillsBlock }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },

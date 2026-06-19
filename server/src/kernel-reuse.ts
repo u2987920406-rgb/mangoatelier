@@ -13,11 +13,13 @@
 // MOTS-CLÉS déterministe → marche toujours, sans Ollama. L'embedder est injectable
 // (tests déterministes). La recherche passe par le Blackboard #115 (cosinus).
 import { listComponents, COMPONENTS_DIR_NAME, type ComponentMeta } from './components.js'
+import { listSkills, type SkillMeta } from './skills.js'
 import { getBlackboard, type Blackboard } from './kernel-blackboard.js'
 import { embedOllama } from './ollama.js'
 import { inferProjectType } from './blueprints.js'
 
 export const COMPONENT_SCOPE = 'artifact:component'
+export const SKILL_SCOPE = 'artifact:skill'
 
 export type Embed = (text: string) => Promise<number[]>
 
@@ -65,6 +67,31 @@ export async function indexComponents(workspaceDir: string, bb: Blackboard, embe
   }
 }
 
+// ── Cœur de tri PARTAGÉ (composants, skills) ─────────────────────────────────
+/** La même mécanique pour toutes les bibliothèques texte : recherche sémantique
+ * dans le Blackboard si la requête s'embed (cosinus #115), sinon repli mots-clés
+ * déterministe. Top-k. C'est le « même mécanisme » qui unifie composants & skills
+ * (les procédures #75 implémentent déjà l'équivalent sur leur store calibré). */
+async function searchRanked<T>(
+  scope: string,
+  all: T[],
+  textOf: (t: T) => string,
+  prompt: string,
+  bb: Blackboard,
+  embed: Embed,
+  k: number,
+): Promise<T[]> {
+  const qEmb = await embed(prompt)
+  if (qEmb.length > 0) {
+    const ranked = bb
+      .search(scope, qEmb, k)
+      .map((h) => h.value as T)
+      .filter(Boolean)
+    if (ranked.length > 0) return ranked.slice(0, k)
+  }
+  return keywordRank(all, textOf, prompt, k)
+}
+
 function formatComponents(list: ComponentMeta[]): string {
   const lines = list.map((c) => {
     const tagStr = c.tags?.length ? ` [${c.tags.join(', ')}]` : ''
@@ -96,16 +123,51 @@ export async function relevantComponentsSection(
   if (all.length <= k) return formatComponents(all)
 
   await indexComponents(workspaceDir, bb, embed)
-  const qEmb = await embed(prompt)
-  let ranked: ComponentMeta[]
-  if (qEmb.length > 0) {
-    const hits = bb.search(COMPONENT_SCOPE, qEmb, k)
-    ranked = hits.map((h) => h.value as ComponentMeta).filter(Boolean)
-    if (ranked.length === 0) ranked = keywordRank(all, componentText, prompt, k) // aucun embedding stocké
-  } else {
-    ranked = keywordRank(all, componentText, prompt, k)
+  const ranked = await searchRanked(COMPONENT_SCOPE, all, componentText, prompt, bb, embed, k)
+  return formatComponents(ranked)
+}
+
+// ── Skills : même mécanisme que les composants (#119 → #120) ─────────────────
+function skillText(s: SkillMeta): string {
+  return `${s.name}. ${s.description}`
+}
+
+/** Indexe les skills dans le Blackboard (embedding texte best-effort). Les SkillMeta
+ * n'ont pas d'horodatage → on indexe une fois (présence). Idempotent. */
+export async function indexSkills(skills: SkillMeta[], bb: Blackboard, embed: Embed): Promise<void> {
+  for (const s of skills) {
+    if (bb.has(SKILL_SCOPE, s.name)) continue
+    const emb = await embed(skillText(s))
+    bb.put(SKILL_SCOPE, s.name, s, emb.length ? emb : undefined)
   }
-  return formatComponents(ranked.slice(0, k))
+}
+
+function formatSkills(list: SkillMeta[]): string {
+  const lines = list.map((s) => `- ${s.name}: ${s.description}\n  → ${s.file}`).join('\n')
+  return (
+    `\n\nLearned skills PERTINENTS pour cette tâche (how-to guides ; lis le SKILL.md ` +
+    `et suis-le si l'un correspond) :\n` +
+    lines
+  )
+}
+
+/** Section de prompt : les k skills les plus PERTINENTS à la tâche (recherche
+ * sémantique Blackboard, repli mots-clés). "" si aucun skill. `skills` injectable
+ * pour les tests (défaut = listSkills() qui lit workspace/.skills). */
+export async function relevantSkillsSection(
+  prompt: string,
+  opts: { skills?: SkillMeta[]; bb?: Blackboard; embed?: Embed; k?: number } = {},
+): Promise<string> {
+  const all = opts.skills ?? listSkills()
+  if (all.length === 0) return ''
+  const bb = opts.bb ?? getBlackboard()
+  const embed = opts.embed ?? defaultEmbed
+  const k = opts.k ?? 8
+  if (all.length <= k) return formatSkills(all)
+
+  await indexSkills(all, bb, embed)
+  const ranked = await searchRanked(SKILL_SCOPE, all, skillText, prompt, bb, embed, k)
+  return formatSkills(ranked)
 }
 
 // ── Blueprints : rappel du type pertinent ────────────────────────────────────
