@@ -56,6 +56,10 @@ export type PromptContext = {
   // Idée #99 — Perfect Plan : contrat de démarrage (5 réponses + références)
   // sauvegardé avant le premier message, pré-lu par agent.ts. "" si absent.
   perfectPlanSection?: string;
+  // Idée #117/#118 — palettes réutilisables du Blackboard proches de la cible du
+  // projet (recherche par similarité, cross-projet), pré-calculées par agent.ts.
+  // "" si pas de cible ou aucune palette proche → zéro poids.
+  artifactsSection?: string;
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -345,6 +349,10 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // données / ambiance + références) défini AVANT le premier message. Injecté en
   // tête (après tutorial) dans elite+mvp ; "" si absent → zéro poids.
   perfectPlan: (ctx) => ctx.perfectPlanSection ?? "",
+  // Idée #118 — réinjection des artefacts : palettes déjà créées proches de la
+  // cible, rappelées avant le build (réutiliser > réinventer). Pré-calculé par
+  // agent.ts depuis le Blackboard. "" si pas de cible/aucune proche → zéro poids.
+  artifacts: (ctx) => ctx.artifactsSection ?? "",
   // Mode discussion — posture conversationnelle (zéro build automatique).
   discuss: () => DISCUSS_RULES,
 };
@@ -354,8 +362,8 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
 // and uses the light vision rules. The order reproduces the previous hard-coded
 // concatenation exactly (verified byte-for-byte).
 const SCENARIOS: Record<"mvp" | "elite" | "finition" | "nocturne" | "esthetique" | "discuss", string[]> = {
-  elite: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "procedures", "superAgent"],
-  mvp: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "procedures", "superAgent"],
+  elite: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "analytic", "cadrage", "clarification", "plan", "miroir", "tests", "visionElite", "axioms", "designSystem", "preferences", "components", "references", "artifacts", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "selfCritique", "skills", "procedures", "superAgent"],
+  mvp: ["tutorial", "perfectPlan", "mode", "clientContext", "base", "blueprints", "constellations", "supabase", "backend", "moodboardMvp", "clarification", "visionMvp", "axioms", "designSystem", "preferences", "components", "references", "artifacts", "multiProject", "architecture", "lexique", "recovery", "memory", "identity", "notes", "skills", "procedures", "superAgent"],
   // Finition reuses the Élite arsenal but drops planning/moodboard (no new
   // feature design) and leads with the finition protocol to frame the phase.
   finition: ["tutorial", "mode", "clientContext", "base", "finition", "blueprints", "supabase", "backend", "analytic", "tests", "visionElite", "axioms", "designSystem", "components", "multiProject", "architecture", "lexique", "memory", "identity", "skills", "procedures", "superAgent"],

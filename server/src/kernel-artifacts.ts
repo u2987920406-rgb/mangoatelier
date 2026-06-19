@@ -156,6 +156,39 @@ export function searchArtifacts(colors: string[], k = 5, bb: Blackboard = getBla
     .map((hit) => ({ key: hit.key, artifact: hit.value as DesignArtifact, score: hit.score }))
 }
 
+// ── Réinjection : la bibliothèque reboucle vers la génération ─────────────────
+/** Bloc de system prompt rappelant à l'agent les palettes DÉJÀ créées proches de
+ * la cible du projet courant → réutiliser au lieu de réinventer. "" si pas de
+ * cible, ou aucune palette proche (au-dessus du seuil), ou seulement celles du
+ * projet courant. Pur et synchrone (embedding = histogramme, pas d'Ollama). */
+export function relevantArtifactsSection(
+  currentProject: string,
+  targetColors: string[],
+  opts: { k?: number; threshold?: number; bb?: Blackboard } = {},
+): string {
+  if (targetColors.length === 0) return ''
+  const k = opts.k ?? 4
+  const threshold = opts.threshold ?? 0.6
+  const hits = searchArtifacts(targetColors, k + 8, opts.bb)
+    .filter((h) => h.artifact.project !== currentProject) // pas la cible du projet courant
+    .filter((h) => (h.score ?? 0) >= threshold)
+    .slice(0, k)
+  if (hits.length === 0) return ''
+  const lines = hits.map((h) => {
+    const a = h.artifact
+    const role = a.type === 'design.reference' ? 'cible' : 'rendu'
+    const pct = Math.round((h.score ?? 0) * 100)
+    return `- ${a.project} (${role}, ~${pct}% proche) : ${a.colors.slice(0, 8).join(' ')}`
+  })
+  return (
+    `\n\n## Palettes réutilisables — mémoire du Blackboard\n` +
+    `Tu as déjà travaillé des palettes proches de la cible de ce projet (capturées ou produites ailleurs). ` +
+    `Pour la cohérence de ton univers visuel, RÉUTILISE-les de préférence plutôt que d'en réinventer une — sauf demande explicite contraire :\n` +
+    lines.join('\n') +
+    `\n`
+  )
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 export function registerArtifactRoutes(app: Express): void {
   app.get('/api/artifacts', (_req: Request, res: Response) => {

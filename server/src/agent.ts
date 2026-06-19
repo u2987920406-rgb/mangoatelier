@@ -9,7 +9,9 @@ import { constellationsSection } from "./constellations.js";
 import { proceduresPromptSection } from "./procedures.js";
 import { inferProjectType } from "./blueprints.js";
 import { WORKSPACE_DIR } from "./projects.js";
-import { perfectPlanSection } from "./perfect-plan.js";
+import { perfectPlanSection, loadContract } from "./perfect-plan.js";
+import { paletteFromContract } from "./kernel-design-events.js";
+import { relevantArtifactsSection } from "./kernel-artifacts.js";
 
 const DEFAULT_MODEL = process.env.MODEL ?? "sonnet";
 export const ALLOWED_MODELS = ["sonnet", "opus", "haiku"] as const;
@@ -166,6 +168,19 @@ export async function* runAgent(
   }
   // Idée #99 — Perfect Plan : contrat de démarrage (synchrone, lecture JSON).
   const perfectPlanBlock = (() => { try { return perfectPlanSection(projectDir); } catch { return ""; } })();
+  // Idée #118 — réinjection des artefacts : avant de coder, on cherche dans le
+  // Blackboard les palettes déjà créées proches de la CIBLE de ce projet (celle du
+  // Perfect Plan) et on les rappelle à l'agent (réutiliser > réinventer). Synchrone
+  // et pur (embedding = histogramme RGB, pas d'Ollama). "" si pas de cible/aucune.
+  const artifactsBlock = (() => {
+    try {
+      const targetColors = paletteFromContract(loadContract(projectDir));
+      const project = projectDir.split(/[\\/]/).filter(Boolean).pop() ?? "";
+      return relevantArtifactsSection(project, targetColors);
+    } catch {
+      return "";
+    }
+  })();
   try {
     const q = query({
       prompt,
@@ -191,7 +206,7 @@ export async function* runAgent(
           // Coque Souple: the append is assembled from named blocks following
           // the scenario (= effort mode). Behavior-constant vs the old inline
           // concatenation (verified byte-for-byte).
-          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode, perfectPlanSection: perfectPlanBlock }),
+          append: assembleSystemPrompt({ mode: effectiveMode, model: effectiveModel, projectDir, tutorial: tutorial ?? undefined, notesSection, constellationsSection: constellationsBlock, proceduresSection: proceduresBlock, clientMode, perfectPlanSection: perfectPlanBlock, artifactsSection: artifactsBlock }),
         },
         ...(sessionId ? { resume: sessionId } : {}),
       },

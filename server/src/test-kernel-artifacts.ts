@@ -16,6 +16,7 @@ import {
   uninstallArtifactStore,
   listArtifacts,
   searchArtifacts,
+  relevantArtifactsSection,
   ARTIFACT_SCOPE,
   type DesignArtifact,
 } from './kernel-artifacts.js'
@@ -106,6 +107,28 @@ function producedEnv(project: string, palette: string[]) {
   check('recherche : les rouges en tête', hits.every((h) => h.artifact.project.startsWith('rouge')))
   check('recherche : score présent', typeof hits[0].score === 'number')
   check('recherche palette vide → []', searchArtifacts([], 5, bb).length === 0)
+}
+
+// ── Réinjection : relevantArtifactsSection (bloc de system prompt) ───────────
+{
+  const bb = new Blackboard()
+  recordDesignArtifact(refEnv('autreProjet', ['#ff0000', '#cc0000']), bb, () => 1)
+  recordDesignArtifact(refEnv('projetBleu', ['#0000ff']), bb, () => 2)
+
+  // Cible rouge depuis le projet courant → rappelle la palette rouge d'AILLEURS.
+  const block = relevantArtifactsSection('courant', ['#ff0000'], { threshold: 0.5, bb })
+  check('réinjection : bloc non vide', block.length > 0)
+  check('réinjection : mentionne le projet source', block.includes('autreProjet'))
+  check('réinjection : en-tête de bloc', block.includes('Palettes réutilisables'))
+  check('réinjection : palette bleue lointaine exclue', !block.includes('projetBleu'))
+
+  // Pas de cible → "".
+  check('réinjection : pas de cible → ""', relevantArtifactsSection('courant', [], { bb }) === '')
+
+  // Seul le projet courant a une palette proche → exclu → "".
+  const bb2 = new Blackboard()
+  recordDesignArtifact(refEnv('courant', ['#ff0000']), bb2, () => 1)
+  check('réinjection : exclut le projet courant → ""', relevantArtifactsSection('courant', ['#ff0000'], { threshold: 0.5, bb: bb2 }) === '')
 }
 
 // ── Persistance SQLite réelle (survie au redémarrage) ────────────────────────

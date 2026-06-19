@@ -141,6 +141,19 @@ check("perfectPlan absent en finition", !finition.includes(PERFECT_PLAN));
 check("perfectPlan absent en esthetique", !esthetique.includes(PERFECT_PLAN));
 check("perfectPlan absent en nocturne", !nocturne.includes(PERFECT_PLAN));
 
+// Idée #118 — réinjection des artefacts : bloc injecté UNIQUEMENT quand
+// artifactsSection fourni, présent en élite+mvp, absent ailleurs / sans section.
+const ARTIFACTS = "Palettes réutilisables — mémoire du Blackboard";
+const sec = "## Palettes réutilisables — mémoire du Blackboard\n- projetX (cible, ~90% proche) : #000 #fff";
+const eliteAR = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, artifactsSection: sec });
+const mvpAR   = assembleSystemPrompt({ mode: "mvp",   model: "sonnet", projectDir: dir, artifactsSection: sec });
+check("artefacts absent en Élite sans section (zéro poids)", !elite.includes(ARTIFACTS));
+check("artefacts absent en MVP sans section (zéro poids)", !mvp.includes(ARTIFACTS));
+check("artefacts présent en Élite quand section fournie", eliteAR.includes(ARTIFACTS));
+check("artefacts présent en MVP quand section fournie", mvpAR.includes(ARTIFACTS));
+check("artefacts absent en finition", !assembleSystemPrompt({ mode: "finition", model: "sonnet", projectDir: dir, artifactsSection: sec }).includes(ARTIFACTS));
+check("artefacts absent en nocturne", !assembleSystemPrompt({ mode: "nocturne", model: "sonnet", projectDir: dir, artifactsSection: sec }).includes(ARTIFACTS));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 
