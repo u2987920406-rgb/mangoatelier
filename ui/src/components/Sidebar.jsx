@@ -2,11 +2,12 @@ import { useState } from "react";
 import {
   Activity, BarChart3, Bot, BrainCircuit, Briefcase, Download,
   Eye, EyeOff, GitFork, HelpCircle, History,
-  Loader2, Moon, Server, ClipboardCheck, Sparkles, Sun, Trash2, X,
+  Loader2, Moon, Palette, Server, ClipboardCheck, Sparkles, Sun, Trash2, X,
 } from "lucide-react";
 import Knowledge from "./Knowledge.jsx";
 import Metrics from "./Metrics.jsx";
 import Traces from "./Traces.jsx";
+import Artifacts from "./Artifacts.jsx";
 import Guide from "./Guide.jsx";
 import BuildReview from "./BuildReview.jsx";
 import { NEUTRAL } from "../neutral.js";
@@ -298,6 +299,12 @@ export default function Sidebar({
           />
         )}
         <SideBtn
+          icon={Palette}
+          label="Artefacts (palettes)"
+          active={active === "artefacts"}
+          onClick={() => toggle("artefacts")}
+        />
+        <SideBtn
           icon={HelpCircle}
           label="Aide"
           active={active === "aide"}
@@ -402,6 +409,11 @@ export default function Sidebar({
           {active === "traces" && !NEUTRAL && (
             <PanelShell title="Traces · Kernel" onClose={close}>
               <Traces />
+            </PanelShell>
+          )}
+          {active === "artefacts" && (
+            <PanelShell title="Artefacts · Blackboard" onClose={close}>
+              <Artifacts />
             </PanelShell>
           )}
           {active === "aide" && (

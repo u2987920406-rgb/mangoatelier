@@ -32,6 +32,7 @@ import { getBus } from "./kernel-bus.js";
 import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
 import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js";
+import { installArtifactStore, registerArtifactRoutes } from "./kernel-artifacts.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
@@ -676,6 +677,7 @@ app.post("/api/stop", async (_req, res) => {
 
 registerPromptLabRoutes(app);
 registerTraceRoutes(app);
+registerArtifactRoutes(app);
 registerTokenizerRoutes(app);
 registerIdeationRoutes(app);
 registerVeilleRoutes(app);
@@ -722,6 +724,11 @@ const httpServer = app.listen(PORT, () => {
   // Kernel : collecteur de traces — s'abonne aux spans `kernel.trace` du Bus pour
   // alimenter le tableau de bord (/api/traces). Voit chat.turn ET brain.complete.
   installTraceCollector(getBus());
+  // Kernel : observateur d'artefacts — persiste les designs (palettes Sharingan
+  // cibles + rendus) du flux design.* dans le Blackboard, cross-projet et
+  // sémantiquement interrogeable. Résout getBlackboard() à chaque événement → voit
+  // le store SQLite une fois la persistance (ci-dessous) branchée en async.
+  installArtifactStore(getBus());
   // Kernel : persistance du Blackboard si BLACKBOARD_DB est défini (sinon mémoire,
   // comportement historique). node:sqlite est intégré au runtime → import DYNAMIQUE
   // pour ne charger le module que quand la persistance est activée. Fallback mémoire
