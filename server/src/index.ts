@@ -28,6 +28,8 @@ import { setVisionContext, snapZone, visionStatus, getPreviewUrl } from "./visio
 import { shouldCaptureDiff, captureDiff } from "./vision-diff.js";
 import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
+import { getBus } from "./kernel-bus.js";
+import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { generateLexique } from "./lexique.js";
 import { registerPromptLabRoutes } from "./promptlab.js";
 import { registerTokenizerRoutes } from "./tokenizer.js";
@@ -650,6 +652,10 @@ app.post("/api/onboarding", (req, res) => {
 const httpServer = app.listen(PORT, () => {
   console.log(`MangoOS backend → http://localhost:${PORT}`);
   restoreAgents().catch((e) => console.warn("[agent-factory] restoreAgents:", e));
+  // Kernel : branche MangoQA (fantôme externe) sur l'Event Bus via le pont
+  // d'export — l'observateur '*' déverse le flux du bus dans .mangoqa/ que le
+  // fantôme lit. Silencieux tant que rien ne publie (migration du chat à venir).
+  installMangoQaBridge(getBus());
   // MangoOS passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
   // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.
