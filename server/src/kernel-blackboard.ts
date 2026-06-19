@@ -8,10 +8,14 @@
 //
 //   2. STORE d'artefacts — les agents ne s'échangent pas de données lourdes via
 //      le Bus ; ils les déposent ici et passent une RÉFÉRENCE (le `file_pointer`
-//      de l'Enveloppe). Pour l'instant en mémoire ; la persistance disque +
-//      la recherche sémantique (SQLite-vec) viendront quand le besoin arrivera.
+//      de l'Enveloppe). Le store est désormais un BACKEND ENFICHABLE
+//      (kernel-blackboard-store.ts) : MemoryStore par défaut (zéro dépendance),
+//      ou SqliteStore (persistance disque via node:sqlite + recherche sémantique
+//      par cosinus). Les VERROUS restent en mémoire — ils sont éphémères.
 //
-// Tout est déterministe et testable sans réseau ni I/O.
+// Les verrous sont déterministes et testables sans réseau ni I/O ; le store
+// l'est aussi avec le MemoryStore par défaut.
+import { MemoryStore, type BlackboardStore, type SearchHit } from './kernel-blackboard-store.js'
 
 /** Pointeur logique vers une valeur du store (l'analogue du file_pointer). */
 export interface BlackboardRef {
@@ -22,8 +26,13 @@ export interface BlackboardRef {
 export class Blackboard {
   // Verrous : une chaîne de promesses par ressource garantit l'ordre FIFO.
   private tails = new Map<string, Promise<void>>()
-  // Store : scope (ex. projectId) → (clé → valeur).
-  private store = new Map<string, Map<string, unknown>>()
+  // Store d'artefacts : backend enfichable (mémoire par défaut).
+  private readonly store: BlackboardStore
+
+  /** `store` optionnel : MemoryStore par défaut, SqliteStore pour la persistance. */
+  constructor(store: BlackboardStore = new MemoryStore()) {
+    this.store = store
+  }
 
   // ── Verrous ────────────────────────────────────────────────────────────────
   /** Acquiert le verrou d'une ressource. Renvoie la fonction de libération.
@@ -62,21 +71,17 @@ export class Blackboard {
     return this.tails.has(resource)
   }
 
-  // ── Store d'artefacts ────────────────────────────────────────────────────────
-  /** Dépose une valeur et renvoie sa référence (à passer dans une enveloppe). */
-  put<T>(scope: string, key: string, value: T): BlackboardRef {
-    let bucket = this.store.get(scope)
-    if (!bucket) {
-      bucket = new Map<string, unknown>()
-      this.store.set(scope, bucket)
-    }
-    bucket.set(key, value)
+  // ── Store d'artefacts (délégué au backend) ───────────────────────────────────
+  /** Dépose une valeur (+ embedding optionnel pour la recherche sémantique) et
+   * renvoie sa référence (à passer dans une enveloppe). */
+  put<T>(scope: string, key: string, value: T, embedding?: number[]): BlackboardRef {
+    this.store.put(scope, key, value, embedding)
     return { scope, key }
   }
 
   /** Lit une valeur (undefined si absente). */
   get<T>(scope: string, key: string): T | undefined {
-    return this.store.get(scope)?.get(key) as T | undefined
+    return this.store.get(scope, key) as T | undefined
   }
 
   /** Résout une référence vers sa valeur. */
@@ -85,20 +90,27 @@ export class Blackboard {
   }
 
   has(scope: string, key: string): boolean {
-    return this.store.get(scope)?.has(key) ?? false
+    return this.store.has(scope, key)
   }
 
   delete(scope: string, key: string): boolean {
-    const bucket = this.store.get(scope)
-    if (!bucket) return false
-    const had = bucket.delete(key)
-    if (bucket.size === 0) this.store.delete(scope)
-    return had
+    return this.store.delete(scope, key)
   }
 
   /** Clés présentes dans un scope (ex. tous les artefacts d'un projet). */
   keys(scope: string): string[] {
-    return [...(this.store.get(scope)?.keys() ?? [])]
+    return this.store.keys(scope)
+  }
+
+  /** Recherche sémantique : les k artefacts du scope les plus proches (cosinus)
+   * de `queryEmbedding`, parmi ceux qui ont été déposés AVEC un embedding. */
+  search(scope: string, queryEmbedding: number[], k = 5): SearchHit[] {
+    return this.store.search(scope, queryEmbedding, k)
+  }
+
+  /** Ferme le backend (persistance) — à appeler à l'arrêt propre. No-op en mémoire. */
+  close(): void {
+    this.store.close()
   }
 }
 

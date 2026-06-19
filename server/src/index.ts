@@ -30,6 +30,7 @@ import { readMetrics, recordTurnMetrics } from "./metrics.js";
 import { runRelay } from "./eleve.js";
 import { getBus } from "./kernel-bus.js";
 import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
+import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
@@ -716,6 +717,19 @@ const httpServer = app.listen(PORT, () => {
   // d'export — l'observateur '*' déverse le flux du bus dans .mangoqa/ que le
   // fantôme lit. Silencieux tant que rien ne publie (migration du chat à venir).
   installMangoQaBridge(getBus());
+  // Kernel : persistance du Blackboard si BLACKBOARD_DB est défini (sinon mémoire,
+  // comportement historique). node:sqlite est intégré au runtime → import DYNAMIQUE
+  // pour ne charger le module que quand la persistance est activée. Fallback mémoire
+  // si l'ouverture échoue : le Kernel ne refuse jamais de démarrer pour ça.
+  const blackboardDb = (process.env.BLACKBOARD_DB ?? "").trim();
+  if (blackboardDb) {
+    import("./kernel-blackboard-sqlite.js")
+      .then(({ SqliteStore }) => {
+        setBlackboard(new Blackboard(new SqliteStore(blackboardDb)));
+        console.log(`[kernel] Blackboard persistant → ${blackboardDb} (SQLite)`);
+      })
+      .catch((e) => console.warn("[kernel] Blackboard persistance indisponible, mémoire conservée:", e instanceof Error ? e.message : e));
+  }
   // MangoOS passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
   // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.
