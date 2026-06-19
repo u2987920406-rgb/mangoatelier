@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  BarChart3, BrainCircuit, Briefcase, Download,
+  BarChart3, Bot, BrainCircuit, Briefcase, Download,
   Eye, EyeOff, GitFork, HelpCircle, History,
   Loader2, Server, ClipboardCheck, Sparkles, Trash2, X,
 } from "lucide-react";
@@ -257,6 +257,7 @@ export default function Sidebar({
   onClientMode,
   perfectPlanContract = null,
   onDeletePerfectPlan,
+  onOpenAgentFactory,
 }) {
   const [active, setActive] = useState(null);
   const toggle = (id) => setActive((v) => (v === id ? null : id));
@@ -340,6 +341,14 @@ export default function Sidebar({
         >
           <Download size={17} />
         </a>
+
+        {onOpenAgentFactory && (
+          <SideBtn
+            icon={Bot}
+            label="Agent Factory"
+            onClick={onOpenAgentFactory}
+          />
+        )}
 
         <Sep />
 

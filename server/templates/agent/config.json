@@ -1,0 +1,11 @@
+{
+  "id": "__placeholder__",
+  "name": "Agent",
+  "category": "collecteur",
+  "description": "",
+  "createdAt": "",
+  "updatedAt": "",
+  "intervalMs": 60000,
+  "envVars": {},
+  "generatedBy": "claude"
+}

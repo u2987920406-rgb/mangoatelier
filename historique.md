@@ -1064,4 +1064,47 @@ Note : l'idée #100 (d'abord distincte) a été fusionnée dans #99 lors de la s
 ### Build live — accord-insurance-map 💎 Élite
 **Résultat** : mind map d'une assurance automobile en 💎 Élite. Cytoscape.js + Dagre, 24 polices Google, 6 collaborateurs, style Material Design, **16/16 tests** Vitest.
 
+---
+
+## 📅 Session 2026-06-19 — #103 Mango Agent Factory
+
+### Idée #103 — Constructeur d'agents autonomes spécialisés
+
+**Constat de départ :** Mango utilise `query()` (abonnement Claude Code) en interne pour tout son raisonnement — $0 extra. Un agent généré qui fait la même chose tourne sur la machine de Raf avec son abonnement, sans frais supplémentaires. L'angle "agents Claude" (tool use, raisonnement) est donc aussi local-first que l'angle "scripts purs".
+
+**Ce que ça change :** Mango devient un **constructeur d'agents** : l'output n'est plus une app web (React + backend) mais un script Node.js autonome avec sa propre boucle, ses outils, sa logique de décision. L'utilisateur décrit ce que l'agent doit faire ; Mango génère le code, la config `.env`, les logs.
+
+**Cas d'usage types :** surveiller un dossier · analyser des emails · préparer un brief quotidien · monitorer une API · scraper un site sur schedule · alerter sur un événement.
+
+**Architecture prévue :** nouveau template `agent` dans MangoAI (à côté de `vitrine`, `dashboard`, `phaser`) + adaptation du scénario pour cibler un output daemon/cron (pas d'UI imposée, mais mini-UI générée à la demande).
+
 **Fix découvert** : template `cytoscape` manquait `@tailwindcss/vite` → build KO au premier essai → package.json du template corrigé (`server/templates/cytoscape/package.json`).
+
+**Livraison complète — 2026-06-19 :**
+
+**Fichiers créés :**
+- `server/src/agent-types.ts` — types partagés : AgentDef, AgentRuntimeState, AgentMessage, MissionPlan, MissionStep
+- `server/src/agent-bus.ts` — bus de messages fichier (atomic write, TTL, purge)
+- `server/src/test-agent-bus.ts` — 18/18 tests ✅
+- `server/templates/agent/agent.js` — squelette standalone [MANGO:CORE]/[MANGO:CUSTOM], heartbeat 30s, circuit-breaker 5 erreurs, mode dégradé sans LLM
+- `server/templates/agent/config.json` — config par défaut
+- `server/src/agent-factory.ts` — registry CRUD, generateAgentCode (Claude génère 3 fonctions CUSTOM), scaffoldAgent
+- `server/src/agent-runtime.ts` — start/stop/restart, spawn Windows (shell:true), health monitor, restoreAgents au boot
+- `server/src/test-agent-runtime.ts` — 20/20 tests ✅
+- `server/src/agent-routes.ts` — 17 routes REST + proxy LLM $0 + SSE génération + routes mission
+- `server/src/agent-coordinator.ts` — planMission (Claude → JSON), executeMission (polling réponses), aggregateMissionResults
+- `ui/src/components/AgentFactory.jsx` — UI plein-écran : galerie agents, formulaire création SSE, détail 4 onglets (État/Config/Logs/Messages), filtres catégorie
+
+**Fichiers modifiés :**
+- `server/src/index.ts` — registerAgentFactoryRoutes + restoreAgents au boot
+- `ui/src/App.jsx` — lazy import AgentFactory, screen "agents", bouton Network, prop onOpenAgentFactory
+- `ui/src/components/Sidebar.jsx` — prop onOpenAgentFactory, bouton Bot
+
+**Principes clés :**
+- $0 LLM : les agents passent par `/api/agents/llm` → `askLLM()` → abonnement Claude Code, jamais `new Anthropic()`
+- Standalone-first : `node agent.js` marche seul sans MangoAI (mode dégradé si LLM injoignable)
+- Bus de messages fichier : `workspace/.agents/_bus/<to>/<id>.json` — atomic write, TTL, purge horaire
+- Registry JSON : `server/data/agents-registry.json` (même pattern que cron-tasks.json)
+- 4 catégories : collecteur (polling récurrent) · processeur (one-shot) · acteur (événement) · coordinateur (orchestre les autres)
+- `tsc --noEmit` : 0 erreur dans les fichiers #103 (2 erreurs pré-existantes mode "discuss" non liées)
+- `npm run build` (ui/) : ✅ vert, AgentFactory-xxx.js = 15,64 kB gzip 4,73 kB

@@ -58,6 +58,8 @@ import { registerRadarRoutes } from "./radar.js";
 import { registerBuildReviewRoutes } from "./build-review-routes.js";
 import { bootstrapProfile, hasProfile, type OnboardingAnswers } from "./onboarding.js";
 import { registerPerfectPlanRoutes } from "./perfect-plan-routes.js";
+import { registerAgentFactoryRoutes } from "./agent-routes.js";
+import { restoreAgents } from "./agent-runtime.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -615,6 +617,7 @@ registerRadarRoutes(app);
 registerPromptEvolutionRoutes(app);
 registerBuildReviewRoutes(app);
 registerPerfectPlanRoutes(app);
+registerAgentFactoryRoutes(app);
 
 app.get("/api/onboarding/status", (_req, res) => {
   res.json({ hasProfile: hasProfile(WORKSPACE_DIR) });
@@ -631,6 +634,7 @@ app.post("/api/onboarding", (req, res) => {
 
 const httpServer = app.listen(PORT, () => {
   console.log(`MangoAI backend → http://localhost:${PORT}`);
+  restoreAgents().catch((e) => console.warn("[agent-factory] restoreAgents:", e));
   // MangoAI passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
   // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.

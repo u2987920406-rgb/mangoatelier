@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Palette, Rss, Satellite, Scissors, Sliders, ShieldCheck, Squircle } from "lucide-react";
+import { BarChart2, BookOpen, Bot, Clock, CreditCard, FileText, FlaskConical, GitBranch, Hash, Layers, Lightbulb, Moon, Network, Palette, Rss, Satellite, Scissors, Sliders, ShieldCheck, Squircle } from "lucide-react";
 import Chat from "./Chat.jsx";
 import Preview from "./Preview.jsx";
 import Home from "./components/Home.jsx";
@@ -30,6 +30,7 @@ const DesignReview    = lazy(() => import("./components/DesignReview.jsx"));
 const Tutorial        = lazy(() => import("./components/Tutorial.jsx"));
 const NocturnalReview = lazy(() => import("./components/NocturnalReview.jsx"));
 const Radar           = lazy(() => import("./components/Radar.jsx"));
+const AgentFactory    = lazy(() => import("./components/AgentFactory.jsx"));
 
 // Fallback léger partagé par tous les panneaux lazy
 function PanelLoader() {
@@ -493,6 +494,7 @@ export default function App() {
   if (screen === "design") panelContent = <DesignReview onBack={() => setScreen("home")} projectName={projectName} />;
   if (screen === "nocturnal") panelContent = <NocturnalReview onBack={() => setScreen("home")} onOpenProject={(name, entry) => openProject(name, { origin: "nocturnal", task: entry?.task ?? null, nocturnal: entry ? { id: entry.id, reviewed: Boolean(entry.reviewed) } : null })} />;
   if (screen === "radar") panelContent = <Radar onBack={() => setScreen("home")} />;
+  if (screen === "agents") panelContent = <AgentFactory onBack={() => setScreen("home")} />;
 
   if (onboardingNeeded) {
     return <Onboarding onDone={() => setOnboardingNeeded(false)} />;
@@ -639,6 +641,13 @@ export default function App() {
             >
               <Satellite size={18} className="text-accent" />
             </button>
+            <button
+              onClick={() => setScreen("agents")}
+              title="Agent Factory (#103)"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/40 bg-accent/10 shadow-lg hover:bg-accent/20 transition-colors"
+            >
+              <Network size={18} className="text-accent" />
+            </button>
           </div>
           <SidePanel isOpen={sidePanelOpen} onClose={() => setSidePanelOpen(false)} />
         </>
@@ -671,6 +680,7 @@ export default function App() {
               await fetch(`/api/perfect-plan/${encodeURIComponent(projectName)}`, { method: "DELETE" }).catch(() => {});
               setPerfectPlanContract(null);
             }}
+            onOpenAgentFactory={() => setScreen("agents")}
           />
           <div className="flex min-w-0 flex-1 flex-col">
           <Header
