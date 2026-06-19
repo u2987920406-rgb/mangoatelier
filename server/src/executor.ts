@@ -2,7 +2,7 @@
 //
 // parseContract() (contract.ts) a transformé la sortie d'un modèle en une liste
 // d'Action validées. executeContract() les APPLIQUE au disque, dans le périmètre
-// strict du projet. Le modèle a PROPOSÉ ; ici MangoAI EXÉCUTE — c'est le seul
+// strict du projet. Le modèle a PROPOSÉ ; ici MangoOS EXÉCUTE — c'est le seul
 // endroit qui touche les fichiers, donc le seul point à sécuriser.
 //
 // Principe d'arrêt : à la PREMIÈRE action qui échoue, on stoppe. Un plan dont une

@@ -40,7 +40,7 @@ export interface AgentRuntimeState {
 // Message du bus inter-agents.
 export interface AgentMessage {
   id: string;
-  from: string;                        // agent-id ou '__mango__' (MangoAI)
+  from: string;                        // agent-id ou '__mango__' (MangoOS)
   to: string;                          // agent-id destinataire
   type: MessageType;
   payload: unknown;                    // JSON-serialisable

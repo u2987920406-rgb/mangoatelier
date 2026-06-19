@@ -32,7 +32,7 @@ async function getVersionGraph(projectName: string): Promise<VersionNode[]> {
   const nodes: VersionNode[] = []
 
   for (const v of versions) {
-    let author = 'MangoAI'
+    let author = 'MangoOS'
     let filesChanged = 0
 
     try {
@@ -43,7 +43,7 @@ async function getVersionGraph(projectName: string): Promise<VersionNode[]> {
         '--format=%an',
         v.hash,
       ])
-      author = logOut.trim() || 'MangoAI'
+      author = logOut.trim() || 'MangoOS'
 
       // Get files changed count
       const statOut = await gitCmd(dir, [

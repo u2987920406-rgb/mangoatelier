@@ -4,13 +4,13 @@
 import path from "node:path";
 import fs from "node:fs";
 
-const SCRIPT = `    <script data-mangoai="error-relay">
-      // MangoAI error relay - reports runtime errors to the builder UI
+const SCRIPT = `    <script data-mangoos="error-relay">
+      // MangoOS error relay - reports runtime errors to the builder UI
       (function () {
         function report(message) {
           try {
             window.parent.postMessage(
-              { source: "mangoai-preview", message: String(message).slice(0, 2000) },
+              { source: "mangoos-preview", message: String(message).slice(0, 2000) },
               "*"
             );
           } catch (_) {}
@@ -29,7 +29,7 @@ export function ensureErrorRelay(dir: string): void {
   const file = path.join(dir, "index.html");
   if (!fs.existsSync(file)) return;
   const html = fs.readFileSync(file, "utf8");
-  if (html.includes('data-mangoai="error-relay"')) return;
+  if (html.includes('data-mangoos="error-relay"')) return;
   const updated = html.includes("</head>")
     ? html.replace("</head>", `${SCRIPT}\n  </head>`)
     : `${SCRIPT}\n${html}`;
@@ -40,9 +40,9 @@ export function ensureErrorRelay(dir: string): void {
 // au builder le data-mango-src (fichier:ligne) posé par le tampon Babel
 // (clicksource.ts). C'est la moitié VIVANTE du pont pixel→code : l'utilisateur
 // clique l'aperçu RÉEL qu'il voit, le DOM réel répond — pas de Playwright, pas
-// de vision. Le builder bascule le mode via postMessage("mangoai-builder").
-const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
-      // MangoAI inspect relay - hover highlight + click -> source (file:line)
+// de vision. Le builder bascule le mode via postMessage("mangoos-builder").
+const INSPECT_SCRIPT = `    <script data-mangoos="inspect-relay">
+      // MangoOS inspect relay - hover highlight + click -> source (file:line)
       (function () {
         var ON = false;
         // Hover throttle state
@@ -59,7 +59,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
             _lastRectKey = "";
             try {
               window.parent.postMessage(
-                { source: "mangoai-preview", type: "inspect-hover", rect: null },
+                { source: "mangoos-preview", type: "inspect-hover", rect: null },
                 "*"
               );
             } catch (_) {}
@@ -68,7 +68,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
 
         window.addEventListener("message", function (e) {
           var d = e.data;
-          if (!d || d.source !== "mangoai-builder") return;
+          if (!d || d.source !== "mangoos-builder") return;
           if (d.type === "inspect-on") setMode(true);
           else if (d.type === "inspect-off") setMode(false);
         });
@@ -98,7 +98,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
             try {
               window.parent.postMessage(
                 {
-                  source: "mangoai-preview",
+                  source: "mangoos-preview",
                   type: "inspect-hover",
                   rect: { x: r.left, y: r.top, width: r.width, height: r.height },
                   tag: ref.tagName ? ref.tagName.toLowerCase() : "?",
@@ -117,7 +117,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
           _lastRectKey = "";
           try {
             window.parent.postMessage(
-              { source: "mangoai-preview", type: "inspect-hover", rect: null },
+              { source: "mangoos-preview", type: "inspect-hover", rect: null },
               "*"
             );
           } catch (_) {}
@@ -136,7 +136,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
             try {
               window.parent.postMessage(
                 {
-                  source: "mangoai-preview",
+                  source: "mangoos-preview",
                   type: "inspect-pick",
                   src: el ? el.getAttribute("data-mango-src") : null,
                   tag: ref.tagName ? ref.tagName.toLowerCase() : "?",
@@ -151,7 +151,7 @@ const INSPECT_SCRIPT = `    <script data-mangoai="inspect-relay">
             _lastRectKey = "";
             try {
               window.parent.postMessage(
-                { source: "mangoai-preview", type: "inspect-hover", rect: null },
+                { source: "mangoos-preview", type: "inspect-hover", rect: null },
                 "*"
               );
             } catch (_) {}
@@ -166,7 +166,7 @@ export function ensureInspectRelay(dir: string): void {
   const file = path.join(dir, "index.html");
   if (!fs.existsSync(file)) return;
   const html = fs.readFileSync(file, "utf8");
-  if (html.includes('data-mangoai="inspect-relay"')) return;
+  if (html.includes('data-mangoos="inspect-relay"')) return;
   const updated = html.includes("</head>")
     ? html.replace("</head>", `${INSPECT_SCRIPT}\n  </head>`)
     : `${INSPECT_SCRIPT}\n${html}`;

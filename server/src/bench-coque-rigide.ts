@@ -38,17 +38,17 @@ const ok = (r: ContractResult): r is Extract<ContractResult, { ok: true }> => r.
 const CASES: UnitCase[] = [
   {
     name: "Enveloppe propre → valide, non réparé",
-    raw: `<mangoai><write path="a.js">x</write><summary>ok</summary></mangoai>`,
+    raw: `<mangoos><write path="a.js">x</write><summary>ok</summary></mangoos>`,
     expect: (r) => ok(r) && !r.repaired && r.actions.length === 1 && r.summary === "ok",
   },
   {
     name: "Fence markdown ```xml … ``` → réparé",
-    raw: "```xml\n<mangoai><write path=\"a.js\">x</write><summary>s</summary></mangoai>\n```",
+    raw: "```xml\n<mangoos><write path=\"a.js\">x</write><summary>s</summary></mangoos>\n```",
     expect: (r) => ok(r) && r.repaired && r.actions.length === 1,
   },
   {
     name: "Prose avant/après l'enveloppe → réparé",
-    raw: `Bien sûr ! Voici :\n<mangoai><write path="a.js">x</write><summary>s</summary></mangoai>\nVoilà.`,
+    raw: `Bien sûr ! Voici :\n<mangoos><write path="a.js">x</write><summary>s</summary></mangoos>\nVoilà.`,
     expect: (r) => ok(r) && r.repaired && r.actions.length === 1,
   },
   {
@@ -58,7 +58,7 @@ const CASES: UnitCase[] = [
   },
   {
     name: "Ordre préservé (write → run → edit)",
-    raw: `<mangoai><write path="a.js">1</write><run>npm i</run><edit path="b.js"><find>o</find><replace>n</replace></edit><summary>s</summary></mangoai>`,
+    raw: `<mangoos><write path="a.js">1</write><run>npm i</run><edit path="b.js"><find>o</find><replace>n</replace></edit><summary>s</summary></mangoos>`,
     expect: (r) =>
       ok(r) &&
       r.actions.length === 3 &&
@@ -68,49 +68,49 @@ const CASES: UnitCase[] = [
   },
   {
     name: "Axiome capturé",
-    raw: `<mangoai><write path="a.js">x</write><summary>s</summary><axiom>Vite = ESM, jamais module.exports</axiom></mangoai>`,
+    raw: `<mangoos><write path="a.js">x</write><summary>s</summary><axiom>Vite = ESM, jamais module.exports</axiom></mangoos>`,
     expect: (r) => ok(r) && r.axiom === "Vite = ESM, jamais module.exports",
   },
   {
     name: "Résumé seul, sans action → valide",
-    raw: `<mangoai><summary>Rien à faire, déjà conforme.</summary></mangoai>`,
+    raw: `<mangoos><summary>Rien à faire, déjà conforme.</summary></mangoos>`,
     expect: (r) => ok(r) && r.actions.length === 0 && r.summary.length > 0,
   },
   // — Rejets attendus —
   { name: "Réponse vide → rejet", raw: `   `, expect: (r) => !r.ok },
   {
     name: "<write> sans path → rejet",
-    raw: `<mangoai><write>x</write><summary>s</summary></mangoai>`,
+    raw: `<mangoos><write>x</write><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "Chemin absolu POSIX (/etc) → rejet sécurité",
-    raw: `<mangoai><write path="/etc/passwd">x</write><summary>s</summary></mangoai>`,
+    raw: `<mangoos><write path="/etc/passwd">x</write><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "Lettre de lecteur (C:\\) → rejet sécurité",
-    raw: `<mangoai><write path="C:\\Windows\\evil.js">x</write><summary>s</summary></mangoai>`,
+    raw: `<mangoos><write path="C:\\Windows\\evil.js">x</write><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "Remontée .. → rejet sécurité",
-    raw: `<mangoai><write path="../../secret.js">x</write><summary>s</summary></mangoai>`,
+    raw: `<mangoos><write path="../../secret.js">x</write><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "<edit> sans <find>/<replace> → rejet",
-    raw: `<mangoai><edit path="b.js">rien</edit><summary>s</summary></mangoai>`,
+    raw: `<mangoos><edit path="b.js">rien</edit><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "<run> vide → rejet",
-    raw: `<mangoai><run>   </run><summary>s</summary></mangoai>`,
+    raw: `<mangoos><run>   </run><summary>s</summary></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
     name: "Ni action ni résumé → rejet",
-    raw: `<mangoai></mangoai>`,
+    raw: `<mangoos></mangoos>`,
     expect: (r) => !r.ok,
   },
   {
@@ -150,23 +150,23 @@ function runUnit(): boolean {
 // ÉTAGE B — Élève en conditions réelles
 // ─────────────────────────────────────────────────────────────────────────
 
-const STRICT_SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
-Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoAI les exécutera.
+const STRICT_SYSTEM = `Tu es un développeur qui propose des actions à MangoOS.
+Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoOS les exécutera.
 Tu DOIS répondre UNIQUEMENT dans ce format à balises, aucune prose autour :
 
-<mangoai>
+<mangoos>
   <write path="chemin/relatif">contenu brut</write>
   <edit path="chemin/relatif"><find>exact</find><replace>nouveau</replace></edit>
   <run>commande shell</run>
   <summary>résumé court</summary>
-</mangoai>
+</mangoos>
 
-Règles : path TOUJOURS relatif (jamais C:\\, /, ..). Termine par <summary>. AUCUN texte hors de <mangoai>.`;
+Règles : path TOUJOURS relatif (jamais C:\\, /, ..). Termine par <summary>. AUCUN texte hors de <mangoos>.`;
 
 // Prompt volontairement FAIBLE — pour provoquer des déviations naturelles
 // (fence, prose, oubli d'enveloppe) et tester la réparation.
 const WEAK_SYSTEM = `Tu es un assistant développeur. Tu peux proposer des actions
-en utilisant des balises <mangoai>, <write path="...">, <summary>.`;
+en utilisant des balises <mangoos>, <write path="...">, <summary>.`;
 
 interface LiveCase {
   name: string;
@@ -205,7 +205,7 @@ interface Deviation {
 }
 
 function detect(raw: string): Deviation {
-  const env = /<mangoai>([\s\S]*?)<\/mangoai>/i.exec(raw);
+  const env = /<mangoos>([\s\S]*?)<\/mangoos>/i.exec(raw);
   let proseOutside = false;
   if (env) {
     const before = raw.slice(0, env.index).trim();
@@ -215,7 +215,7 @@ function detect(raw: string): Deviation {
   return {
     fence: /```/.test(raw),
     proseOutside,
-    envelopeMissing: !/<mangoai>/i.test(raw),
+    envelopeMissing: !/<mangoos>/i.test(raw),
     commonJS: /module\.exports|require\(/.test(raw),
   };
 }

@@ -1,7 +1,7 @@
 // Coque Rigide (Phase Ultime, jalon C): the strict, standardized I/O contract
 // by which ANY model (Claude today as a stand-in, a local "student" tomorrow)
-// talks to MangoAI. The model does NOT touch the disk — it PROPOSES a list of
-// actions in a parseable format; MangoAI parses → repairs → validates → (later,
+// talks to MangoOS. The model does NOT touch the disk — it PROPOSES a list of
+// actions in a parseable format; MangoOS parses → repairs → validates → (later,
 // jalon D) executes. This module is the OUTPUT side: turning a model's raw
 // response into a safe, structured ActionPlan, or a clean rejection.
 //
@@ -21,7 +21,7 @@ export type ContractResult =
   | { ok: true; actions: Action[]; summary: string; axiom?: string; repaired: boolean }
   | { ok: false; error: string };
 
-const ENVELOPE = /<mangoai>([\s\S]*?)<\/mangoai>/i;
+const ENVELOPE = /<mangoos>([\s\S]*?)<\/mangoos>/i;
 // One regex, scanned in order, so write/edit/run keep their original sequence.
 const ACTION = /<(write|edit|run)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
 const ATTR_PATH = /path\s*=\s*["']([^"']+)["']/i;
@@ -75,7 +75,7 @@ export function parseContract(raw: string): ContractResult {
     body = text;
     repaired = true;
   } else {
-    return { ok: false, error: "Aucune enveloppe <mangoai> ni action reconnaissable." };
+    return { ok: false, error: "Aucune enveloppe <mangoos> ni action reconnaissable." };
   }
 
   const actions: Action[] = [];

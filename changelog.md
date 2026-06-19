@@ -1,4 +1,4 @@
-# Changelog — MangoAI
+# Changelog — MangoOS
 
 ## 2026-06-13 — Post-Jalon D : finitions Élève + chaîne d'édition visuelle native + trou de mesure fermé
 *Session suivant la livraison du Jalon D. Tout poussé (dernier commit `42b6f5f`), `tsc` serveur 0, build UI OK.*
@@ -10,7 +10,7 @@
 - **Trou de mesure fermé (caveat n°7)** : `vite build` ne juge que la compilation, pas que le changement a ATTERRI. `audit-verify.ts` (`verifyEffect`, pur) + une attente `expect: EffectSpec` par tâche held-out → l'Audit Scan mesure le **RENDEMENT RÉEL** (build ET effet), distinct du build, verdict d'ablation rebasé dessus. Test 16/16 + **live** : build 100 % mais rendement réel **89 %** — `edit-app-header` démasqué (l'escalade Claude déclarait « résolu/build-vert » alors que le `<header>` n'avait jamais atterri). Résidu tracé : succès de `runRelay` en prod reste build-only (piste n°8)
 - **#6 — Édition visuelle chirurgicale** : `buildVisualEditPrompt` (`clicksource.ts`) enrichit la tâche avec le `fichier:ligne` exact + l'extrait + consigne d'edit CHIRURGICAL (model-agnostic). `editTarget` transite UI (`App.jsx`/`Chat.jsx`) → `/api/chat` ; `index.ts` construit un `agentPrompt` séparé et **vérifie objectivement** que le fichier cible a changé d'octets (parade caveat n°7 en prod, cas cible connue). Test 29/29 + **e2e live** : clic `<h1>Bella Napoli</h1>` → Élève seul ($0, 1er tour) remplace CE texte, voisin intact, pas de réécriture. **Le même edit qui échouait en aveugle réussit** grâce à l'extrait fourni — chaîne #1+#5+#6 convergente
 - **Idée 28 inscrite** (`statut.md`) : « Clapet v4.0 — auto-élagage par ablation persistée » (`ablationScore` par axiome). Sous-option `impactScope` à évaluer, `domSelector` écarté. Palier maturité, déclencheur ≥5-10 axiomes de code. Coquilles `v3.0`/`__debugSource` corrigées dans `D:\IA\axiom v4.md`
-- **Positionnement projet acté (non gravé en mémoire, sur demande)** : MangoAI = **outil perso local-first** pour produire des livrables clients (pas un SaaS grand public) ; installation/externalisation = phase 2, conditionnée à un client payant le prix fort
+- **Positionnement projet acté (non gravé en mémoire, sur demande)** : MangoOS = **outil perso local-first** pour produire des livrables clients (pas un SaaS grand public) ; installation/externalisation = phase 2, conditionnée à un client payant le prix fort
 
 ## 2026-06-13 — Phase Ultime, Jalon D : Élève local + boucle de relais (LIVRÉ)
 - **Élève installé** : `qwen2.5-coder:7b` via **Ollama** sur la GTX 1080 Ti (11 Go VRAM, le bon créneau pour un coder 7B quantifié). Modèles Ollama **redirigés sur D:** (`OLLAMA_MODELS`) — ~28 Go rapatriés de C: (10→23 Go libres). Coût d'usage : **zéro**
@@ -28,7 +28,7 @@
 
 ## 2026-06-13 — Phase Ultime, Jalon C : contrat d'E/S (Coque Rigide) v1
 - **Pré-test** : (1) ne PAS remplacer la boucle agentique actuelle (Claude en direct via le SDK marche et est validé) — le contrat vit À CÔTÉ, pour l'élève ; (2) format **balises**, pas JSON (les actions portent du code brut → JSON forcerait un échappement que les petits modèles cassent) ; (3) le cœur (parse/répare/valide) est de la **logique pure**, donc prouvable sans modèle
-- **Spec** : `docs/contrat-es.md` — enveloppe `<mangoai>` avec actions `<write path>`, `<edit path>`(`<find>`/`<replace>`), `<run>`, `<summary>`, `<axiom>` ; règles de validation (chemins project-relatifs obligatoires) et de réparation (fence markdown, prose autour, enveloppe oubliée)
+- **Spec** : `docs/contrat-es.md` — enveloppe `<mangoos>` avec actions `<write path>`, `<edit path>`(`<find>`/`<replace>`), `<run>`, `<summary>`, `<axiom>` ; règles de validation (chemins project-relatifs obligatoires) et de réparation (fence markdown, prose autour, enveloppe oubliée)
 - **Implémentation** : `server/src/contract.ts` — `parseContract(raw) → ActionPlan | {ok:false,error}`. Ordre des actions préservé, sécurité chemins (refus `..`, absolu, lettre de lecteur), réparation avant rejet. Un rejet = futur signal d'escalade vers Claude (Jalon D)
 - **Tests déterministes** : 16/16 verts (cas propre + ordre, fence+prose, enveloppe oubliée, traversal/drive rejetés, edit incomplet/run vide/vide/prose rejetés, axiom capté). `tsc` propre
 - **Périmètre v1 honnête** : spec + parser/réparateur/validateur seulement. L'**exécuteur** (appliquer write/edit/run au disque) + le branchement à un modèle vivant en mode contrat → **Jalon D** (avec l'élève, quand on connaîtra ses vraies contraintes). **La boucle agentique de Claude n'est pas touchée — zéro régression.**
@@ -50,10 +50,10 @@
 - Prochaine étape Phase Ultime : Jalon B (inspection auto + métriques d'escalade)
 
 ## 2026-06-13 — Validation Supabase (idée 17) en live : app à base de données fonctionnelle
-- **Test e2e réel réussi** : app `todo-supabase` générée par MangoAI (MVP+sonnet, $0.36) — client `src/lib/supabase.js`, composant `TodoApp.jsx`, `@supabase/supabase-js` installé, dégradation propre si clés absentes
+- **Test e2e réel réussi** : app `todo-supabase` générée par MangoOS (MVP+sonnet, $0.36) — client `src/lib/supabase.js`, composant `TodoApp.jsx`, `@supabase/supabase-js` installé, dégradation propre si clés absentes
 - L'agent a fourni le SQL exact (table `todos` + RLS + policy `anon`), lancé par l'utilisateur dans l'éditeur SQL Supabase
 - Clés `anon` (format `eyJ…`) branchées dans `workspace/todo-supabase/.env` (git-ignoré, hors zip) depuis le coffre `.credentials/`
-- **Résultat : tâches réellement persistées dans le cloud Supabase, confirmé au rechargement de la page** ✅ — premier projet MangoAI avec une vraie base de données
+- **Résultat : tâches réellement persistées dans le cloud Supabase, confirmé au rechargement de la page** ✅ — premier projet MangoOS avec une vraie base de données
 - Incident résolu en passant : un processus d'aperçu orphelin (port 5174, resté d'un serveur précédent) servait un ancien dashboard ; tué + aperçu `todo-supabase` relancé proprement. Leçon : un redémarrage serveur ne tue pas l'aperçu enfant → candidat axiome ARCH
 - **Phase 1 désormais 100 % validée en live** : 12 (MVP/Élite), 16 (GitHub, push réel ✅), 17 (Supabase, persistance réelle ✅)
 
@@ -98,7 +98,7 @@
 
 ## 2026-06-13 — Session 9 : sélecteur ⚡ MVP / 💎 Élite (idée 12) + idées 15-26 + plan de formation
 - **Veille & jouvence (idée 15)** : `VEILLE-MENSUELLE.md` (checklist SDK/modèles/template/MCP/e2e/métriques) + rappel cron mensuel (le 13) dans Claude Code ; garde-fous de l'idée 10 (Knowledge Flywheel) actés dans `statut.md`
-- **11 nouvelles idées (16-26)** dans `statut.md` : GitHub natif, Supabase (le vrai manque vs Lovable), déploiement Vercel/Netlify, lab de prompts, visualiseur de tokens, panneau métriques, agent RAG, dashboard de veille IA, tests auto, MCP Figma, multi-projets ; + roadmap « Montée en puissance » en 6 phases (21 étapes ordonnées) distinguant 🔧 Type A (on code MangoAI ensemble) et 🧪 Type B (l'utilisateur construit dans MangoAI pour se former à l'IA)
+- **11 nouvelles idées (16-26)** dans `statut.md` : GitHub natif, Supabase (le vrai manque vs Lovable), déploiement Vercel/Netlify, lab de prompts, visualiseur de tokens, panneau métriques, agent RAG, dashboard de veille IA, tests auto, MCP Figma, multi-projets ; + roadmap « Montée en puissance » en 6 phases (21 étapes ordonnées) distinguant 🔧 Type A (on code MangoOS ensemble) et 🧪 Type B (l'utilisateur construit dans MangoOS pour se former à l'IA)
 - **`PLAN-FORMATION.md`** : curriculum complet à cases à cocher, timing (22-36 sessions, horizon fin 2026), guides pas-à-pas avec prompts de départ pour les 4 projets formation
 - **Sélecteur de mode (idée 12) — LIVRÉ** : deuxième axe orthogonal au modèle (quel cerveau × quelle exigence). `⚡ MVP` = rapide & économe (pas de rituel analytique, pas d'extended thinking, boucle visuelle minimale, budget vision 3) ; `💎 Élite` = arsenal complet (analyse + thinking adaptatif si modèle ≠ haiku, boucle visuelle complète, budget vision 10). **C'est l'interrupteur sur lequel toutes les fonctions futures (Mango Plan, moodboard, QA temporel) se brancheront**
   - Backend : `ALLOWED_MODES`/`Mode`/`MODE_RULES` + `VISION_RULES` dédoublé (Élite/MVP) dans `agent.ts` ; `runAgent(..., mode)` pilote `analytic`, le thinking et le jeu de règles vision ; budget vision par mode dans `vision.ts` (`setVisionContext(dir, url, mode)`, env `VISION_BUDGET_MVP` défaut 3) ; `/api/chat` lit `mode` du body (défaut élite) ; `mode` ajouté aux métriques (`metrics.ts`)
@@ -113,7 +113,7 @@
   - **Tests** : `tsc` propre ; happy path (générer une vraie app Supabase) non testé — nécessite les clés Supabase de l'utilisateur + consommerait du quota
 
 ## 2026-06-13 — Session 8 (suite 3) : tableau d'idées + collecte de métriques (idée 14, volet 1)
-- **Tableau « 💡 Idées en attente »** ajouté en tête de `statut.md` (visible avant toute session de code, règle de rappel dans `memory.md`) — 14 idées consignées au fil de la discussion : QA temporel, design pair-programming, généalogie visuelle, doc multimodale, guide MangoAI, stacks/blueprints par type, inspiration web, Mango Plan (haute), Knowledge Flywheel, moodboard, sélecteur ⚡ MVP / 💎 Élite (haute, prérequis), audit des coûts (📅 2026-06-22, fin de Fable), tableau de bord d'évolution
+- **Tableau « 💡 Idées en attente »** ajouté en tête de `statut.md` (visible avant toute session de code, règle de rappel dans `memory.md`) — 14 idées consignées au fil de la discussion : QA temporel, design pair-programming, généalogie visuelle, doc multimodale, guide MangoOS, stacks/blueprints par type, inspiration web, Mango Plan (haute), Knowledge Flywheel, moodboard, sélecteur ⚡ MVP / 💎 Élite (haute, prérequis), audit des coûts (📅 2026-06-22, fin de Fable), tableau de bord d'évolution
 - **Ordre d'exécution recommandé** discuté et acté (5 phases : flywheel → templates v2 → brique web → Mango Plan+moodboard → vision avancée → livrables) ; analyse honnête coût/lourdeur : rien ne fait ramer la machine, le temps de réponse est le seul prix (accepté par l'utilisateur — usage perso), vraie limite = quota Claude
 - **Collecte de métriques ACTIVE** (volet 1 de l'idée 14) : `server/src/metrics.ts` — à la fin de chaque tour, une ligne JSON dans `workspace/.metrics.jsonl` (date, projet, modèle, coût, tours, tokens contexte, snapshots, durée, erreur), append best-effort (jamais d'impact sur le tour). Matière première de la courbe d'apprentissage et de l'audit du 22 juin. Testé : ligne enregistrée ✅, `tsc` propre
 
@@ -160,7 +160,7 @@
 - **Test e2e** (sonnet, vraie tâche : bouton scroll-top qui doit disparaître en haut de page) : 2 blocs de raisonnement visibles — analyse du code existant, hypothèses, identification de la vraie cause (scroll events pendant le smooth scroll) avant l'édition ; $0.34, 6 tours, session/contexte intacts, 2 entrées `thinking` persistées ✅ ; `tsc --noEmit` propre, 0 erreur Vite
 
 ## 2026-06-12 — Session 6 : compression de contexte (context_compressor d'Hermes transposé)
-- **Différence d'architecture identifiée** : Hermes possède sa liste de messages et la réécrit (seuil %, tête/queue protégées, résumé par modèle auxiliaire) ; MangoAI délègue l'historique au Claude Agent SDK (`resume: sessionId`) → transposition des concepts sur les primitives du SDK plutôt que portage du code
+- **Différence d'architecture identifiée** : Hermes possède sa liste de messages et la réécrit (seuil %, tête/queue protégées, résumé par modèle auxiliaire) ; MangoOS délègue l'historique au Claude Agent SDK (`resume: sessionId`) → transposition des concepts sur les primitives du SDK plutôt que portage du code
 - **Mesure** : `agent.ts` capture l'usage du dernier appel API du tour principal (input + cache tokens = taille réelle du contexte, subagents exclus via `parent_tool_use_id`) et la fenêtre du modèle (`modelUsage.contextWindow`) → champs `contextTokens`/`contextWindow` sur l'événement `result`
 - **Compaction proactive** : `server/src/compaction.ts` — au-delà de 70 % de la fenêtre (env `COMPACT_THRESHOLD`), un `/compact` avec instructions de préservation (demande en cours, décisions design, fichiers, conventions) tourne en fire-and-forget APRÈS la livraison (zéro latence, pattern review.ts), résumé écrit par **haiku** (modèle auxiliaire d'Hermes) ; le succès exige un `compact_boundary` (un result « success » seul couvre aussi « Not enough messages to compact ») ; anti-thrashing (pas de re-compaction tant que le contexte n'a pas regrossi de 10 %)
 - **Anti-collision** : un nouveau message utilisateur interrompt la compaction en cours (`interruptCompaction()` attendu au début de `/api/chat`) — elle retentera après le tour suivant
@@ -170,7 +170,7 @@
 
 ## 2026-06-12 — Session 5 : mémoire persistante par projet (inspirée d'Hermes Agent)
 - **Contexte** : l'utilisateur voulait Hermes Agent (Nous Research) mais sa connexion Claude exige plan Max + crédits payants. Hermes étant open source MIT, son code complet a été cloné (`C:\Users\PC-DELL\hermes-agent-study`) et analysé (3 agents Explore : mémoire, skills, subagents/cron)
-- **Roadmap « niveau Hermes »** ajoutée dans `statut.md` : mécanismes extraits (mémoire curée + frozen snapshot, nudge → revue en arrière-plan, prompts « quoi sauver / quoi NE PAS sauver », skills niveau classe avec divulgation progressive) et 5 priorités pour MangoAI
+- **Roadmap « niveau Hermes »** ajoutée dans `statut.md` : mécanismes extraits (mémoire curée + frozen snapshot, nudge → revue en arrière-plan, prompts « quoi sauver / quoi NE PAS sauver », skills niveau classe avec divulgation progressive) et 5 priorités pour MangoOS
 - **P1 implémentée — mémoire par projet** : `server/src/memory.ts` — l'agent maintient lui-même `workspace/<projet>/.memory.md` (décisions design, préférences, conventions) ; règles de curation dans le system prompt (transposées des prompts de revue d'Hermes), snapshot gelé injecté à chaque tour (cache préservé), plafond 6 000 caractères
 - `.memory.md` exclu du git projet et du zip, survit au rollback (`versions.ts` : liste `PRESERVED_FILES` générique remplace le cas spécial historique)
 - **Tests** : rollback préserve mémoire + historique (projet jetable) ✅ ; e2e réel : « le vert #2E7D32 est la règle » → l'agent crée `.memory.md` spontanément ($0.12, haiku) ; session effacée puis question couleur → réponse exacte en 1 tour sans aucun outil (preuve : injection system prompt) ($0.02) ✅ ; zip sans `.memory.md` ✅ ; `tsc --noEmit` propre
@@ -215,13 +215,13 @@
   - Événement SSE `version` → message « 📌 Version sauvegardée » dans le chat
   - UI : menu « ↩ Versions (n) » dans le header — choisir une version + confirmation → rollback + rechargement de l'aperçu
   - Smoke test complet OK (init, commit, no-op, rollback avec suppression des fichiers postérieurs) ; `tsc --noEmit` et `vite build` propres
-- **Fix sessions mortes** : le renommage `mini-lovable → mangoai` avait invalidé les sessions stockées (indexées par chemin) → erreur « No conversation found with session ID ». Le backend détecte maintenant ce cas, efface la session morte (`clearSession`) et redémarre automatiquement une conversation neuve
+- **Fix sessions mortes** : le renommage `mini-lovable → mangoos` avait invalidé les sessions stockées (indexées par chemin) → erreur « No conversation found with session ID ». Le backend détecte maintenant ce cas, efface la session morte (`clearSession`) et redémarre automatiquement une conversation neuve
 - **Historique de chat persisté** (priorité 2 de la roadmap) :
   - Nouveau module `server/src/history.ts` : messages affichables (user/agent/tool/error/status) sauvegardés dans `workspace/<projet>/.chat-history.json` à la fin de chaque tour
   - Endpoint GET `/api/history/:name` ; le chat recharge l'historique à l'ouverture d'un projet (`Chat.jsx`)
   - `.chat-history.json` exclu du git des projets (un rollback restaure le code, pas la conversation — `.gitignore` des anciens projets mis à jour automatiquement) et de l'export zip
   - Smoke test OK (append/reload, formatage outils identique au live, survie au rollback) ; `tsc --noEmit` et `vite build` propres
-- **Fix projet non mémorisé au rechargement** : après F5 l'UI revenait à `mon-app` par défaut → l'historique du projet en cours semblait perdu. Projet + modèle persistés dans `localStorage` (`mangoai.project`, `mangoai.model`)
+- **Fix projet non mémorisé au rechargement** : après F5 l'UI revenait à `mon-app` par défaut → l'historique du projet en cours semblait perdu. Projet + modèle persistés dans `localStorage` (`mangoos.project`, `mangoos.model`)
 - **Fix aperçu orphelin (port 5174)** : un redémarrage du backend laissait l'ancien Vite vivant sur le port → `--strictPort` faisait échouer tous les nouveaux aperçus pendant que l'orphelin servait un projet périmé. `startPreview` tue maintenant tout processus résiduel sur le port avant de démarrer (`freePort` dans `preview.ts`)
 - **Test de bout en bout réel validé** : demande « titre en vert » sur test-pipeline (haiku, $0.09) → aperçu démarré, 3 outils, version committée, historique complet rechargeable via GET /api/history
 - **Fix rollback qui effaçait l'historique de chat** (trouvé par l'utilisateur) : revenir à une version créée AVANT la fonctionnalité d'historique supprimait `.chat-history.json` (le `.gitignore` de l'époque ne le protégeait pas de `git clean`). `rollbackTo` sauvegarde maintenant l'historique en mémoire, exclut le fichier du clean (`-e`) et le restaure après — test de régression sur le scénario exact ✅
@@ -245,9 +245,9 @@
 
 ## 2026-06-11 — Session 2 : viabilité & renommage
 - **Business model & plan d'action** : `business-model.pdf` (13 pages, source HTML) — 3 pistes comparées, recommandation piste A (agence/freelance), plan 90 jours
-- **Renommage Mini-Lovable → MangoAI** : UI (logo 🥭, titre), packages (`mangoai-ui`/`mangoai-server`), docs, business model
-- Dépôt GitHub renommé : https://github.com/u2987920406-rgb/mangoai (l'ancienne URL redirige)
-- Dossier local renommé : `C:\Users\PC-DELL\mangoai`
+- **Renommage Mini-Lovable → MangoOS** : UI (logo 🥭, titre), packages (`mangoos-ui`/`mangoos-server`), docs, business model
+- Dépôt GitHub renommé : https://github.com/u2987920406-rgb/mangoos (l'ancienne URL redirige)
+- Dossier local renommé : `C:\Users\PC-DELL\mangoos`
 
 ## 2026-06-12 — Session 4 : refonte UI « niveau 5,5 M d'abonnés »
 - **Stack** : Tailwind CSS v4 (`@tailwindcss/vite`, tokens `@theme`), lucide-react (icônes SVG), react-markdown — Inter chargée via Google Fonts

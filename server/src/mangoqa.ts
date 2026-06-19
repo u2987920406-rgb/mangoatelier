@@ -1,7 +1,7 @@
-// Intégration Mango QA — côté MangoAI (MangoOS).
+// Intégration Mango QA — côté MangoOS.
 // Émet un signal phase-complete.json après chaque commit de phase,
 // puis attend le verdict de Mango QA (audit-verdict.json).
-// Si Mango QA n'est pas lancé, MangoAI continue immédiatement (fail open).
+// Si Mango QA n'est pas lancé, MangoOS continue immédiatement (fail open).
 import fs from 'node:fs'
 import path from 'node:path'
 import { WORKSPACE_DIR } from './projects.js'
@@ -94,7 +94,7 @@ export async function waitForVerdict(projectName: string): Promise<QAVerdict | n
   return null // timeout — Mango QA non lancé ou trop lent
 }
 
-// Construit le message de rejet injecté dans le chat MangoAI.
+// Construit le message de rejet injecté dans le chat MangoOS.
 export function buildRejectionMessage(verdict: QAVerdict): string {
   if (!verdict.rejection) return ''
   const r = verdict.rejection
@@ -104,5 +104,5 @@ export function buildRejectionMessage(verdict: QAVerdict): string {
 **Action requise :** ${r.corrective_action}
 **Règle :** \`${r.rule_ref}\`
 
-Corrige ce point avant de continuer. MangoAI relancera l'audit automatiquement.`
+Corrige ce point avant de continuer. MangoOS relancera l'audit automatiquement.`
 }

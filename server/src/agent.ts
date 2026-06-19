@@ -57,7 +57,7 @@ const BUILDER_PROMPT = `You are a builder subagent inside a local "Lovable-like"
 Rules:
 - Implement ONLY the part described in your task; never touch files outside your scope (shared files like index.css are listed in the task when you may edit them).
 - Keep the app compiling at every step. Follow the styling approach stated in the task (plain CSS or Tailwind v4 — the template has Tailwind preinstalled).
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html.
 - When done, return a short summary: files created/edited and what the parent must wire up (imports, routes, CSS hooks).`;
 
 // Contrôleur subagent (finition phase): an adversarial Lead QA that audits
@@ -73,7 +73,7 @@ Audit the project adversarially and FIX what you find, staying strictly within e
 Rules:
 - NEVER add a new feature, page or scope. If something looks like a missing feature rather than a defect, report it instead of building it.
 - Keep the app compiling at every step. Follow the project's existing styling approach and conventions.
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html.
 - When done, return a short report: defects found, fixes applied (file by file), and anything that still needs the user's decision.`;
 
 const AGENTS = {

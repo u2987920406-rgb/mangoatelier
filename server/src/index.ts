@@ -1,4 +1,4 @@
-// MangoAI backend: chat endpoint (SSE) + project/preview management.
+// MangoOS backend: chat endpoint (SSE) + project/preview management.
 // Mode Miroir (#79) : projectName "__mirror__" → l'agent édite l'UI de Mango elle-même.
 export const MIRROR_PROJECT = "__mirror__";
 const MANGO_UI_DIR = path.resolve(import.meta.dirname, "..", "..", "ui");
@@ -648,13 +648,13 @@ app.post("/api/onboarding", (req, res) => {
 });
 
 const httpServer = app.listen(PORT, () => {
-  console.log(`MangoAI backend → http://localhost:${PORT}`);
+  console.log(`MangoOS backend → http://localhost:${PORT}`);
   restoreAgents().catch((e) => console.warn("[agent-factory] restoreAgents:", e));
-  // MangoAI passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
+  // MangoOS passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
   // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.
   if (process.env.ANTHROPIC_API_KEY) {
-    console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoAI utilise l'abonnement Claude Code, pas les crédits API.");
+    console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoOS utilise l'abonnement Claude Code, pas les crédits API.");
   }
 });
 // Node.js 18+ ferme les connexions après requestTimeout=300s (HTTP 408) par défaut.

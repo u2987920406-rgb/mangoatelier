@@ -1,4 +1,4 @@
-// Run test nocturne MangoAI — 2026-06-18
+// Run test nocturne MangoOS — 2026-06-18
 // 5 projets : A/B/D via l'Élève local (Gemma 4 12B, $0, freeStyle)
 //             C/E via Claude Élite → ✨ Esthétique → 🛡️ Finition
 //
@@ -412,21 +412,21 @@ const PHASES_E = [
   {
     id: "E3-finition",
     mode: "finition",
-    prompt: `Phase 3 — 🛡️ Finition parfaite. C'est la vitrine de MangoAI. FEATURE FREEZE. QA adversarial complet : responsive impeccable (320px → 4K, breakpoints soignés), performance (images lazy-loaded, fonts swap, first paint rapide), accessibilité WCAG AA (contrastes vérifiés, focus visible partout, alt textes, role/aria sur le carrousel), formulaire de contact robuste (validation, feedback erreur/succès), edge cases (JS désactivé → contenus critiques visibles). Consigne le backlog.`,
+    prompt: `Phase 3 — 🛡️ Finition parfaite. C'est la vitrine de MangoOS. FEATURE FREEZE. QA adversarial complet : responsive impeccable (320px → 4K, breakpoints soignés), performance (images lazy-loaded, fonts swap, first paint rapide), accessibilité WCAG AA (contrastes vérifiés, focus visible partout, alt textes, role/aria sur le carrousel), formulaire de contact robuste (validation, feedback erreur/succès), edge cases (JS désactivé → contenus critiques visibles). Consigne le backlog.`,
   },
 ];
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
   log("\n🌙 ═══════════════════════════════════════════════════════════════════");
-  log("   RUN TEST NOCTURNE MangoAI — 2026-06-18");
+  log("   RUN TEST NOCTURNE MangoOS — 2026-06-18");
   log("   5 projets · A/B/D Élève local $0 · C/E Claude Élite→Esthétique→Finition");
   log("═══════════════════════════════════════════════════════════════════════\n");
 
   // Prérequis
   const [backendOk, ollamaOk] = await Promise.all([checkBackend(), checkOllama()]);
   if (!backendOk) {
-    console.error("❌ Backend MangoAI injoignable sur :3000 — lance : cd server && npm run start");
+    console.error("❌ Backend MangoOS injoignable sur :3000 — lance : cd server && npm run start");
     process.exit(1);
   }
   if (!ollamaOk) {
@@ -515,7 +515,7 @@ async function main(): Promise<void> {
     for (const p of evoRun.proposals) {
       evolutionSummary += `- [\`${p.kind}\`] **${p.title}** : ${p.rationale.slice(0, 120)}\n`;
     }
-    log(`✓ Évolution des règles : ${evoRun.proposals.length} proposition(s) — voir panneau MangoAI > Évolution des règles.`);
+    log(`✓ Évolution des règles : ${evoRun.proposals.length} proposition(s) — voir panneau MangoOS > Évolution des règles.`);
   } catch (e) {
     evolutionSummary = `Erreur lors de l'analyse : ${(e as Error).message}`;
     log(`⚠ ${evolutionSummary}`);

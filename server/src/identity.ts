@@ -1,10 +1,10 @@
-// Idée #42 — MangoAI comme cerveau personnel : couches d'identité.
+// Idée #42 — MangoOS comme cerveau personnel : couches d'identité.
 // Three workspace-level knowledge stores, distinct from project memory and the
 // generic user profile. They capture HOW the user expresses themselves, HOW
 // they think, and WHERE they are going across ALL projects:
 //   - .language.md       — personal vocabulary: shortcuts, habitual phrasings,
 //                          recurring transcription errors ("Obama" → Ollama),
-//                          expressions that carry a precise MangoAI meaning.
+//                          expressions that carry a precise MangoOS meaning.
 //   - .thinking-style.md — decision style: explores before acting, validates by
 //                          logic, thinks in analogies, questions before accepting;
 //                          when they explore vs when they want execution.
@@ -15,7 +15,7 @@
 //     background reviewer (it detects recurring language/decision patterns).
 //   - .vision.md is 100% MANUAL — the reviewer NEVER writes it. Only an explicit
 //     user signal ("garde ça", "j'aime bien ce pattern", "intègre ça") puts data
-//     there. MangoAI is being educated: the user authors the data they judge good.
+//     there. MangoOS is being educated: the user authors the data they judge good.
 import path from "node:path";
 import fs from "node:fs";
 

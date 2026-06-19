@@ -94,7 +94,7 @@ export default function Ideation({ onBack, onStartCoding }) {
         <div className="flex-1">
           <h1 className="text-xl font-semibold text-ink">Mode Idéation</h1>
           <p className="text-xs text-dim mt-0.5">
-            Conçois avant de coder — MangoAI génère ton dossier de design
+            Conçois avant de coder — MangoOS génère ton dossier de design
           </p>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function Ideation({ onBack, onStartCoding }) {
             >
               {loading ? (
                 <>
-                  MangoAI conçoit <DotsLoader />
+                  MangoOS conçoit <DotsLoader />
                 </>
               ) : (
                 <>

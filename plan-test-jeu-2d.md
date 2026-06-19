@@ -1,6 +1,6 @@
 # Plan de test — Jeu 2D top-down « Zelda-like / roguelike »
 
-> **But du test** : faire travailler MangoAI de bout en bout sur un **produit complet et cohérent** (un jeu 2D), en activant **TOUTES** les capacités accumulées (cadrage, plan, moodboard, contrat de langage, Miroir, design system, composants, axiomes, vision, super-agent métier, finition QA), pour **mesurer si cette pile rend Mango nettement plus puissant** qu'un build « nu ». Le jeu est le prétexte ; la vraie cible mesurée, c'est **Mango**.
+> **But du test** : faire travailler MangoOS de bout en bout sur un **produit complet et cohérent** (un jeu 2D), en activant **TOUTES** les capacités accumulées (cadrage, plan, moodboard, contrat de langage, Miroir, design system, composants, axiomes, vision, super-agent métier, finition QA), pour **mesurer si cette pile rend Mango nettement plus puissant** qu'un build « nu ». Le jeu est le prétexte ; la vraie cible mesurée, c'est **Mango**.
 
 ## 0. Concept du produit (fixe, pour la cohérence du test)
 **« Mango Crypt »** — roguelike 2D top-down façon Zelda :
@@ -12,7 +12,7 @@
 - **Boucle de run** : entrée → salles → boss de fin d'étage → mort/victoire → écran de résumé → relance.
 - Persistance légère (meilleur score / runs) en localStorage (Supabase optionnel).
 
-## 1. Capacités MangoAI à exercer (couverture = objet du test)
+## 1. Capacités MangoOS à exercer (couverture = objet du test)
 | Capacité | # | Comment ce jeu la sollicite |
 |---|---|---|
 | Cadrage fondateur multimodal | 47 | Intention + références (URLs de roguelikes, images d'ambiance pixel-art) digérées en une phase de démarrage |
@@ -68,7 +68,7 @@ Grille d'évaluation (juge = Claude, + observation) :
 **Sortie attendue** : un verdict chiffré « la pile complète apporte +X en complétude / −Y bugs / +Z cohérence », + la liste des capacités qui ont **réellement** pesé vs celles passées inaperçues (→ alimente l'idée #53 Carte des capacités).
 
 ## 4. Garde-fous d'exécution
-- `tsc` (server) + build UI restent verts à chaque jalon (règle MangoAI) — ne concerne PAS le projet jeu généré, mais le repo MangoAI s'il est touché.
-- Le jeu généré vit dans `workspace/<projet>/` (jamais committé dans MangoAI sauf décision explicite).
+- `tsc` (server) + build UI restent verts à chaque jalon (règle MangoOS) — ne concerne PAS le projet jeu généré, mais le repo MangoOS s'il est touché.
+- Le jeu généré vit dans `workspace/<projet>/` (jamais committé dans MangoOS sauf décision explicite).
 - Élite = boucle vision active (snapshots) ; Finition = gel des features + sous-agent qa obligatoire.
 - Cadrage autonome : aux portes de validation (Mango Plan, Miroir), répondre « vas-y avec ton jugement » pour ne pas bloquer la session non-interactive, avec défauts énoncés.

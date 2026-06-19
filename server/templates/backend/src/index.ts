@@ -11,7 +11,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 app.use(cors({ origin: FRONTEND_ORIGIN }));
 app.use(express.json());
 
-// Health check — used by MangoAI to verify the server is running
+// Health check — used by MangoOS to verify the server is running
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, port: PORT });
 });

@@ -33,9 +33,9 @@ console.log("\ntest-radar — parseRadar()\n");
 test("clean JSON → only relevant items returned", () => {
   const input = JSON.stringify({
     items: [
-      { title: "Claude 4 released", link: "https://anthropic.com/claude4", source: "Anthropic", category: "modèle", relevant: true, summary: "Claude 4 is out.", whyMango: "Upgrade MangoAI's backbone." },
+      { title: "Claude 4 released", link: "https://anthropic.com/claude4", source: "Anthropic", category: "modèle", relevant: true, summary: "Claude 4 is out.", whyMango: "Upgrade MangoOS's backbone." },
       { title: "Random cooking blog", link: "https://food.com/blog", source: "Other", category: "autre", relevant: false, summary: "Not AI related.", whyMango: "" },
-      { title: "Ollama local models", link: "https://ollama.ai/news", source: "HuggingFace", category: "outil", relevant: true, summary: "New Ollama release.", whyMango: "Better local inference for MangoAI." },
+      { title: "Ollama local models", link: "https://ollama.ai/news", source: "HuggingFace", category: "outil", relevant: true, summary: "New Ollama release.", whyMango: "Better local inference for MangoOS." },
     ],
   });
   const result = parseRadar(input);
@@ -61,7 +61,7 @@ test("category out of allowed list → normalized to 'autre'", () => {
 test("JSON inside markdown code fence → extracted correctly", () => {
   const input = `Here is the analysis:\n\`\`\`json\n${JSON.stringify({
     items: [
-      { title: "Mistral new API", link: "https://mistral.ai/api", source: "HuggingFace", category: "api", relevant: true, summary: "Mistral launched a new API.", whyMango: "Alternative provider for MangoAI." },
+      { title: "Mistral new API", link: "https://mistral.ai/api", source: "HuggingFace", category: "api", relevant: true, summary: "Mistral launched a new API.", whyMango: "Alternative provider for MangoOS." },
     ],
   })}\n\`\`\``;
   const result = parseRadar(input);

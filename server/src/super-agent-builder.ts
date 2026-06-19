@@ -331,7 +331,7 @@ Règles :
         '',
         `# ${agent.name}`,
         '',
-        `> Agent expert spécialisé en **${agent.domain}**, généré par MangoAI le ${new Date(agent.createdAt).toLocaleDateString('fr-FR')}.`,
+        `> Agent expert spécialisé en **${agent.domain}**, généré par MangoOS le ${new Date(agent.createdAt).toLocaleDateString('fr-FR')}.`,
         '',
         '## System Prompt',
         '',

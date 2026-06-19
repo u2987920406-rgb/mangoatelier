@@ -25,7 +25,7 @@ function miroirSwatches(md) {
 // content; hide it from the rendered view.
 const stripFrontmatter = (text) => text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trim();
 
-// Dropdown body showing what MangoAI has learned. Mounted only while the menu
+// Dropdown body showing what MangoOS has learned. Mounted only while the menu
 // is open, so it re-fetches and is always fresh (the background review may
 // have updated the stores seconds after the last turn).
 export default function Knowledge({ projectName }) {
@@ -204,7 +204,7 @@ export default function Knowledge({ projectName }) {
     return (
       <div>
         <p className="px-3 py-3 text-xs leading-relaxed text-dim">
-          MangoAI n'a encore rien appris ici. La mémoire se remplit toute seule,
+          MangoOS n'a encore rien appris ici. La mémoire se remplit toute seule,
           en arrière-plan, après chaque tâche.
         </p>
         {skillForm}
@@ -773,7 +773,7 @@ export default function Knowledge({ projectName }) {
             </div>
           ) : (
             <p className="text-xs text-faint italic">
-              Vide — en mode 💎 Élite, avant de coder un nouveau projet, MangoAI te renvoie
+              Vide — en mode 💎 Élite, avant de coder un nouveau projet, MangoOS te renvoie
               ici « voici ce que j'ai compris de toi » (palette extraite, ambiance, structure,
               références digérées) à valider ou corriger.
             </p>
@@ -915,7 +915,7 @@ export default function Knowledge({ projectName }) {
         value={id.vision}
         manual
         placeholder={"## Patterns validés\n- (ajoute ici ce que tu veux garder et réutiliser)"}
-        emptyHint="Vide — 100% manuel. Note ici les approches et patterns que tu valides explicitement ; MangoAI n'y écrit jamais seul."
+        emptyHint="Vide — 100% manuel. Note ici les approches et patterns que tu valides explicitement ; MangoOS n'y écrit jamais seul."
         onSaved={(v) => setData((d) => ({ ...d, identity: { ...(d.identity || {}), vision: v } }))}
       />
 
@@ -1032,7 +1032,7 @@ export default function Knowledge({ projectName }) {
             </div>
           ) : (
             <p className="text-xs text-faint italic">
-              Vide — MangoAI apprend tes préférences récurrentes (ton, police, layout, palette) au fil de tes projets, puis les hérite au démarrage des nouveaux. Clique sur Ré-apprendre pour les déduire maintenant.
+              Vide — MangoOS apprend tes préférences récurrentes (ton, police, layout, palette) au fil de tes projets, puis les hérite au démarrage des nouveaux. Clique sur Ré-apprendre pour les déduire maintenant.
             </p>
           )
         ) : (

@@ -1,4 +1,4 @@
-# Idée — MangoAI
+# Idée — MangoOS
 
 ## Vision
 Un agent personnel style **Lovable** (lovable.dev) qui tourne en local : on décrit une application web dans un chat, l'IA génère le code React+Vite, et on voit le résultat en direct dans un aperçu à côté.
@@ -11,7 +11,7 @@ Un agent personnel style **Lovable** (lovable.dev) qui tourne en local : on déc
 ## Concept
 ```
 ┌─────────────────────────────────────────────┐
-│  MangoAI (navigateur, localhost:5173)  │
+│  MangoOS (navigateur, localhost:5173)  │
 ├──────────────────┬──────────────────────────┤
 │   💬 Chat        │   🖥️ Aperçu live         │
 │                  │                          │

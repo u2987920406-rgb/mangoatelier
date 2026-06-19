@@ -1,6 +1,6 @@
 // Partitions par FAMILLE de modèle Élève (idée : partitionnement modèle).
 //
-// Le cœur MangoAI (Mango + Claude = quasi 100 % de réussite) doit rester
+// Le cœur MangoOS (Mango + Claude = quasi 100 % de réussite) doit rester
 // IMPÉNÉTRABLE : son raisonnement n'est jamais paramétré par un modèle Élève
 // donné. Tout ce qui est spécifique à une famille (prompt système de l'Élève,
 // fichiers d'axiomes injectés, consigne de routage des axiomes à l'escalade)
@@ -18,7 +18,7 @@ export interface ModelProfile {
   id: string;
   /** Reconnaît la famille à partir de l'identifiant de modèle (nom Ollama/API). */
   matches: (model: string) => boolean;
-  /** Prompt système de l'Élève (la face ENTRÉE du contrat <mangoai>). */
+  /** Prompt système de l'Élève (la face ENTRÉE du contrat <mangoos>). */
   system: string;
   /** Fichiers d'axiomes injectés à l'Élève (universel d'abord, puis famille). */
   axiomFiles: string[];

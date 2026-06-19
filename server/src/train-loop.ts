@@ -1,5 +1,5 @@
 // Boucle d'entraînement nocturne (idée 32) — CLI autonome, JAMAIS importé en
-// prod (comme audit-scan.ts). À lancer avant de dormir : MangoAI génère en
+// prod (comme audit-scan.ts). À lancer avant de dormir : MangoOS génère en
 // boucle des créations TOUTES différentes (fond × forme × UX) et accumule de
 // l'expérience pendant que tu dors.
 //

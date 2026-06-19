@@ -1,9 +1,9 @@
 // Idée #56 — Chantier C. Le "double apprentissage" du tutoriel : pendant qu'il
-// apprend MangoAI, l'utilisateur ENSEIGNE à MangoAI. Ses retours 👍/👎 + un mot
+// apprend MangoOS, l'utilisateur ENSEIGNE à MangoOS. Ses retours 👍/👎 + un mot
 // aux étapes-checkpoint sont distillés (par le modèle, via l'abonnement) en un
 // axiome tagué [tutoriel-N] et rangés dans le 4e magasin .axioms.md — exactement
 // comme le RLHF #41 (feedback.ts), mais marqué comme issu du parcours tutoriel
-// pour que la RelationshipCard puisse montrer "ce que MangoAI a appris de toi".
+// pour que la RelationshipCard puisse montrer "ce que MangoOS a appris de toi".
 //
 // Calqué sur feedback.ts (même format d'axiome) + preferences.ts (deps
 // injectables, ne throw jamais). La synthèse askLLM EST la "mini-review aux
@@ -61,7 +61,7 @@ export async function processTutorialFeedback(
     const system =
       "Tu distilles un retour utilisateur en UN axiome universel et réutilisable (une règle abstraite de goût/UX), pas une description de l'instant. Réponds UNIQUEMENT par le bloc axiome demandé, rien d'autre.";
 
-    const user = `Pendant le tutoriel ${tutorialId} de MangoAI, l'utilisateur ${sentiment} ce qu'il vivait${
+    const user = `Pendant le tutoriel ${tutorialId} de MangoOS, l'utilisateur ${sentiment} ce qu'il vivait${
       comment && comment.trim() ? `, en précisant : « ${comment.trim().slice(0, 500)} »` : " (sans commentaire)"
     }. Extrais la RÈGLE ABSTRAITE de goût/UX que cela t'apprend sur lui, applicable à ses futurs projets.
 
@@ -97,7 +97,7 @@ AXIOME-${axiomCat}-XX [candidat] [${tag}] [${tutorialTag}]
 /**
  * Lit .axioms.md et renvoie, pour chaque axiome issu du tutoriel ([tutoriel-*]),
  * sa "Règle d'or" (ou l'en-tête à défaut) — la matière de la RelationshipCard
- * "ce que MangoAI a appris de toi". Tolérant : fichier absent → [].
+ * "ce que MangoOS a appris de toi". Tolérant : fichier absent → [].
  */
 export function loadTutorialAxioms(workspaceDir: string): string[] {
   try {

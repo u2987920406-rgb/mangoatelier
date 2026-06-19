@@ -1,5 +1,5 @@
 // Driver de la session de test « jeu 2D » (plan-test-jeu-2d.md) — CLI autonome,
-// JAMAIS importé en prod. Pilote le backend MangoAI (/api/chat, SSE) pour bâtir
+// JAMAIS importé en prod. Pilote le backend MangoOS (/api/chat, SSE) pour bâtir
 // un produit complet et mesurer l'apport de la pile de capacités.
 //
 // A/B CONTRÔLÉ : même modèle (sonnet) pour les deux builds ; seule variable = le

@@ -1,6 +1,6 @@
 /**
  * Comparaison qualité — N modèles Élève sur 3 dimensions
- *   1. Conformité contrat  — balises <mangoai> respectées
+ *   1. Conformité contrat  — balises <mangoos> respectées
  *   2. Qualité du code     — juge Claude Haiku (/10 sur 4 critères)
  *   3. Build réel          — vite build dans un projet temporaire
  *
@@ -30,15 +30,15 @@ const MODELS: string[] = process.env.MODELS
   : ["gemma4:12b"];
 
 // ── Contrat Élève ─────────────────────────────────────────────────────────────
-const SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
-Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoAI les exécutera.
+const SYSTEM = `Tu es un développeur qui propose des actions à MangoOS.
+Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoOS les exécutera.
 Tu DOIS répondre UNIQUEMENT dans ce format à balises, sans aucune prose autour :
 
-<mangoai>
+<mangoos>
   <write path="chemin/relatif">contenu COMPLET et final du fichier</write>
   <run>commande shell éventuelle</run>
   <summary>résumé court de ce que tu fais</summary>
-</mangoai>
+</mangoos>
 
 Règles strictes :
 - path TOUJOURS relatif au projet (jamais C:\\, jamais /, jamais ..).
@@ -46,7 +46,7 @@ Règles strictes :
 - RÈGLE D'OR : pour CHAQUE fichier, écris-le ENTIER et FINAL en un seul <write>.
   Jamais de squelette à compléter ensuite, jamais d'édition partielle.
 - N'émets JAMAIS <run>npm install</run>.
-- Termine TOUJOURS par un <summary>. AUCUN texte hors de <mangoai>.`;
+- Termine TOUJOURS par un <summary>. AUCUN texte hors de <mangoos>.`;
 
 const TASKS = [
   {
@@ -130,12 +130,12 @@ async function askOllama(model: string, user: string): Promise<string> {
 
 // ── Analyse contrat ───────────────────────────────────────────────────────────
 function analyzeContract(text: string) {
-  const hasMangoai      = /<mangoai>/i.test(text) && /<\/mangoai>/i.test(text);
+  const hasMangoai      = /<mangoos>/i.test(text) && /<\/mangoos>/i.test(text);
   const hasWrite        = /<write\s+path=/i.test(text);
   const hasSummary      = /<summary>/i.test(text);
   const hasEdit         = /<edit>/i.test(text) || /<find>/i.test(text);
-  const beforeTag       = text.split(/<mangoai>/i)[0].trim();
-  const afterTag        = (text.split(/<\/mangoai>/i)[1] ?? "").trim();
+  const beforeTag       = text.split(/<mangoos>/i)[0].trim();
+  const afterTag        = (text.split(/<\/mangoos>/i)[1] ?? "").trim();
   const hasProseOutside = beforeTag.length > 0 || afterTag.length > 0;
   const contractOk      = hasMangoai && hasWrite && hasSummary && !hasEdit;
   return { contractOk, hasProseOutside, hasEdit };

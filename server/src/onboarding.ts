@@ -59,7 +59,7 @@ export function hasProfile(workspaceDir: string): boolean {
 }
 
 export function bootstrapProfile(answers: OnboardingAnswers, workspaceDir: string): void {
-  const profile = `# Profil utilisateur — MangoAI
+  const profile = `# Profil utilisateur — MangoOS
 *Créé lors de l'onboarding initial. Mango affinera ce profil automatiquement au fil des projets.*
 
 ## Domaine principal

@@ -27,7 +27,7 @@ export function registerStripeRoutes(app: Express): void {
       if (!plan || plan.price === 0) { res.json({ error: 'Plan invalide' }); return }
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
-        line_items: [{ price_data: { currency: 'eur', product_data: { name: plan.name + ' — MangoAI' }, recurring: { interval: 'month' }, unit_amount: plan.price * 100 }, quantity: 1 }],
+        line_items: [{ price_data: { currency: 'eur', product_data: { name: plan.name + ' — MangoOS' }, recurring: { interval: 'month' }, unit_amount: plan.price * 100 }, quantity: 1 }],
         success_url: 'http://localhost:5173?billing=success',
         cancel_url: 'http://localhost:5173?billing=cancel',
       })

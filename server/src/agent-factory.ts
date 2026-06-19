@@ -71,7 +71,7 @@ export function generateAgentId(name: string, category: AgentCategory): string {
 
 // ── Génération du code ────────────────────────────────────────────────────────
 
-const GENERATION_SYSTEM = `Tu es un générateur de code Node.js pour MangoAI Agent Factory.
+const GENERATION_SYSTEM = `Tu es un générateur de code Node.js pour MangoOS Agent Factory.
 Tu reçois la définition d'un agent et le squelette de base (agent.js).
 Tu dois générer UNIQUEMENT le contenu des 3 fonctions marquées [MANGO:CUSTOM] :
   1. getSystemPrompt() — décrit le rôle précis de l'agent

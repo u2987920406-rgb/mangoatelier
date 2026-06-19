@@ -1,5 +1,5 @@
 // Idée #58 (Automation nocturne) + #59 (Juge esthétique) — VAGUE 1 (cœur).
-// MangoAI génère N projets (via Claude/abonnement, mode MVP autonome), les GARDE
+// MangoOS génère N projets (via Claude/abonnement, mode MVP autonome), les GARDE
 // (≠ train-loop #32 qui les jette), et un JUGE Haiku (#59) note chacun /10 sur 5
 // axes → tri/pré-filtre pour la review matinale. Vague 2 : planificateur auto +
 // questionnaire structuré → axiomes (RLHF amplifié).

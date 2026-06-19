@@ -3,8 +3,8 @@
 //   1. On envoie une tâche triviale à l'Élève (Gemma local via Ollama),
 //      en lui imposant le format de SORTIE de la Coque Rigide.
 //   2. On récupère sa réponse BRUTE.
-//   3. On la passe dans le parseContract() réel de MangoAI.
-//   4. Verdict : « l'Élève sait-il parler le contrat de MangoAI ? »
+//   3. On la passe dans le parseContract() réel de MangoOS.
+//   4. Verdict : « l'Élève sait-il parler le contrat de MangoOS ? »
 // Rien n'est écrit sur le disque, rien ne touche la boucle Claude.
 //
 // Lancer :  npx tsx src/test-eleve-tuyauterie.ts
@@ -15,12 +15,12 @@ const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const MODEL = process.env.ELEVE_MODEL ?? "gemma4:12b";
 
 // Face ENTRÉE (spec docs/contrat-es.md) : on enseigne la forme immuable.
-const SYSTEM = `Tu es un développeur qui propose des actions à MangoAI.
-Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoAI les exécutera.
+const SYSTEM = `Tu es un développeur qui propose des actions à MangoOS.
+Tu ne touches JAMAIS au disque : tu DÉCRIS les actions, MangoOS les exécutera.
 
 Tu DOIS répondre UNIQUEMENT dans ce format à balises, rien d'autre, aucune prose autour :
 
-<mangoai>
+<mangoos>
   <write path="chemin/relatif.js">
   ...contenu brut du fichier...
   </write>
@@ -30,13 +30,13 @@ Tu DOIS répondre UNIQUEMENT dans ce format à balises, rien d'autre, aucune pro
   </edit>
   <run>commande shell éventuelle</run>
   <summary>Résumé court de ce que tu as fait.</summary>
-</mangoai>
+</mangoos>
 
 Règles :
 - Le chemin (path) est TOUJOURS relatif au projet (jamais C:\\, jamais /, jamais ..).
 - N'utilise <write> que pour les fichiers à créer/écraser entièrement.
 - Termine toujours par un <summary>.
-- AUCUN texte hors de l'enveloppe <mangoai>.`;
+- AUCUN texte hors de l'enveloppe <mangoos>.`;
 
 const TASK = `Crée un fichier "src/utils/greet.js" qui exporte une fonction greet(name)
 renvoyant la chaîne "Bonjour, <name> !" (avec le prénom inséré).`;
@@ -106,5 +106,5 @@ function line(c = "─") {
     }
   }
   if (parsed.axiom) console.log(`   Axiome   : ${parsed.axiom}`);
-  console.log(`\n→ Tuyauterie validée : l'Élève parle le contrat, MangoAI le comprend.`);
+  console.log(`\n→ Tuyauterie validée : l'Élève parle le contrat, MangoOS le comprend.`);
 })();

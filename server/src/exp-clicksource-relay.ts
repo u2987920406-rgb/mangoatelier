@@ -25,9 +25,9 @@ const SETUP_LISTENER = `(() => {
   window.__pick = null;
   window.addEventListener("message", function (e) {
     var d = e.data;
-    if (d && d.source === "mangoai-preview" && d.type === "inspect-pick") window.__pick = d;
+    if (d && d.source === "mangoos-preview" && d.type === "inspect-pick") window.__pick = d;
   });
-  window.postMessage({ source: "mangoai-builder", type: "inspect-on" }, "*");
+  window.postMessage({ source: "mangoos-builder", type: "inspect-on" }, "*");
   return true;
 })()`;
 
@@ -57,7 +57,7 @@ const check = (label: string, cond: boolean) => {
   try {
     ensureClickSourcePlugin(PROJECT);
     ensureInspectRelay(PROJECT);
-    check("inspect-relay injecté dans index.html", fs.readFileSync(HTML, "utf8").includes('data-mangoai="inspect-relay"'));
+    check("inspect-relay injecté dans index.html", fs.readFileSync(HTML, "utf8").includes('data-mangoos="inspect-relay"'));
 
     const { url } = await startPreview(PROJECT);
     console.log(`Aperçu : ${url}`);

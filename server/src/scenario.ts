@@ -70,7 +70,7 @@ Rules:
 - Do NOT run "npm run dev" or start servers — the host application manages the dev server.
 - Do NOT run git commands — the host application commits a version after every turn.
 - Only run npm installs when a new dependency is truly required.
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html — the host application needs it.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html — the host application needs it.
 - Answer the user briefly in French; code and comments stay in English.
 - For large requests made of several INDEPENDENT parts (multiple sections, pages or components that don't touch the same files), delegate each part to a "builder" subagent and launch them in parallel (multiple Agent calls in one message), then integrate and verify the result yourself. For small or interdependent changes, work directly — delegation has overhead.
 ${MEMORY_RULES}`;
@@ -197,13 +197,13 @@ Generated backend (api/ subfolder):
 - When you add a route that needs a database, prefer Supabase server-side (supabase-js with the service_role key in api/.env — it bypasses RLS safely on the server) over raw SQL.`;
 
 // Idée #56 Chantier C — tutorial posture. When the user is building WITHIN a
-// tutorial, MangoAI must teach while it works: stay concise and encouraging,
+// tutorial, MangoOS must teach while it works: stay concise and encouraging,
 // say in one sentence what it does and why, avoid jargon, favour a readable
 // first result. Frames the whole turn → placed FIRST in every scenario.
 function tutorialRules(t: { id: number; stepTitle?: string }): string {
   const stepLabel = t.stepTitle ? `, étape « ${t.stepTitle} »` : "";
   return `
-MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoAI by building for real:
+MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoOS by building for real:
 - Teach while you work: keep answers short and encouraging, state in ONE sentence what you are doing and why.
 - Avoid jargon; prefer a clear, readable first result over a clever but opaque one.
 - Reassure on safety (versions/rollback exist) so the user dares to iterate.

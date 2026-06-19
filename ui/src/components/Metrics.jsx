@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 // Learning-curve dashboard (idea 21): reads /api/metrics (one row per turn)
-// and shows where MangoAI's cost/turns/errors are heading over time. Future
+// and shows where MangoOS's cost/turns/errors are heading over time. Future
 // home of the "intervention rate" curve once a local student model exists.
 // Mounted only while the menu is open, so it always re-fetches fresh data.
 const fmt$ = (n) => `$${(n ?? 0).toFixed(n >= 1 ? 2 : 3)}`;

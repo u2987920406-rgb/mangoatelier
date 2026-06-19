@@ -1,27 +1,27 @@
 # Contrat d'E/S — la Coque Rigide (Phase Ultime, Jalon C)
 
 > Le langage strict et standardisé par lequel **n'importe quel modèle** parle à
-> MangoAI. Le modèle **propose** des actions ; MangoAI **valide → répare →
+> MangoOS. Le modèle **propose** des actions ; MangoOS **valide → répare →
 > exécute**. Le modèle ne touche jamais au disque. C'est ce cadre qui rend un
 > modèle faible/non fiable (l'« Élève ») sûr et interchangeable.
 
 ## Principe
 - **Coque Rigide** : la *forme* est immuable. Tout modèle qui dévie de la forme
   voit sa réponse réparée (si possible) ou rejetée — jamais exécutée à l'aveugle.
-- **Propose, n'exécute pas** : le modèle décrit *quoi faire* ; c'est MangoAI qui
+- **Propose, n'exécute pas** : le modèle décrit *quoi faire* ; c'est MangoOS qui
   écrit les fichiers et lance les commandes. Sécurité par construction.
 - **Balises, pas JSON** : les actions portent du code brut. Les balises tolèrent
   n'importe quel contenu ; JSON forcerait un échappement que les petits modèles
   cassent. C'est le choix de robustesse central.
 
-## Face ENTRÉE (ce que MangoAI envoie) — *spec, branchée au Jalon D*
+## Face ENTRÉE (ce que MangoOS envoie) — *spec, branchée au Jalon D*
 Enveloppe standardisée : objectif, scénario (mode), type de projet + blueprint,
 axiomes pertinents (récupérés), contexte (fichiers, erreur), et la contrainte
 « réponds UNIQUEMENT au format de SORTIE ci-dessous ».
 
 ## Face SORTIE (ce que le modèle DOIT renvoyer) — *implémentée : `server/src/contract.ts`*
 ```
-<mangoai>
+<mangoos>
   <write path="src/lib/supabase.js">
   ...contenu brut du fichier...
   </write>
@@ -32,7 +32,7 @@ axiomes pertinents (récupérés), contexte (fichiers, erreur), et la contrainte
   <run>npm install @supabase/supabase-js</run>
   <summary>Résumé textuel court de ce qui a été fait.</summary>
   <axiom>(optionnel) règle d'or universelle extraite</axiom>
-</mangoai>
+</mangoos>
 ```
 
 ## Actions reconnues
@@ -40,14 +40,14 @@ axiomes pertinents (récupérés), contexte (fichiers, erreur), et la contrainte
 |--------|----------|---------|------------------|
 | `<write path="…">` | `path` (relatif) | contenu du fichier (brut) | écrit/écrase le fichier |
 | `<edit path="…">` | `path` (relatif) | `<find>` + `<replace>` | remplacement exact |
-| `<run>` | — | commande shell | exécutée par MangoAI |
+| `<run>` | — | commande shell | exécutée par MangoOS |
 | `<summary>` | — | texte | résumé (survit à la compaction) |
 | `<axiom>` | — | texte | candidat axiome pour le flywheel |
 
 L'ordre des actions est **préservé** (write/edit/run scannés dans la séquence d'origine).
 
 ## Validation
-- Enveloppe `<mangoai>…</mangoai>` requise (ou réparable, voir ci-dessous).
+- Enveloppe `<mangoos>…</mangoos>` requise (ou réparable, voir ci-dessous).
 - `path` **project-relatif obligatoire** : refus si absolu, lettre de lecteur
   (`C:`), ou remontée `..`. Le modèle ne sort jamais du projet.
 - `<write>` exige `path` ; `<edit>` exige `path` + `<find>` + `<replace>` ;

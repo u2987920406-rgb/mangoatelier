@@ -48,7 +48,7 @@ function shouldRun(task: CronTask): boolean {
 }
 
 async function executeTask(task: CronTask): Promise<string> {
-  const systemPrompt = `Tu es MangoAI, un agent autonome. Le projet cible est "${task.projectName}". Exécute la tâche demandée de façon concise et utile.`
+  const systemPrompt = `Tu es MangoOS, un agent autonome. Le projet cible est "${task.projectName}". Exécute la tâche demandée de façon concise et utile.`
   const result = await askLLM(systemPrompt, task.prompt, {
     provider: resolveProvider(process.env.CRON_PROVIDER),
     maxTokens: 500,

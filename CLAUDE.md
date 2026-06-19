@@ -1,4 +1,4 @@
-# MangoAI — Instructions de session
+# MangoOS — Instructions de session
 
 ## Démarrage automatique
 
@@ -17,7 +17,7 @@ L'utilisateur peut demander :
 - **"lis l'historique"** → lire `historique.md` en entier
 - **"vision fondatrice"** ou **"le robot"** → lire `historique.md`, section Vision
 
-## Règles propres à MangoAI
+## Règles propres à MangoOS
 
 - `tsc --noEmit` + `npm run build` (ui/) doivent rester verts après chaque modification
 - Toute nouvelle fonctionnalité = entrée dans `statut.md` (tableau + ligne "Où on en est") ET dans `historique.md` (section détail de l'idée)

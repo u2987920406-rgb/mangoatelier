@@ -1,8 +1,8 @@
 // ============================================================
-// MANGO AGENT — généré par MangoAI Agent Factory (#103)
+// MANGO AGENT — généré par MangoOS Agent Factory (#103)
 //
 // Standalone : node agent.js
-// Géré       : MangoAI démarre / arrête / surveille ce process
+// Géré       : MangoOS démarre / arrête / surveille ce process
 //
 // Sections [MANGO:CORE]   → invariantes, ne pas modifier
 // Sections [MANGO:CUSTOM] → personnalisées par Claude lors de la génération
@@ -47,7 +47,7 @@ function log(level, message) {
     _logStream  = openLogStream();
   }
   _logStream.write(entry + "\n");
-  process.stdout.write(entry + "\n"); // capturé par MangoAI
+  process.stdout.write(entry + "\n"); // capturé par MangoOS
 }
 
 // ── [MANGO:CORE] State ────────────────────────────────────────
@@ -102,7 +102,7 @@ function mangoRequest(method, urlPath, body) {
   });
 }
 
-// Appel LLM via MangoAI — abonnement Claude Code, $0 extra, JAMAIS new Anthropic().
+// Appel LLM via MangoOS — abonnement Claude Code, $0 extra, JAMAIS new Anthropic().
 async function askMango(system, user, maxTokens = 800) {
   try {
     const res = await mangoRequest("POST", "/api/agents/llm", {
@@ -149,7 +149,7 @@ function startHeartbeat() {
 // précisément le rôle et la mission de cet agent.
 
 function getSystemPrompt() {
-  return `Tu es un agent MangoAI de catégorie "${CATEGORY}" nommé "${config.name}".
+  return `Tu es un agent MangoOS de catégorie "${CATEGORY}" nommé "${config.name}".
 ${config.description}
 Réponds de façon concise et structurée. Renvoie uniquement le résultat de ta tâche.`;
 }

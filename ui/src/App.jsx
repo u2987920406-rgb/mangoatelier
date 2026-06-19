@@ -46,20 +46,20 @@ export default function App() {
   // Project and model survive a page reload — otherwise a refresh silently
   // switches back to the default project and its (different) chat history.
   const [projectName, setProjectName] = useState(
-    () => localStorage.getItem("mangoai.project") ?? "mon-app",
+    () => localStorage.getItem("mangoos.project") ?? "mon-app",
   );
   const [projects, setProjects] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [template, setTemplate] = useState(""); // applied only when the project gets created
-  const [model, setModel] = useState(() => localStorage.getItem("mangoai.model") ?? "sonnet");
+  const [model, setModel] = useState(() => localStorage.getItem("mangoos.model") ?? "sonnet");
   // Effort mode (idea 12), orthogonal to the model — survives reload like it.
-  const [mode, setMode] = useState(() => localStorage.getItem("mangoai.mode") ?? "elite");
+  const [mode, setMode] = useState(() => localStorage.getItem("mangoos.mode") ?? "elite");
 
   const handleChatMode = useCallback(({ model: m, mode: md }) => {
     setModel(m);
     setMode(md);
-    localStorage.setItem("mangoai.model", m);
-    localStorage.setItem("mangoai.mode", md);
+    localStorage.setItem("mangoos.model", m);
+    localStorage.setItem("mangoos.mode", md);
   }, []);
 
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -72,7 +72,7 @@ export default function App() {
   const [inspecting, setInspecting] = useState(false); // mode inspection clic→source (#5)
   const [seedInput, setSeedInput] = useState(null); // texte préchargé dans le composer (sélection)
   const [editTarget, setEditTarget] = useState(null); // cible d'édition visuelle (#6) : { src, tag, text }
-  const [showThinking, setShowThinking] = useState(() => localStorage.getItem("mangoai.showThinking") !== "false");
+  const [showThinking, setShowThinking] = useState(() => localStorage.getItem("mangoos.showThinking") !== "false");
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState(null);
   const [githubEnabled, setGithubEnabled] = useState(false);
@@ -89,7 +89,7 @@ export default function App() {
   const [initialTask, setInitialTask] = useState(null);
   // Projet nocturne ouvert ({ id, reviewed }) → bouton Reviewer sous le prompt.
   const [nocturnalEntry, setNocturnalEntry] = useState(null);
-  // Mode Client per-projet : persiste dans localStorage sous "mangoai.clientMode.<projet>"
+  // Mode Client per-projet : persiste dans localStorage sous "mangoos.clientMode.<projet>"
   const [clientMode, setClientMode] = useState(false);
   // Tutoriel (#56) : overlay guidé. Le niveau de liberté du spotlight est dérivé
   // de la définition du tuto (côté Tutorial), pas d'un état ici.
@@ -107,13 +107,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("mangoai.project", projectName);
+    localStorage.setItem("mangoos.project", projectName);
   }, [projectName]);
   useEffect(() => {
-    localStorage.setItem("mangoai.model", model);
+    localStorage.setItem("mangoos.model", model);
   }, [model]);
   useEffect(() => {
-    localStorage.setItem("mangoai.mode", mode);
+    localStorage.setItem("mangoos.mode", mode);
   }, [mode]);
 
   const refreshProjects = useCallback(() => {
@@ -246,7 +246,7 @@ export default function App() {
   useEffect(() => {
     const onMessage = (e) => {
       const d = e.data;
-      if (!d || d.source !== "mangoai-preview") return;
+      if (!d || d.source !== "mangoos-preview") return;
       // Relais clic→source : l'utilisateur a cliqué un élément en mode inspection.
       if (d.type === "inspect-pick") {
         setInspecting(false);
@@ -356,13 +356,13 @@ export default function App() {
     setContext(null);
     setPerfectPlanContract(null);
     // Restaure le mode client sauvegardé pour ce projet (ou false par défaut).
-    setClientMode(localStorage.getItem(`mangoai.clientMode.${name}`) === "true");
+    setClientMode(localStorage.getItem(`mangoos.clientMode.${name}`) === "true");
     setScreen("workspace");
   }
 
   function handleClientMode(val) {
     setClientMode(val);
-    localStorage.setItem(`mangoai.clientMode.${projectName}`, String(val));
+    localStorage.setItem(`mangoos.clientMode.${projectName}`, String(val));
   }
 
   function goHome() {
@@ -669,7 +669,7 @@ export default function App() {
             onToggleThinking={() => {
               setShowThinking((v) => {
                 const next = !v;
-                localStorage.setItem("mangoai.showThinking", String(next));
+                localStorage.setItem("mangoos.showThinking", String(next));
                 return next;
               });
             }}

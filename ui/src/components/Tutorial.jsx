@@ -215,14 +215,14 @@ export default function Tutorial({ id, onComplete, onExit, onStartNext, onContex
           </div>
         )}
 
-        {/* Checkpoint : retour utilisateur → MangoAI apprend (double apprentissage) */}
+        {/* Checkpoint : retour utilisateur → MangoOS apprend (double apprentissage) */}
         {step.checkpoint && (
           <div className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.04] px-3 py-2.5">
             {fbGivenStep === step.id ? (
-              <p className="text-[12px] text-accent-soft">Merci — MangoAI le retient ✓</p>
+              <p className="text-[12px] text-accent-soft">Merci — MangoOS le retient ✓</p>
             ) : (
               <>
-                <p className="text-[11px] font-medium text-faint">Ton ressenti ? MangoAI apprend de toi.</p>
+                <p className="text-[11px] font-medium text-faint">Ton ressenti ? MangoOS apprend de toi.</p>
                 <input
                   value={fbComment}
                   onChange={(e) => setFbComment(e.target.value)}
