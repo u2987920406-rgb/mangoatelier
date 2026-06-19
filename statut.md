@@ -1,6 +1,6 @@
 # Statut — MangoAI
 
-*Dernière mise à jour : 2026-06-19 — #103 Mango Agent Factory ✅ : 12 fichiers créés/modifiés, 17 routes REST, template agent.js standalone, UI plein-écran, coordinateur multi-agents. `tsc` propre, build UI vert. Idées notées restantes : #77 · #78 · #84–#92 · Multi-user switch P3 (avant Phase B).*
+*Dernière mise à jour : 2026-06-19 — #105 Mango QA V2 validé e2e : Feu Rouge Architecture déclenché sur 2 builds réels (calculatrice + budget). Sentinelle heartbeat opérationnelle, 3 bugs corrigés (env, heartbeat, stale window), runner relancé depuis PowerShell.*
 
 > **🟢 Où on en est (2026-06-18)** — #99 Perfect Plan livré : l'utilisateur peut maintenant préparer un contrat de démarrage (5 questions + références) avant d'écrire son premier prompt. Le contrat est injecté automatiquement dans le système prompt (bloc `perfectPlan`, elite+mvp), `clarification` ne repose pas les questions déjà couvertes, Sharingan est invoqué automatiquement sur les URLs de référence. Infrastructure multi-user Phase 1 (couche universelle) et Phase 2 (onboarding) livrées. `axioms.ts` lit désormais deux couches : `workspace/.axioms-universal.md` (principes fondamentaux pour TOUS : A11Y, responsive, perf React, sécurité, CSS tokens, architecture modulaire) injecté AVANT `.axioms.md` personnel — si fichier universel absent, comportement inchangé. `onboarding.ts` (bootstrapProfile : génère `.user-profile.md` + amorce `.axioms.md` depuis l'universel si vide), 2 routes (`GET /api/onboarding/status` · `POST /api/onboarding`), `Onboarding.jsx` (modal plein-écran 5 steps visuels, progress dots, cartes radio), détection dans `App.jsx` (useEffect au mount → `setOnboardingNeeded(true)` si profil absent). `tsc` 0, build UI vert (9.71s). Phase 3 (multi-user switch `workspace/users/{name}/`) = chantier avant Phase B. Voir plan dans `.claude/plans/ne-prends-pas-de-humming-melody.md`.
 >
@@ -141,6 +141,8 @@
 | 101 | **Multi-user Phase 2 — Onboarding < 15 min** — Détection profil vide + questionnaire 5 questions visuelles (domaine / stack / style / usage / niveau) → bootstrap `.user-profile.md` + `.axioms.md` amorcé depuis l'universel. `onboarding.ts` (`hasProfile`, `bootstrapProfile`), routes `GET /api/onboarding/status` + `POST /api/onboarding`, `Onboarding.jsx` (modal plein-écran 5 steps, progress dots, radio-cards, dark theme) détecté dans `App.jsx` au mount. | ✅ FAIT | ⚖️ Sonnet 4.6 | S |
 | 102 | **Multi-user Phase 3 — Switch utilisateur dynamique** — Rendre `WORKSPACE_DIR` dynamique via `getWorkspaceDir(userId)` → `workspace/users/{name}/`. Header : dropdown utilisateurs (localStorage `mangoai.user`) + bouton "Nouvel utilisateur" → déclenche onboarding P2. Middleware `X-Mango-User` côté serveur. Script one-shot pour migrer `workspace/*.md` → `workspace/users/default/`. **À faire avant Phase B.** | ⏳ prévu · avant Phase B | ⚖️ Sonnet 4.6 | M |
 | 103 | **Mango Agent Factory — constructeur d'agents autonomes spécialisés** — Mango ne construit plus seulement des apps web ; il génère des **agents autonomes** qui tournent en arrière-plan sur la machine de l'utilisateur. L'agent généré = un script Node.js avec sa propre boucle, ses outils, sa logique de décision, qui appelle `query()` (abonnement Claude Code, $0 extra). L'utilisateur décrit ce que l'agent doit faire (surveiller un dossier, analyser des emails, préparer un brief quotidien, monitorer une API…) et Mango génère le script + sa config `.env` + ses logs. 4 catégories (collecteur/processeur/acteur/coordinateur), bus de messages fichier, health monitor, template standalone. UI plein-écran dans MangoAI. | ✅ FAIT — 2026-06-19 | ⚖️ Sonnet 4.6 | L |
+| 104 | **Test e2e de l'Agent Factory** — Valider le circuit complet en conditions réelles : démarrer le backend + UI, créer un agent depuis l'interface (ex. collecteur simple qui log l'heure), vérifier la génération SSE, démarrer l'agent, lire les logs en live, vérifier le heartbeat, arrêter l'agent proprement. Tester aussi l'envoi d'un message manuel dans l'inbox et le coordinateur sur 2 agents simples. Objectif : trouver et corriger les bugs d'intégration avant usage réel. | 🗒️ NOTER — à faire | ⚖️ Sonnet 4.6 | M |
+| 105 | **Mango QA — framework d'audit autonome spécialisé** — Repo séparé (`Mango QA_atelier/` sur l'atelier, `D:\IA\mangoqa\` à la maison), processus Node.js indépendant de MangoAI. Architecture « Production Aveugle / Audit Fantôme » : MangoAI écrit `phase-complete.json`, Mango QA audite asynchrone et répond `audit-verdict.json` via filesystem. **V2 livrée + e2e validé (2026-06-19)** : **6 branches actives en parallèle** — 🏗️ Architecture · ♿ Accessibilité · 🔒 Sécurité · ⚡ Performance · 🧪 Tests · 🎨 Design System (conseil). **Détection automatique par sentinelle** : Mango QA écrit `workspace/.mangoqa-active` (heartbeat 10 s, stale 5 min), MangoAI appelle `isMangoQaActive()` — plus rien à configurer. **3 bugs corrigés lors du test** : `MANGOQA_ENABLED=false` dans `.env` (court-circuitait la sentinelle), heartbeat irrégulier Windows (intervalle 10 s), fenêtre stale trop serrée (30 s → 5 min). **Test e2e live validé** : 2 builds (calculatrice + budget), Feu Rouge Architecture déclenché sur les deux, action corrective précise injectée dans le chat. Runner lancé depuis PowerShell (gérable sans terminal ouvert). | ✅ FAIT — V2 e2e validé | 🧠 Opus 4.8 | XL |
 
 ### Roadmap haute couture — 11 chantiers
 
@@ -174,11 +176,23 @@
 
 ## 🚀 Pour relancer après redémarrage
 
+**2 serveurs à lancer à chaque arrivée sur le PC :**
+
 ```bash
-cd D:\IA\mangoai\server && npm run start
-cd D:\IA\mangoai\ui && npm run dev
+# Serveur MangoAI (backend + UI)
+cd C:\Users\Raf\Desktop\Mango Ai Atelier\server && npm run start
+cd C:\Users\Raf\Desktop\Mango Ai Atelier\ui && npm run dev
 ```
 Puis ouvrir **http://localhost:5173**
+
+```bash
+# Serveur Mango QA (runner d'audit — dans un terminal séparé)
+cd C:\Users\Raf\Desktop\Mango QA_atelier && npm run dev
+```
+
+> **Mango QA est optionnel.** Si tu ne le lances pas, MangoAI continue normalement sans audit.
+> Si tu le lances, MangoAI le détecte **automatiquement** (plus rien à configurer dans `.env`).
+> Le runner écrit un fichier heartbeat `workspace/.mangoqa-active` toutes les 20 s — MangoAI vérifie ce fichier avant chaque build.
 
 **Élève local (facultatif — requis si cerveau « 🎓 Élève local ») :**
 ```bash

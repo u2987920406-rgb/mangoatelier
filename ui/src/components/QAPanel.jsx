@@ -91,7 +91,7 @@ function timeAgo(isoTimestamp) {
   return `il y a ${days} jour${days > 1 ? 's' : ''}`
 }
 
-export default function QAPanel({ projectName: initialProject, onBack }) {
+export default function ControleurPanel({ projectName: initialProject, onBack }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(initialProject || '')
   const [loading, setLoading] = useState(false)
@@ -110,7 +110,7 @@ export default function QAPanel({ projectName: initialProject, onBack }) {
 
   useEffect(() => {
     if (selectedProject) {
-      fetch(`/api/qa/history/${encodeURIComponent(selectedProject)}`)
+      fetch(`/api/controleur/history/${encodeURIComponent(selectedProject)}`)
         .then(r => r.json())
         .then(data => setHistory(Array.isArray(data) ? data : []))
         .catch(() => setHistory([]))
@@ -123,7 +123,7 @@ export default function QAPanel({ projectName: initialProject, onBack }) {
     setError(null)
     setResult(null)
     try {
-      const resp = await fetch('/api/qa/run', {
+      const resp = await fetch('/api/controleur/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectName: selectedProject }),
@@ -132,7 +132,7 @@ export default function QAPanel({ projectName: initialProject, onBack }) {
       if (!resp.ok) throw new Error(data.error || 'Erreur serveur')
       setResult(data)
       // Refresh history
-      const histResp = await fetch(`/api/qa/history/${encodeURIComponent(selectedProject)}`)
+      const histResp = await fetch(`/api/controleur/history/${encodeURIComponent(selectedProject)}`)
       const histData = await histResp.json()
       setHistory(Array.isArray(histData) ? histData : [])
     } catch (e) {
@@ -155,7 +155,7 @@ export default function QAPanel({ projectName: initialProject, onBack }) {
           </button>
         )}
         <div>
-          <h1 className="text-lg font-semibold">Agent QA</h1>
+          <h1 className="text-lg font-semibold">Contrôleur</h1>
           <p className="text-text-dim text-xs">Analyse automatique de la qualité du code</p>
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function QAPanel({ projectName: initialProject, onBack }) {
               Analyse en cours…
             </>
           ) : (
-            'Lancer l\'analyse QA'
+            'Lancer l\'analyse'
           )}
         </button>
 

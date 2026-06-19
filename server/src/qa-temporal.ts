@@ -4,16 +4,16 @@ import type { Express, Request, Response } from 'express'
 import { WORKSPACE_DIR } from './projects.js'
 import { askLLM, resolveProvider } from './llm-engine.js'
 
-interface QAResult {
+interface ControleurResult {
   projectName: string
   timestamp: string
   score: number
-  issues: QAIssue[]
+  issues: ControleurIssue[]
   suggestions: string[]
   strengths: string[]
 }
 
-interface QAIssue {
+interface ControleurIssue {
   severity: 'critical' | 'warning' | 'info'
   file: string
   description: string
@@ -22,7 +22,7 @@ interface QAIssue {
 const RELEVANT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.html', '.css', '.json']
 const MAX_FILE_SIZE = 50_000
 const MAX_TOTAL_SIZE = 200_000
-const QA_HISTORY_MAX = 10
+const CONTROLEUR_HISTORY_MAX = 10
 
 function collectProjectFiles(projectDir: string): string {
   const lines: string[] = []
@@ -63,33 +63,33 @@ function collectProjectFiles(projectDir: string): string {
   return lines.join('\n')
 }
 
-function qaHistoryPath(projectName: string): string {
+function controleurHistoryPath(projectName: string): string {
   const safe = projectName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
-  return path.join(WORKSPACE_DIR, safe, '.mango', 'qa-history.json')
+  return path.join(WORKSPACE_DIR, safe, '.mango', 'controleur-history.json')
 }
 
-function loadQAHistory(projectName: string): QAResult[] {
-  const histPath = qaHistoryPath(projectName)
+function loadControleurHistory(projectName: string): ControleurResult[] {
+  const histPath = controleurHistoryPath(projectName)
   if (!fs.existsSync(histPath)) return []
   try {
     const raw = fs.readFileSync(histPath, 'utf8')
-    return JSON.parse(raw) as QAResult[]
+    return JSON.parse(raw) as ControleurResult[]
   } catch {
     return []
   }
 }
 
-function saveQAHistory(projectName: string, result: QAResult): void {
-  const histPath = qaHistoryPath(projectName)
+function saveControleurHistory(projectName: string, result: ControleurResult): void {
+  const histPath = controleurHistoryPath(projectName)
   const dir = path.dirname(histPath)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  const history = loadQAHistory(projectName)
+  const history = loadControleurHistory(projectName)
   history.unshift(result)
-  const trimmed = history.slice(0, QA_HISTORY_MAX)
+  const trimmed = history.slice(0, CONTROLEUR_HISTORY_MAX)
   fs.writeFileSync(histPath, JSON.stringify(trimmed, null, 2), 'utf8')
 }
 
-async function runQAAnalysis(projectName: string): Promise<QAResult> {
+async function runControleurAnalysis(projectName: string): Promise<ControleurResult> {
   const safe = projectName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
   const projDir = path.join(WORKSPACE_DIR, safe)
 
@@ -103,24 +103,24 @@ async function runQAAnalysis(projectName: string): Promise<QAResult> {
   }
 
   const system =
-    'Tu es un expert QA senior. Analyse le code fourni et retourne UNIQUEMENT un JSON valide (sans markdown) avec : score (0-100), issues (tableau de {severity: critical|warning|info, file, description}), suggestions (tableau de strings), strengths (tableau de strings). Sois concis et précis.'
+    'Tu es un expert Contrôleur senior. Analyse le code fourni et retourne UNIQUEMENT un JSON valide (sans markdown) avec : score (0-100), issues (tableau de {severity: critical|warning|info, file, description}), suggestions (tableau de strings), strengths (tableau de strings). Sois concis et précis.'
 
   const raw = await askLLM(system, `Analyse ce projet :\n${filesContent}`, {
-    provider: resolveProvider(process.env.QA_PROVIDER),
+    provider: resolveProvider(process.env.CONTROLEUR_PROVIDER),
     maxTokens: 2000,
   })
 
-  let parsed: { score: number; issues: QAIssue[]; suggestions: string[]; strengths: string[] }
+  let parsed: { score: number; issues: ControleurIssue[]; suggestions: string[]; strengths: string[] }
   try {
     parsed = JSON.parse(raw)
   } catch {
     // Try to extract JSON from the response in case of extra text
     const match = raw.match(/\{[\s\S]*\}/)
-    if (!match) throw new Error('Claude did not return valid JSON for QA analysis')
+    if (!match) throw new Error('Claude did not return valid JSON for Contrôleur analysis')
     parsed = JSON.parse(match[0])
   }
 
-  const result: QAResult = {
+  const result: ControleurResult = {
     projectName,
     timestamp: new Date().toISOString(),
     score: typeof parsed.score === 'number' ? Math.max(0, Math.min(100, parsed.score)) : 0,
@@ -129,20 +129,20 @@ async function runQAAnalysis(projectName: string): Promise<QAResult> {
     strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
   }
 
-  saveQAHistory(projectName, result)
+  saveControleurHistory(projectName, result)
   return result
 }
 
-export function registerQARoutes(app: Express): void {
-  // POST /api/qa/run { projectName: string }
-  app.post('/api/qa/run', async (req: Request, res: Response) => {
+export function registerControleurRoutes(app: Express): void {
+  // POST /api/controleur/run { projectName: string }
+  app.post('/api/controleur/run', async (req: Request, res: Response) => {
     const { projectName } = req.body as { projectName?: string }
     if (!projectName || typeof projectName !== 'string') {
       res.status(400).json({ error: 'projectName is required' })
       return
     }
     try {
-      const result = await runQAAnalysis(projectName)
+      const result = await runControleurAnalysis(projectName)
       res.json(result)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
@@ -150,8 +150,8 @@ export function registerQARoutes(app: Express): void {
     }
   })
 
-  // GET /api/qa/history/:projectName → QAResult[] (du plus récent au plus ancien, max 10)
-  app.get('/api/qa/history/:projectName', (req: Request, res: Response) => {
+  // GET /api/controleur/history/:projectName → ControleurResult[] (du plus récent au plus ancien, max 10)
+  app.get('/api/controleur/history/:projectName', (req: Request, res: Response) => {
     const projectName = Array.isArray(req.params.projectName)
       ? req.params.projectName[0]
       : req.params.projectName
@@ -160,7 +160,7 @@ export function registerQARoutes(app: Express): void {
       return
     }
     try {
-      const history = loadQAHistory(projectName)
+      const history = loadControleurHistory(projectName)
       res.json(history)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)

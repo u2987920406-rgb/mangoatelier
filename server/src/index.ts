@@ -36,7 +36,8 @@ import { registerVeilleRoutes } from "./veille.js";
 import { registerModelRouterRoutes } from "./model-router.js";
 import { registerDocGeneratorRoutes } from "./docgenerator.js";
 import { registerVersionGraphRoutes } from "./version-graph.js";
-import { registerQARoutes } from "./qa-temporal.js";
+import { registerControleurRoutes } from "./qa-temporal.js";
+import { emitPhaseComplete, waitForVerdict, buildRejectionMessage, isMangoQaActive } from "./mangoqa.js";
 import { registerStripeRoutes } from "./stripe.js";
 import { registerCronRoutes } from "./cron-scheduler.js";
 import { registerMetricsDashboardRoutes } from "./metrics-dashboard.js";
@@ -353,6 +354,20 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "version", ...version });
         // Capture the turn's delta for the patrol (#73) — spawned in `finally`.
         patrolFiles.current = await changedFilesInLastCommit(dir).catch(() => []);
+
+        // Mango QA — audit autonome (si le runner est actif — détection automatique par sentinelle)
+        if (isMangoQaActive()) {
+          emitPhaseComplete(projectName, mode ?? 'elite', patrolFiles.current);
+          send({ type: "status", text: "🛡️ Mango QA — audit en cours…" });
+          const qaVerdict = await waitForVerdict(projectName);
+          if (qaVerdict?.verdict === 'red') {
+            const msg = buildRejectionMessage(qaVerdict);
+            record("status", msg);
+            send({ type: "status", text: msg });
+          } else if (qaVerdict?.verdict === 'green') {
+            send({ type: "status", text: "✅ Mango QA — Feu Vert" });
+          }
+        }
         // Idée #80 — le tour a changé quelque chose : capture le "after" (Vite HMR
         // a déjà rafraîchi) et envoie le diff avant/après au chat en SSE live.
         if (diffBefore && getPreviewUrl()) {
@@ -602,7 +617,7 @@ registerVeilleRoutes(app);
 registerModelRouterRoutes(app);
 registerDocGeneratorRoutes(app);
 registerVersionGraphRoutes(app);
-registerQARoutes(app);
+registerControleurRoutes(app);
 registerStripeRoutes(app);
 registerCronRoutes(app);
 registerMetricsDashboardRoutes(app);

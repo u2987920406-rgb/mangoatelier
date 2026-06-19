@@ -18,7 +18,7 @@ const Ideation        = lazy(() => import("./components/Ideation.jsx"));
 const Veille          = lazy(() => import("./components/Veille.jsx"));
 const DocGenerator    = lazy(() => import("./components/DocGenerator.jsx"));
 const VersionGraph    = lazy(() => import("./components/VersionGraph.jsx"));
-const QAPanel         = lazy(() => import("./components/QAPanel.jsx"));
+const ControleurPanel = lazy(() => import("./components/QAPanel.jsx"));
 const Billing         = lazy(() => import("./components/Billing.jsx"));
 const CronManager     = lazy(() => import("./components/CronManager.jsx"));
 const MetricsDashboard= lazy(() => import("./components/MetricsDashboard.jsx"));
@@ -483,7 +483,7 @@ export default function App() {
   if (screen === "veille") panelContent = <Veille onBack={() => setScreen("home")} />;
   if (screen === "docs") panelContent = <DocGenerator onBack={() => setScreen("home")} />;
   if (screen === "versions") panelContent = <VersionGraph projectName={projectName} onBack={() => setScreen("chat")} />;
-  if (screen === "qa") panelContent = <QAPanel projectName={projectName} onBack={() => setScreen("chat")} />;
+  if (screen === "controleur") panelContent = <ControleurPanel projectName={projectName} onBack={() => setScreen("chat")} />;
   if (screen === "billing") panelContent = <Billing onBack={() => setScreen("home")} />;
   if (screen === "cron") panelContent = <CronManager onBack={() => setScreen("home")} />;
   if (screen === "metrics") panelContent = <MetricsDashboard onBack={() => setScreen("home")} />;
@@ -769,8 +769,8 @@ export default function App() {
               <GitBranch size={16} className="text-accent-soft" />
             </button>
             <button
-              onClick={() => setScreen("qa")}
-              title="Audit QA"
+              onClick={() => setScreen("controleur")}
+              title="Contrôleur"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-panel shadow-lg hover:bg-panel/80 transition-colors"
             >
               <ShieldCheck size={16} className="text-accent-soft" />

@@ -1108,3 +1108,173 @@ Note : l'idée #100 (d'abord distincte) a été fusionnée dans #99 lors de la s
 - 4 catégories : collecteur (polling récurrent) · processeur (one-shot) · acteur (événement) · coordinateur (orchestre les autres)
 - `tsc --noEmit` : 0 erreur dans les fichiers #103 (2 erreurs pré-existantes mode "discuss" non liées)
 - `npm run build` (ui/) : ✅ vert, AgentFactory-xxx.js = 15,64 kB gzip 4,73 kB
+
+---
+
+### Idée #105 — Mango QA — framework d'audit autonome spécialisé
+
+**Origine :** Document technique `DOSSIER TECHNIQUE_FRAMEWORK MANGOOS.txt` — architecture MangoOS (Production Aveugle / Audit Fantôme). Raf a identifié qu'il manquait une branche d'audit autonome pour les apps générées par MangoAI.
+
+**Décisions d'architecture :**
+- Repo séparé et indépendant (pas dans le repo MangoAI) — zéro couplage, zéro risque de conflit
+- Communication filesystem uniquement : MangoAI écrit `.mangoqa/phase-complete.json`, Mango QA répond `.mangoqa/audit-verdict.json`
+- Fail-open : si Mango QA plante ou timeout → MangoAI continue (verdict vert par défaut)
+- Toggle `MANGOQA_ENABLED` dans `.env` MangoAI (false par défaut) — aucun délai quand le runner n'est pas lancé
+- Disjoncteur : MAX_RETRIES=2, puis Feu Vert forcé pour éviter le blocage infini
+- `subscriptionEnv()` : supprime `ANTHROPIC_API_KEY` avant `query()` → $0 (abonnement Claude Code)
+
+**Renommage interne MangoAI :** L'agent QA interne (qa-temporal.ts) a été renommé "Contrôleur" partout (8 fichiers) pour éviter toute confusion avec le nouveau Mango QA externe.
+
+**Nouveau repo `C:\Users\Raf\Desktop\Mango QA_atelier\` :**
+
+Fichiers créés :
+- `src/types.ts` — interfaces PhaseComplete, Finding, BranchResult, AuditRejection, AuditVerdict
+- `src/llm.ts` — `ask(system, user)` via `query()` abonnement, subscriptionEnv(), maxTurns:1
+- `src/retex.ts` — Boîte Noire JSONL (`retex/retex.jsonl`), saveRetex/loadAll/retexSummary (injection dans les prompts)
+- `src/verdict.ts` — readPhaseComplete / writeVerdict (lit/écrit les fichiers de signaux)
+- `src/branches/architecture.ts` — branche Architecture (Backward Chaining, seuil 250 lignes, useEffect sans deps, couplage logique/présentation, imports circulaires), fail-open si parse échoue
+- `src/index.ts` — runner principal : chokidar surveille `*/. mangoqa/phase-complete.json`, anti-double-exécution (Set `running`), disjoncteur, fail-open sur erreur
+- `package.json`, `tsconfig.json`, `.env`, `.gitignore`
+
+**Intégration côté MangoAI :**
+
+Fichiers créés :
+- `server/src/mangoqa.ts` — `emitPhaseComplete()` / `waitForVerdict()` (polling 800 ms, timeout 60 s) / `buildRejectionMessage()`
+
+Fichiers modifiés :
+- `server/src/index.ts` — bloc 10 lignes après `commitVersion` : émet signal, attend verdict, affiche Feu Vert ou Feu Rouge dans le chat
+- `server/.env` — `MANGOQA_ENABLED=false` ajouté
+
+**V1 livrée :** 6 fichiers Mango QA + intégration MangoAI. `tsc --noEmit` : 0 nouvelle erreur.
+
+**Test e2e live — 2026-06-19 :**
+
+Conditions : 3 processus lancés simultanément — backend MangoAI (port 3000) + UI MangoAI (port 5173) + runner `Mango QA_atelier/` (surveille workspace).
+
+Projet de test : `test-mango-qa` — "Une page HTML simple avec un bouton qui affiche Bonjour Mango QA quand on clique dessus".
+
+Résultat observé dans le chat MangoAI :
+1. `Création du projet (template + npm install)…`
+2. `MangoAI travaille…` → génération + aperçu live "Cliquez-moi"
+3. `Version sauvegardée (9a73ae2)`
+4. `🛡️ Mango QA — audit en cours…`
+5. `✅ Mango QA — Feu Vert`
+
+La page HTML simple (fichier unique, aucun composant > 250 lignes, aucun useEffect) passe l'audit Architecture sans problème → Feu Vert immédiat.
+
+**Après le test :** `MANGOQA_ENABLED` remis à `false` dans `server/.env`.
+
+**Guide de transfert PC maison :**
+- Fichier `GUIDE-TRANSFERT-MANGO-QA.pdf` créé sur le Bureau (HTML → Chrome headless → PDF)
+- 6 étapes détaillées : vérification clé USB · git pull MangoAI · copier dossier · créer `.env` maison · `npm install` · vérification tsc + build
+
+**Prochaines étapes V2 :** branches Sécurité (RAG OWASP) + Accessibilité (RAG WCAG 2.2) + Performance (RAG Web Vitals) + Tests + Design System (conseil uniquement). Ingestion RAG des docs officielles.
+
+**V2 livrée — 2026-06-19 (branches) + détection automatique (sentinelle) :**
+
+5 nouvelles branches créées dans `Mango QA_atelier/src/branches/` :
+
+- `accessibility.ts` — branche ♿ Accessibilité (WCAG 2.2 Level AA) : audite uniquement les fichiers `.tsx`/`.jsx`. Critères bloquants : `<img>` sans `alt`, `onClick` sur `div`/`span` sans `role="button"` + `tabIndex`, `<button>` icône sans `aria-label`, `<input>` sans label associé, `aria-hidden` sur élément focusable, saut de niveau de titre (h1→h3). Contraste exclue (non vérifiable statiquement).
+
+- `security.ts` — branche 🔒 Sécurité (OWASP Top 10) : audite `src/` + `package.json`. Critères bloquants : secrets codés en dur, `dangerouslySetInnerHTML` sans sanitisation, `eval()`/`new Function()`, injection SQL/shell, `fetch()` vers URL construite par concaténation d'input non encodé, CORS `*` backend, variables d'env exposant des secrets côté client. Exclut les variables VITE_PUBLIC_/REACT_APP_ légitimes.
+
+- `performance.ts` — branche ⚡ Performance (Web Vitals) : pré-détection statique (regex sur imports de libs lourdes + `key={index}`) avant le LLM. Critères bloquants : import entier de lodash/moment/antd/d3/rxjs (liste configurée), `key={index}` dans listes mutables, objet/tableau inline passé comme prop (brise memo), `fetch()` dans le body de composant sans `useEffect`, `import * as X`.
+
+- `tests.ts` — branche 🧪 Tests (veto) : inventaire des fichiers source vs test (`.test.`/`.spec.`/`__tests__`). Si ≥ 4 fichiers source et 0 test → fail immédiat sans LLM. Si des tests existent → LLM vérifie leur qualité (tests triviaux `expect(true)`, corps vides, tests déconnectés).
+
+- `design-system.ts` — branche 🎨 Design System (conseil uniquement) : audite `.tsx`/`.jsx`/`.css`. Toujours retourne `status="pass"` (advisory). Recommandations : inline styles excessifs, couleurs codées en dur, espacement incohérent, absence dark mode, fonts sans variable CSS, duplication de composants visuels.
+
+`index.ts` mis à jour : 6 branches lancées en **parallèle** (`Promise.allSettled`). Seules les 5 branches veto (architecture/security/performance/accessibility/tests) peuvent émettre un Feu Rouge — design-system est exclu du set VETO_BRANCHES. Log enrichi (résumé de chaque branche + compteur conseils design). `tsc --noEmit` : 0 erreur.
+
+**Détection automatique par sentinelle heartbeat :**
+
+Avant, Raf devait mettre `MANGOQA_ENABLED=true` dans `.env` à la main. Maintenant MangoAI détecte seul si Mango QA tourne.
+
+Fonctionnement :
+- Au démarrage, Mango QA écrit `workspace/.mangoqa-active` (JSON : pid + timestamp started + heartbeat)
+- Toutes les 20 secondes, il met à jour le champ `heartbeat` dans ce fichier
+- À l'arrêt propre (Ctrl+C, SIGTERM), il supprime le fichier
+- Si Mango QA crashe sans cleanup, le heartbeat devient « vieux » (> 30 s) → considéré inactif
+
+Côté MangoAI — nouvelle fonction `isMangoQaActive()` dans `server/src/mangoqa.ts` :
+- Vérifie que `workspace/.mangoqa-active` existe
+- Vérifie que le heartbeat date de moins de 30 secondes
+- Retourne `false` immédiatement si le fichier est absent ou stale → MangoAI ne perd pas de temps à attendre
+- Surcharge manuelle possible : `MANGOQA_ENABLED=false` force OFF, `=true` force ON (pour les cas particuliers)
+
+`server/src/index.ts` : `process.env.MANGOQA_ENABLED === 'true'` → `isMangoQaActive()`.
+
+**Workflow quotidien désormais :** arriver sur le PC → ouvrir 3 terminaux :
+1. `server/` → `npm run start` (backend MangoAI port 3000)
+2. `ui/` → `npm run dev` (interface MangoAI port 5173)
+3. `Mango QA_atelier/` → `npm run dev` (runner d'audit, optionnel — MangoAI s'adapte)
+
+**3 bugs corrigés lors du test e2e :**
+
+- **Bug 1 — `.env` court-circuitait la sentinelle** : `MANGOQA_ENABLED=false` était encore dans `server/.env`. La fonction `isMangoQaActive()` retournait `false` immédiatement sans même regarder le fichier heartbeat. Fix : ligne commentée dans `.env` (la variable n'est plus nécessaire en usage normal).
+
+- **Bug 2 — Heartbeat irrégulier sur Windows** : le runner Mango QA utilisait `setInterval(fn, 20000)` mais sur Windows, le polling filesystem de chokidar ralentit l'event loop Node.js, causant des gaps de 2-3 minutes entre les heartbeats au lieu de 20 secondes. Fix : intervalle réduit à 10 s dans `Mango QA_atelier/src/index.ts`.
+
+- **Bug 3 — Fenêtre stale trop serrée** : `SENTINEL_MAX_AGE_MS = 30_000` (30 s). Avec des heartbeats irréguliers, le sentinel était souvent considéré stale au moment du build. Fix : seuil passé à `300_000` (5 min) dans `server/src/mangoqa.ts`.
+
+**Test e2e live validé (2026-06-19) :**
+
+- Build 1 : `test-qa-final` (calculatrice 4 opérations + historique) → 🔴 Feu Rouge Architecture — `App.jsx` gérait 4 responsabilités (logique arithmétique, événements clavier, rendu calculatrice, historique). Action : extraire `useCalculator()` + `Calculator.jsx` + `HistoryPanel.jsx`.
+- Build 2 : `test-qa-budget` (gestion budget par catégorie) → 🔴 Feu Rouge Architecture — `App.jsx` > 250 lignes. Action : extraire `useBudget()` + `CategoryBreakdown.jsx` + `EntryForm.jsx` + `EntryList.jsx`.
+
+Les deux builds ont déclenché le message `🛡️ Mango QA — audit en cours…` puis le Feu Rouge avec action corrective précise dans le chat MangoAI. Verdict `audit-verdict.json` écrit dans le `.mangoqa/` de chaque projet.
+
+**Note technique — lancement du runner sans terminal ouvert** : le runner Mango QA peut être démarré depuis PowerShell (`Start-Process tsx.cmd ... -WindowStyle Hidden`) et tourne en arrière-plan silencieux. Les logs vont dans `C:\temp\mangoqa-out.log`.
+
+---
+
+## Journal des sessions
+
+### Session 2026-06-19 — Mango QA V1 + test e2e
+
+**Contexte :** Raf apporte un document technique MangoOS décrivant une architecture Production Aveugle / Audit Fantôme. Décision : construire Mango QA comme framework d'audit autonome séparé pour les apps MangoAI.
+
+**Travaux réalisés :**
+1. Analyse du document `DOSSIER TECHNIQUE_FRAMEWORK MANGOOS.txt` → design de Mango QA
+2. Renommage interne QA → Contrôleur (8 fichiers MangoAI) pour éviter les conflits de nommage
+3. Construction du repo `Mango QA_atelier/` (6 fichiers TypeScript + config)
+4. Intégration MangoAI : `mangoqa.ts` + câblage `index.ts` + `MANGOQA_ENABLED` toggle
+5. Dossier renommé `Mango QA\` → `Mango QA_atelier\`
+6. Test e2e live validé : Feu Vert affiché dans le chat MangoAI
+7. Guide PDF de transfert créé pour le PC maison (6 étapes débutant)
+8. `MANGOQA_ENABLED` remis à false
+
+**Règles git gravées ce jour :**
+- Zéro opération git sans permission explicite de Raf
+- git pull : toujours poser la question « Veux-tu que je fasse un git pull depuis origin ? » avant d'agir
+
+**État en fin de session :** tsc 0 nouvelle erreur · build UI vert · MANGOQA_ENABLED=false · Mango QA V1 prêt à déployer sur PC maison via guide PDF + clé USB.
+
+---
+
+### Session 2026-06-19 — Mango QA V2 (5 branches + sentinelle)
+
+**Travaux réalisés :**
+1. 5 nouvelles branches créées dans `Mango QA_atelier/src/branches/` : accessibility, security, performance, tests, design-system
+2. `Mango QA_atelier/src/index.ts` mis à jour : 6 branches en parallèle, `VETO_BRANCHES`, log enrichi
+3. Sentinelle heartbeat : Mango QA écrit/met à jour/supprime `workspace/.mangoqa-active`
+4. `server/src/mangoqa.ts` : ajout de `isMangoQaActive()` (lecture sentinelle, stale > 30 s)
+5. `server/src/index.ts` : remplacement du toggle `.env` par `isMangoQaActive()`
+6. `statut.md` mis à jour : section démarrage PC avec les 3 terminaux
+7. `historique.md` mis à jour
+
+**État en fin de session :** tsc Mango QA 0 erreur · tsc MangoAI : 2 erreurs pré-existantes (mode `discuss`, hors périmètre) · plus rien à configurer dans `.env` · workflow PC : 3 terminaux (backend MangoAI + UI MangoAI + runner Mango QA optionnel).
+
+---
+
+### Session 2026-06-19 — Mango QA V2 test e2e + 3 bugs corrigés
+
+**Travaux réalisés :**
+1. Test e2e des 6 branches sur un vrai build MangoAI
+2. Identification et correction de 3 bugs (`.env` force-off, heartbeat irrégulier Windows, fenêtre stale trop serrée)
+3. Redémarrage MangoAI backend depuis PowerShell (kill port 3000 + tsx.cmd relancé)
+4. Runner Mango QA relancé avec les nouveaux paramètres (10 s heartbeat)
+5. 2 builds validés : calculatrice + budget → Feu Rouge Architecture sur les deux
+6. `statut.md` et `historique.md` mis à jour
+
+**État en fin de session :** Mango QA V2 pleinement opérationnel · sentinelle heartbeat stable · détection automatique active · runner lancé silencieusement en arrière-plan (PID 4208) · logs dans `C:\temp\mangoqa-out.log`.
