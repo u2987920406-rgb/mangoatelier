@@ -1,4 +1,4 @@
-// MangoAI backend: chat endpoint (SSE) + project/preview management.
+// MangoOS backend: chat endpoint (SSE) + project/preview management.
 // Mode Miroir (#79) : projectName "__mirror__" → l'agent édite l'UI de Mango elle-même.
 export const MIRROR_PROJECT = "__mirror__";
 const MANGO_UI_DIR = path.resolve(import.meta.dirname, "..", "..", "ui");
@@ -36,7 +36,8 @@ import { registerVeilleRoutes } from "./veille.js";
 import { registerModelRouterRoutes } from "./model-router.js";
 import { registerDocGeneratorRoutes } from "./docgenerator.js";
 import { registerVersionGraphRoutes } from "./version-graph.js";
-import { registerQARoutes } from "./qa-temporal.js";
+import { registerControleurRoutes } from "./qa-temporal.js";
+import { emitPhaseComplete, waitForVerdict, buildRejectionMessage, isMangoQaActive } from "./mangoqa.js";
 import { registerStripeRoutes } from "./stripe.js";
 import { registerCronRoutes } from "./cron-scheduler.js";
 import { registerMetricsDashboardRoutes } from "./metrics-dashboard.js";
@@ -58,6 +59,8 @@ import { registerRadarRoutes } from "./radar.js";
 import { registerBuildReviewRoutes } from "./build-review-routes.js";
 import { bootstrapProfile, hasProfile, type OnboardingAnswers } from "./onboarding.js";
 import { registerPerfectPlanRoutes } from "./perfect-plan-routes.js";
+import { registerAgentFactoryRoutes } from "./agent-routes.js";
+import { restoreAgents } from "./agent-runtime.js";
 
 // Last-resort safety net: a bug in a fire-and-forget background task (review,
 // compaction) or any forgotten await must never take the whole server down —
@@ -351,6 +354,20 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "version", ...version });
         // Capture the turn's delta for the patrol (#73) — spawned in `finally`.
         patrolFiles.current = await changedFilesInLastCommit(dir).catch(() => []);
+
+        // Mango QA — audit autonome (si le runner est actif — détection automatique par sentinelle)
+        if (isMangoQaActive()) {
+          emitPhaseComplete(projectName, mode ?? 'elite', patrolFiles.current);
+          send({ type: "status", text: "🛡️ Mango QA — audit en cours…" });
+          const qaVerdict = await waitForVerdict(projectName);
+          if (qaVerdict?.verdict === 'red') {
+            const msg = buildRejectionMessage(qaVerdict);
+            record("status", msg);
+            send({ type: "status", text: msg });
+          } else if (qaVerdict?.verdict === 'green') {
+            send({ type: "status", text: "✅ Mango QA — Feu Vert" });
+          }
+        }
         // Idée #80 — le tour a changé quelque chose : capture le "after" (Vite HMR
         // a déjà rafraîchi) et envoie le diff avant/après au chat en SSE live.
         if (diffBefore && getPreviewUrl()) {
@@ -600,7 +617,7 @@ registerVeilleRoutes(app);
 registerModelRouterRoutes(app);
 registerDocGeneratorRoutes(app);
 registerVersionGraphRoutes(app);
-registerQARoutes(app);
+registerControleurRoutes(app);
 registerStripeRoutes(app);
 registerCronRoutes(app);
 registerMetricsDashboardRoutes(app);
@@ -615,6 +632,7 @@ registerRadarRoutes(app);
 registerPromptEvolutionRoutes(app);
 registerBuildReviewRoutes(app);
 registerPerfectPlanRoutes(app);
+registerAgentFactoryRoutes(app);
 
 app.get("/api/onboarding/status", (_req, res) => {
   res.json({ hasProfile: hasProfile(WORKSPACE_DIR) });
@@ -630,12 +648,13 @@ app.post("/api/onboarding", (req, res) => {
 });
 
 const httpServer = app.listen(PORT, () => {
-  console.log(`MangoAI backend → http://localhost:${PORT}`);
-  // MangoAI passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
+  console.log(`MangoOS backend → http://localhost:${PORT}`);
+  restoreAgents().catch((e) => console.warn("[agent-factory] restoreAgents:", e));
+  // MangoOS passe TOUJOURS par l'abonnement Claude Code (query() + subscriptionEnv),
   // jamais par les crédits API : aucune ANTHROPIC_API_KEY n'est requise. Si une clé
   // traîne dans l'env, elle est neutralisée à chaque appel — on le signale juste.
   if (process.env.ANTHROPIC_API_KEY) {
-    console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoAI utilise l'abonnement Claude Code, pas les crédits API.");
+    console.warn("ℹ️  ANTHROPIC_API_KEY détectée — ignorée : MangoOS utilise l'abonnement Claude Code, pas les crédits API.");
   }
 });
 // Node.js 18+ ferme les connexions après requestTimeout=300s (HTTP 408) par défaut.

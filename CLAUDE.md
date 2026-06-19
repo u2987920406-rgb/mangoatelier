@@ -1,4 +1,4 @@
-# MangoAI — Instructions de session
+# MangoOS — Instructions de session
 
 ## Démarrage automatique
 
@@ -17,18 +17,25 @@ L'utilisateur peut demander :
 - **"lis l'historique"** → lire `historique.md` en entier
 - **"vision fondatrice"** ou **"le robot"** → lire `historique.md`, section Vision
 
-## Règles propres à MangoAI
+## Règles propres à MangoOS
 
 - `tsc --noEmit` + `npm run build` (ui/) doivent rester verts après chaque modification
 - Toute nouvelle fonctionnalité = entrée dans `statut.md` (tableau + ligne "Où on en est") ET dans `historique.md` (section détail de l'idée)
-- `save` = git add -A + commit + push (règle globale)
 - Ports : backend Express 3000 · UI Vite 5173 · App générée 5174
+
+## ⚠️ Règle git absolue à l'atelier
+
+**Zéro opération git sans permission explicite de Raf** — ni `git add`, ni `git commit`, ni `git push`, ni `git pull`.
+
+**Pourquoi :** Le PC local de Raf tourne une session automatique qui fait ses propres commits. Un commit parallèle depuis Claude Code crée des conflits d'historique.
+
+- `save` ou "sauvegarde" = mettre à jour les fichiers (statut.md, historique.md, code) **uniquement**. Jamais de git.
+- Git uniquement quand Raf dit explicitement : "commit", "push sur GitHub", ou donne une commande git directe.
+- **`git pull` — condition absolue :** même si le repo local semble en retard, toujours s'arrêter et poser cette question exacte : *« Veux-tu que je fasse un git pull depuis origin ? »* — jamais de pull sans cette confirmation.
 
 ## Clôture automatique de chaque livraison
 
 **À la fin de chaque module ou amélioration** (dès que `tsc` + build UI sont verts) :
 1. Mettre à jour `statut.md` — passer l'idée en ✅ FAIT + mettre à jour le bloc "Où on en est"
 2. Mettre à jour `historique.md` — ajouter le détail technique dans la section de l'idée + une entrée dans le Journal des sessions
-3. `git add -A` + `git commit -m "..."` + `git push`
-
-Sans attendre que l'utilisateur dise "save".
+3. Attendre la permission de Raf avant tout git.

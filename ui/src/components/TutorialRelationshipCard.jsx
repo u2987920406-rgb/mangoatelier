@@ -3,7 +3,7 @@ import { GraduationCap, Sparkles, Heart, ArrowRight, Check } from "lucide-react"
 
 // Idée #56 — Chantier B. Carte de fin de tutoriel : "calibration mutuelle".
 // Côté Chantier B : on montre ce que TU as découvert (capacités vécues) + une
-// jauge de connaissance mutuelle (X/10 tutos). Le détail "ce que MangoAI a appris
+// jauge de connaissance mutuelle (X/10 tutos). Le détail "ce que MangoOS a appris
 // de toi" via axiomes tagués arrive au Chantier C (feedback) — ici on l'annonce
 // honnêtement sans inventer de contenu.
 
@@ -18,7 +18,7 @@ export default function TutorialRelationshipCard({
 }) {
   const pct = Math.round((completedCount / total) * 100);
 
-  // Ce que MangoAI a réellement appris : axiomes tagués [tutoriel-N] (#41).
+  // Ce que MangoOS a réellement appris : axiomes tagués [tutoriel-N] (#41).
   const [learned, setLearned] = useState([]);
   useEffect(() => {
     fetch("/api/tutorial/relationship")
@@ -67,10 +67,10 @@ export default function TutorialRelationshipCard({
           </div>
         )}
 
-        {/* Ce que MangoAI retient (annonce honnête — détail au Chantier C) */}
+        {/* Ce que MangoOS retient (annonce honnête — détail au Chantier C) */}
         <div className="mt-5 rounded-xl border border-edge-soft bg-bg/50 px-3 py-2.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-faint">
-            <Heart size={13} className="text-accent-soft" /> Ce que MangoAI retient de toi
+            <Heart size={13} className="text-accent-soft" /> Ce que MangoOS retient de toi
           </div>
           {learned.length > 0 ? (
             <ul className="mt-1.5 space-y-1">
@@ -83,7 +83,7 @@ export default function TutorialRelationshipCard({
             </ul>
           ) : (
             <p className="mt-1 text-[12px] leading-relaxed text-faint">
-              À chaque 👍 / 👎 et chaque projet, MangoAI affine ton profil et ton style. Plus tu l'utilises, plus
+              À chaque 👍 / 👎 et chaque projet, MangoOS affine ton profil et ton style. Plus tu l'utilises, plus
               son premier jet te ressemble.
             </p>
           )}

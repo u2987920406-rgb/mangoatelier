@@ -1,6 +1,6 @@
 // Idea #60 — Weekly AI Radar: analysis layer on top of the raw veille feed.
 // Fetches RSS items (via fetchVeilleItems from veille.ts), runs LLM relevance
-// filtering for MangoAI, caches the result for 7 days, and exposes:
+// filtering for MangoOS, caches the result for 7 days, and exposes:
 //   GET  /api/radar          → { items, generatedAt, stale }
 //   POST /api/radar/refresh  → force-refresh the cache
 import fs from "node:fs";
@@ -62,8 +62,8 @@ function isCacheFresh(cache: RadarCache): boolean {
 
 const SYSTEM_PROMPT =
   "You are an AI research analyst specializing in tools for AI-assisted local-first app builders. " +
-  "MangoAI is a personal app-builder that uses Claude (via subscription) and local models (Ollama/Gemma). " +
-  "Your task: analyze a list of AI news items and judge their relevance for MangoAI. " +
+  "MangoOS is a personal app-builder that uses Claude (via subscription) and local models (Ollama/Gemma). " +
+  "Your task: analyze a list of AI news items and judge their relevance for MangoOS. " +
   "Respond ONLY with valid JSON — no markdown, no commentary outside the JSON object.";
 
 /** Call the LLM to filter and categorize raw veille items. */
@@ -75,7 +75,7 @@ export async function analyzeRadar(
     .join("\n");
 
   const userPrompt = `Here are the latest AI news items:\n${itemsText}\n\n` +
-    `For each item, assess its relevance for MangoAI (an AI app-builder that uses Claude + local Ollama models). ` +
+    `For each item, assess its relevance for MangoOS (an AI app-builder that uses Claude + local Ollama models). ` +
     `Return ONLY this JSON:\n` +
     `{\n` +
     `  "items": [\n` +
@@ -86,7 +86,7 @@ export async function analyzeRadar(
     `      "category": "modèle" | "api" | "outil" | "prix" | "autre",\n` +
     `      "relevant": true | false,\n` +
     `      "summary": "one sentence summarizing the news",\n` +
-    `      "whyMango": "one sentence on why this matters for MangoAI (or empty if not relevant)"\n` +
+    `      "whyMango": "one sentence on why this matters for MangoOS (or empty if not relevant)"\n` +
     `    }\n` +
     `  ]\n` +
     `}`;

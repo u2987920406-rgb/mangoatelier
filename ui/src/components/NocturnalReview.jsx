@@ -174,7 +174,7 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
 
         {visible.length === 0 && (
           <p className="text-faint text-sm">
-            {running ? "Génération en cours…" : "Aucun projet. Lance un lot — MangoAI génère et le juge note chacun."}
+            {running ? "Génération en cours…" : "Aucun projet. Lance un lot — MangoOS génère et le juge note chacun."}
           </p>
         )}
 
@@ -269,7 +269,7 @@ export default function NocturnalReview({ onBack, onOpenProject }) {
                     onClick={() => submitReview(e.id)}
                     className="self-start flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-soft transition-colors"
                   >
-                    <Check size={13} /> Valider → MangoAI apprend
+                    <Check size={13} /> Valider → MangoOS apprend
                   </button>
                 </div>
               )}

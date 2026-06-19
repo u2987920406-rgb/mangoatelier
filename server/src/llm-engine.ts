@@ -1,5 +1,5 @@
 // Routeur de moteur LLM — porte d'entrée UNIQUE pour toutes les features IA de
-// MangoAI. Chaque feature appelle askLLM() ; le moteur réel se choisit dans
+// MangoOS. Chaque feature appelle askLLM() ; le moteur réel se choisit dans
 // `.env`, sans toucher au code. Généralise le askEleveDispatch de l'Élève.
 //
 //   - 'claude'   → query() via l'ABONNEMENT Claude Code (qualité, pas de crédits API)

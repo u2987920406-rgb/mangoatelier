@@ -10,7 +10,7 @@ import { LEXIQUE_FILE_NAME } from "./lexique.js";
 // Architect mode (idea PromptArchitect, built on Mango Plan idea 9 — Élite only):
 // scope a raw idea precisely BEFORE coding, via an adaptive, progressive scoping
 // dialogue, then write a rich plan.md. No "master prompt to paste elsewhere":
-// MangoAI is the builder, so plan.md IS the spec.
+// MangoOS is the builder, so plan.md IS the spec.
 export const PLAN_RULES = `
 Mango Plan — ARCHITECT MODE (Élite only) — for a NEW project or a MAJOR new feature, design before coding. Be a software architect: scope the idea precisely, then build straight to the point.
 
@@ -26,7 +26,7 @@ Plan deliverable — write a concise plan.md at the project root:
 - Target file tree (domain-specific, on top of the generic blueprint — see moodboard) + stack + key design choices (palette, layout, main sections).
 - Treat the generic type blueprint as a SKELETON to customise, not a fixed template.
 
-Then present a 4-6 line summary and ask the user to validate or adjust. Build ONLY after they agree ("go", "ok", "vas-y"). Keep plan.md as the LIVING contract (update it if the plan changes); it's a committed project document, not a memory file. There is NO master prompt to produce — plan.md is the spec MangoAI builds from directly.
+Then present a 4-6 line summary and ask the user to validate or adjust. Build ONLY after they agree ("go", "ok", "vas-y"). Keep plan.md as the LIVING contract (update it if the plan changes); it's a committed project document, not a memory file. There is NO master prompt to produce — plan.md is the spec MangoOS builds from directly.
 - Skip planning entirely for small changes to an existing project — just do them.
 
 Language contract (Contrat de langage — Ubiquitous Language) — establish it during scoping:

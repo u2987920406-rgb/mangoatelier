@@ -4,8 +4,8 @@
 //   inspectProject (inspection.ts) · selectAxioms (axioms.ts)
 //
 //   1. L'Élève (modèle OSS local, Gemma via Ollama) tente la tâche à coût zéro,
-//      en répondant dans le contrat <mangoai>, nourri des axiomes pertinents.
-//   2. MangoAI applique (executeContract) puis JUGE objectivement (inspectProject).
+//      en répondant dans le contrat <mangoos>, nourri des axiomes pertinents.
+//   2. MangoOS applique (executeContract) puis JUGE objectivement (inspectProject).
 //   3. Build vert → l'Élève a réussi seul.
 //   4. Après MAX échecs OBJECTIFS → ESCALADE : le Maître (Claude) corrige ET
 //      distille un AXIOME (clapet anti-retour) que l'Élève lira la prochaine fois.
@@ -264,7 +264,7 @@ function buildEleveUser(task: string, projectDir: string, lastError: string, inj
       lastError,
     );
   }
-  parts.push("", "Réponds UNIQUEMENT dans le format <mangoai>.");
+  parts.push("", "Réponds UNIQUEMENT dans le format <mangoos>.");
   return parts.join("\n");
 }
 
@@ -331,7 +331,7 @@ async function ensureDepsNpm(projectDir: string, log: (s: string) => void): Prom
 }
 
 // ── Cerveau Maître par défaut : Claude corrige + écrit l'axiome ────────────────
-const ESCALATE_SYSTEM = `Tu es le MAÎTRE dans l'apprentissage de MangoAI. Un modèle
+const ESCALATE_SYSTEM = `Tu es le MAÎTRE dans l'apprentissage de MangoOS. Un modèle
 ÉLÈVE local a tenté une tâche et a ÉCHOUÉ à une vérification OBJECTIVE (le build ne
 passe pas). Deux missions, dans l'ordre :
 1. CORRIGE le projet pour que "npm run build" passe — changement minimal et correct,
@@ -399,7 +399,7 @@ export const defaultRelayDeps: RelayDeps = {
   escalate: escalateToClaude,
 };
 
-/** Le rouage de la bascule : l'Élève tente, MangoAI juge, le Maître escalade. */
+/** Le rouage de la bascule : l'Élève tente, MangoOS juge, le Maître escalade. */
 export async function runRelay(
   task: string,
   projectDir: string,

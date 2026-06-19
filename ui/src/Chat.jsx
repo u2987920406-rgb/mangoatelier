@@ -482,7 +482,7 @@ export default function Chat({
             <p className="leading-relaxed">
               Décris ce que tu veux construire,
               <br />
-              MangoAI s'occupe du code.
+              MangoOS s'occupe du code.
             </p>
           </div>
         )}
@@ -521,7 +521,7 @@ export default function Chat({
         )}
         {busy && (
           <div className="shimmer-text self-start px-1 py-0.5 text-[13px] font-medium">
-            MangoAI travaille…
+            MangoOS travaille…
           </div>
         )}
       </div>
@@ -783,7 +783,7 @@ function EscalationCard({ projectName }) {
       <div className="rounded-2xl rounded-tl-md border border-amber-500/30 bg-amber-500/[0.06] px-3.5 py-3 text-sm">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-500">
           <span>⚠</span>
-          <span>MangoAI bloque sur le visuel</span>
+          <span>MangoOS bloque sur le visuel</span>
         </div>
         {sent ? (
           <p className="text-xs text-ok">
@@ -844,7 +844,7 @@ const Message = memo(function Message({ m, showThinking = true, onFeedback }) {
         <div className="animate-fade-up max-w-[95%] self-start">
           <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-accent-soft">
             <Sparkles size={12} />
-            MangoAI
+            MangoOS
           </div>
           <div className="md rounded-2xl rounded-tl-md border border-accent/15 bg-accent/[0.06] px-3.5 py-2.5 text-sm leading-relaxed break-words">
             <ReactMarkdown>{m.text}</ReactMarkdown>

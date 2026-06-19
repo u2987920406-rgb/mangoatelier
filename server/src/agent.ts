@@ -57,14 +57,14 @@ const BUILDER_PROMPT = `You are a builder subagent inside a local "Lovable-like"
 Rules:
 - Implement ONLY the part described in your task; never touch files outside your scope (shared files like index.css are listed in the task when you may edit them).
 - Keep the app compiling at every step. Follow the styling approach stated in the task (plain CSS or Tailwind v4 — the template has Tailwind preinstalled).
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html.
 - When done, return a short summary: files created/edited and what the parent must wire up (imports, routes, CSS hooks).`;
 
-// QA/Contrôleur subagent (finition phase): an adversarial Lead QA that audits
+// Contrôleur subagent (finition phase): an adversarial Lead QA that audits
 // the ALREADY-BUILT app and hardens it in place — it never adds features. The
 // finition scenario tells the engine to delegate to it; same tool restriction
 // as the builder (no Bash/server) so it can't fight over the dev server.
-const QA_PROMPT = `You are a Lead QA / Controller subagent inside a local "Lovable-like" app builder. The app is ALREADY BUILT; your job is to make it solid and shippable — NOT to add features.
+const CONTROLEUR_PROMPT = `You are a Lead Contrôleur / Controller subagent inside a local "Lovable-like" app builder. The app is ALREADY BUILT; your job is to make it solid and shippable — NOT to add features.
 Audit the project adversarially and FIX what you find, staying strictly within existing scope:
 - Edge cases: empty/whitespace/invalid/out-of-range input, very long text, 0/1/many items, duplicate actions, missing data.
 - Missing states: every async or data-driven view must handle loading, empty and error — not just the happy path. A list must render cleanly with 0 items; a form must show validation errors.
@@ -73,7 +73,7 @@ Audit the project adversarially and FIX what you find, staying strictly within e
 Rules:
 - NEVER add a new feature, page or scope. If something looks like a missing feature rather than a defect, report it instead of building it.
 - Keep the app compiling at every step. Follow the project's existing styling approach and conventions.
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html.
 - When done, return a short report: defects found, fixes applied (file by file), and anything that still needs the user's decision.`;
 
 const AGENTS = {
@@ -83,10 +83,10 @@ const AGENTS = {
     prompt: BUILDER_PROMPT,
     tools: ["Read", "Write", "Edit", "Glob", "Grep"],
   },
-  qa: {
+  controleur: {
     description:
-      "Adversarial Lead QA / Controller for the finition phase: audits the already-built app and FIXES hardening defects in place (edge cases, missing loading/empty/error states, input validation, a11y, responsive, bugs, dead code) WITHOUT adding any feature. Give it the project scope and the conventions to respect; it returns a report of what it fixed.",
-    prompt: QA_PROMPT,
+      "Adversarial Lead Contrôleur for the finition phase: audits the already-built app and FIXES hardening defects in place (edge cases, missing loading/empty/error states, input validation, a11y, responsive, bugs, dead code) WITHOUT adding any feature. Give it the project scope and the conventions to respect; it returns a report of what it fixed.",
+    prompt: CONTROLEUR_PROMPT,
     tools: ["Read", "Write", "Edit", "Glob", "Grep"],
   },
 };

@@ -40,7 +40,7 @@ export default function Preview({
     if (!win) return;
     const send = () =>
       win.postMessage(
-        { source: "mangoai-builder", type: inspecting ? "inspect-on" : "inspect-off" },
+        { source: "mangoos-builder", type: inspecting ? "inspect-on" : "inspect-off" },
         "*",
       );
     send();
@@ -54,7 +54,7 @@ export default function Preview({
   useEffect(() => {
     const onMessage = (e) => {
       const d = e.data;
-      if (!d || d.source !== "mangoai-preview") return;
+      if (!d || d.source !== "mangoos-preview") return;
       if (d.type !== "inspect-hover") return;
       if (!inspecting || !d.rect) {
         setHoverInfo(null);

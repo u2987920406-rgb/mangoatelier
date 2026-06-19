@@ -1,7 +1,7 @@
 import { BarChart3, BrainCircuit, MousePointerClick, Rocket, Sparkles, Wand2 } from "lucide-react";
 import { NEUTRAL } from "../neutral.js";
 
-// In-app user guide (idea 5): what MangoAI can do, and WHEN to use each thing.
+// In-app user guide (idea 5): what MangoOS can do, and WHEN to use each thing.
 // Static content rendered in a header dropdown (like Mémoire/Métriques) — no
 // backend, no dependency. The reference newcomers (and Phase B beta-testers)
 // read to get productive fast.
@@ -10,9 +10,9 @@ const GROUPS = [
     icon: Sparkles,
     title: "Démarrer",
     items: [
-      ["Créer un projet", "Sur l'accueil, donne un nom + décris ce que tu veux. MangoAI échafaude un projet React/Vite et construit au fil du chat."],
+      ["Créer un projet", "Sur l'accueil, donne un nom + décris ce que tu veux. MangoOS échafaude un projet React/Vite et construit au fil du chat."],
       ["Discuter pour itérer", "Chaque message = une itération. Demande une section, un changement, une correction — l'aperçu se met à jour en direct."],
-      ["Pièce jointe 📎", "Glisse une image (maquette, capture) ou un PDF : MangoAI la lit et reproduit la structure/palette, ou en extrait l'info."],
+      ["Pièce jointe 📎", "Glisse une image (maquette, capture) ou un PDF : MangoOS la lit et reproduit la structure/palette, ou en extrait l'info."],
     ],
   },
   {
@@ -29,10 +29,10 @@ const GROUPS = [
     icon: MousePointerClick,
     title: "Travailler le visuel",
     items: [
-      ["Snap 📸", "Bouton de capture dans le chat : entoure une zone de l'aperçu (un bug, un détail) → MangoAI la voit et agit dessus."],
+      ["Snap 📸", "Bouton de capture dans le chat : entoure une zone de l'aperçu (un bug, un détail) → MangoOS la voit et agit dessus."],
       ["Inspecter ⌖", "Active l'inspecteur puis clique un élément de l'aperçu : le composer se pré-remplit avec la source exacte pour une édition chirurgicale."],
-      ["Cloner un site 🌐", "Colle l'URL d'un site live + demande de le reproduire : MangoAI le capture (screenshot) et recrée son design en code. Aucun compte externe."],
-      ["Maquette jointe 📎", "Joins une image de design (screenshot, maquette, export d'un kit UI) + demande de la reproduire : MangoAI la voit et génère le React/Tailwind fidèle. Aucun compte externe."],
+      ["Cloner un site 🌐", "Colle l'URL d'un site live + demande de le reproduire : MangoOS le capture (screenshot) et recrée son design en code. Aucun compte externe."],
+      ["Maquette jointe 📎", "Joins une image de design (screenshot, maquette, export d'un kit UI) + demande de la reproduire : MangoOS la voit et génère le React/Tailwind fidèle. Aucun compte externe."],
     ],
   },
   {
@@ -40,7 +40,7 @@ const GROUPS = [
     title: "Itérer en sécurité",
     items: [
       ["Versions / rollback", "Chaque tour est versionné automatiquement. Le menu Versions permet de revenir à n'importe quel état en un clic."],
-      ["Mémoire 🧠", "Ce que MangoAI a appris du projet (conventions, design) et tes préférences. S'enrichit tout seul après chaque tour réussi."],
+      ["Mémoire 🧠", "Ce que MangoOS a appris du projet (conventions, design) et tes préférences. S'enrichit tout seul après chaque tour réussi."],
     ],
   },
   {
@@ -67,7 +67,7 @@ export default function Guide() {
   return (
     <div className="space-y-3 px-2 py-2">
       <p className="px-1 text-[11px] leading-relaxed text-dim">
-        MangoAI construit ton app au fil de la conversation. Voici tout ce que tu peux
+        MangoOS construit ton app au fil de la conversation. Voici tout ce que tu peux
         faire — et <em>quand</em> t'en servir.
       </p>
       {GROUPS.map((g) => (

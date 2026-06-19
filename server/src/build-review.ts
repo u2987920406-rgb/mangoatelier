@@ -58,7 +58,7 @@ export async function analyzeAndSave(
   const tag     = score >= 4 ? "validé-utilisateur" : "à-éviter";
   const cat     = score >= 4 ? "UX" : "AVOID";
 
-  const prompt = `L'utilisateur a noté ce build MangoAI **${score}/5** (signal ${valence}).
+  const prompt = `L'utilisateur a noté ce build MangoOS **${score}/5** (signal ${valence}).
 
 Son commentaire : "${comment.slice(0, 600)}"
 

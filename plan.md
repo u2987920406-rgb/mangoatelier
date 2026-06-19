@@ -1,4 +1,4 @@
-# Plan — MangoAI
+# Plan — MangoOS
 
 ## Roadmap
 

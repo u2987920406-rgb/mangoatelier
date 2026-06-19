@@ -63,7 +63,7 @@ function RadarItemCard({ item }) {
       )}
       {item.whyMango && (
         <p className="text-xs text-accent-soft leading-relaxed">
-          <span className="font-medium">→ MangoAI :</span> {item.whyMango}
+          <span className="font-medium">→ MangoOS :</span> {item.whyMango}
         </p>
       )}
     </div>
@@ -205,7 +205,7 @@ export default function Radar({ onBack }) {
         {!loading && !error && hasItems && (
           <>
             <p className="text-xs text-faint mb-6">
-              {data.items.length} actu{data.items.length > 1 ? "s" : ""} pertinente{data.items.length > 1 ? "s" : ""} sélectionnée{data.items.length > 1 ? "s" : ""} pour MangoAI
+              {data.items.length} actu{data.items.length > 1 ? "s" : ""} pertinente{data.items.length > 1 ? "s" : ""} sélectionnée{data.items.length > 1 ? "s" : ""} pour MangoOS
               {data.stale && <span className="text-warn ml-2">(cache périmé — rafraîchissez)</span>}
             </p>
             {CATEGORY_ORDER.filter((cat) => grouped[cat]).map((cat) => (

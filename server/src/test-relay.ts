@@ -27,7 +27,7 @@ function check(label: string, cond: boolean) {
 const inspOk = (): Inspection => ({ ok: true, signal: "ok", detail: "", durationMs: 0 });
 const inspKo = (d: string): Inspection => ({ ok: false, signal: "build-failed", detail: d, durationMs: 0 });
 
-const C = (body: string) => `<mangoai>${body}</mangoai>`;
+const C = (body: string) => `<mangoos>${body}</mangoos>`;
 const writeMarker = (v: string) => C(`<write path="marker.txt">${v}</write><summary>set ${v}</summary>`);
 
 // Inspection factice : verte ssi marker.txt vaut exactement "OK".

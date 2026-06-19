@@ -11,8 +11,8 @@ const execFileAsync = promisify(execFile);
 
 export type Version = { hash: string; date: string; message: string };
 
-// Commits are authored as MangoAI so they don't depend on the user's git config.
-const IDENTITY = ["-c", "user.name=MangoAI", "-c", "user.email=mangoai@local"];
+// Commits are authored as MangoOS so they don't depend on the user's git config.
+const IDENTITY = ["-c", "user.name=MangoOS", "-c", "user.email=mangoos@local"];
 
 async function git(dir: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", args, { cwd: dir });

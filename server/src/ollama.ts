@@ -1,4 +1,4 @@
-// Moteur LLM LOCAL via Ollama — pour les tâches internes de MangoAI ($0,
+// Moteur LLM LOCAL via Ollama — pour les tâches internes de MangoOS ($0,
 // souverain, hors crédits API Anthropic). Réutilise le serveur Ollama de
 // l'Élève (voir askEleveOllama dans eleve.ts) : même endpoint /api/chat, même
 // modèle par défaut. Sert de moteur de résumé pour l'index multi-projets, et

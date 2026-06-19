@@ -39,7 +39,7 @@ export async function processFeedback(
   const today = new Date().toISOString().slice(0, 10);
 
   const prompt = rating === "like"
-    ? `L'utilisateur a 👍 cette réponse de MangoAI dans le projet "${projectName}". Extrait le PATTERN UX/visuel/architectural qui lui a plu sous forme d'axiome universel réutilisable. Ne décris pas ce que le message dit — extrait la RÈGLE ABSTRAITE applicable à d'autres projets.
+    ? `L'utilisateur a 👍 cette réponse de MangoOS dans le projet "${projectName}". Extrait le PATTERN UX/visuel/architectural qui lui a plu sous forme d'axiome universel réutilisable. Ne décris pas ce que le message dit — extrait la RÈGLE ABSTRAITE applicable à d'autres projets.
 
 Message liké :
 ${messageText.slice(0, 1500)}
@@ -50,7 +50,7 @@ AXIOME-${axiomCat}-XX [candidat] [${tag}]
 - Piège: (l'erreur à éviter)
 - Règle d'or: (la règle concrète)
 - Source: 👍 utilisateur (${today}) — projet ${projectName}`
-    : `L'utilisateur a 👎 cette réponse de MangoAI dans le projet "${projectName}". Extrait le PATTERN à éviter sous forme d'axiome universel. Ne décris pas ce que le message dit — extrait ce qu'il ne faut JAMAIS faire dans un contexte similaire.
+    : `L'utilisateur a 👎 cette réponse de MangoOS dans le projet "${projectName}". Extrait le PATTERN à éviter sous forme d'axiome universel. Ne décris pas ce que le message dit — extrait ce qu'il ne faut JAMAIS faire dans un contexte similaire.
 
 Message disliké :
 ${messageText.slice(0, 1500)}
@@ -85,7 +85,7 @@ export async function processEscalationReference(
   // Haiku analyse la référence et extrait le goût visuel de l'utilisateur
   // comme axiome [validé-utilisateur]
   const today = new Date().toISOString().slice(0, 10);
-  const prompt = `L'utilisateur a fourni cette référence visuelle/stylistique à MangoAI pour corriger sa direction : "${referenceText.slice(0, 1000)}"
+  const prompt = `L'utilisateur a fourni cette référence visuelle/stylistique à MangoOS pour corriger sa direction : "${referenceText.slice(0, 1000)}"
 
 Extrait le GOÛT VISUEL / STYLISTIQUE précis de l'utilisateur sous forme d'axiome universel réutilisable. Ne décris pas la référence — extrait la RÈGLE ABSTRAITE sur ce que l'utilisateur aime visuellement.
 

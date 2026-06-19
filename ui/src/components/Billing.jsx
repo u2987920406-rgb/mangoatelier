@@ -97,7 +97,7 @@ export default function Billing({ onBack }) {
           <ArrowLeft size={16} />
           Retour
         </button>
-        <h1 className="text-2xl font-bold text-accent">Abonnement MangoAI</h1>
+        <h1 className="text-2xl font-bold text-accent">Abonnement MangoOS</h1>
       </div>
 
       {/* Badge Stripe non configuré */}

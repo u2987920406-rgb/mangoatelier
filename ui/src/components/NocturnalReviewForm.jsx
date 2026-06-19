@@ -34,7 +34,7 @@ export default function NocturnalReviewForm({ id, onReviewed = () => {}, onToast
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setDone(true);
       onReviewed();
-      onToast("success", "Review enregistrée → MangoAI apprend");
+      onToast("success", "Review enregistrée → MangoOS apprend");
     } catch {
       onToast("error", "Échec de l'enregistrement de la review");
     } finally {
@@ -45,7 +45,7 @@ export default function NocturnalReviewForm({ id, onReviewed = () => {}, onToast
   if (done) {
     return (
       <div className="self-start flex items-center gap-1.5 rounded-lg border border-ok/40 bg-ok/10 px-2.5 py-1 text-xs text-ok">
-        <Check size={12} /> Reviewé → MangoAI a appris
+        <Check size={12} /> Reviewé → MangoOS a appris
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function NocturnalReviewForm({ id, onReviewed = () => {}, onToast
         disabled={sending}
         className="self-start flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-soft disabled:opacity-50 transition-colors"
       >
-        <Check size={13} /> {sending ? "…" : "Valider → MangoAI apprend"}
+        <Check size={13} /> {sending ? "…" : "Valider → MangoOS apprend"}
       </button>
     </div>
   );

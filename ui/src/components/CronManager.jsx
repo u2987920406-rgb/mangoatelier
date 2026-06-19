@@ -115,7 +115,7 @@ export default function CronManager({ onBack }) {
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-accent">Agents Autonomes</h1>
           <p className="text-xs text-dim mt-0.5">
-            Tâches automatiques exécutées par MangoAI en arrière-plan
+            Tâches automatiques exécutées par MangoOS en arrière-plan
           </p>
         </div>
         <button

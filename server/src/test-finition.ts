@@ -16,24 +16,24 @@ const check = (label: string, cond: boolean) => {
 };
 
 line("═");
-console.log("finition — mode, agent qa, scénario");
+console.log("finition — mode, agent contrôleur, scénario");
 line();
 
 // 1. Le mode est reconnu côté API.
 check("ALLOWED_MODES contient 'finition'", (ALLOWED_MODES as readonly string[]).includes("finition"));
 
-// 2. Le sous-agent qa est enregistré (contrôleur-correcteur : peut éditer).
-const qa = AGENTS_FOR_TEST.qa;
-check("agent qa enregistré", !!qa);
-check("qa peut corriger (Read/Write/Edit)", !!qa && ["Read", "Write", "Edit"].every((t) => qa.tools.includes(t)));
-check("qa sans Bash (pas de serveur)", !!qa && !qa.tools.includes("Bash"));
+// 2. Le sous-agent contrôleur est enregistré (contrôleur-correcteur : peut éditer).
+const controleur = AGENTS_FOR_TEST.controleur;
+check("agent contrôleur enregistré", !!controleur);
+check("contrôleur peut corriger (Read/Write/Edit)", !!controleur && ["Read", "Write", "Edit"].every((t) => controleur.tools.includes(t)));
+check("contrôleur sans Bash (pas de serveur)", !!controleur && !controleur.tools.includes("Bash"));
 
 // 3. Le scénario finition assemble le protocole attendu.
 const prompt = assembleSystemPrompt({ mode: "finition", model: "sonnet", projectDir: "." });
 check("contient le mode Finition", /Finition — hardening/.test(prompt));
 check("contient FEATURE FREEZE", /FEATURE FREEZE/.test(prompt));
-check("délègue au sous-agent qa", /"qa" subagent/.test(prompt));
-check("délégation qa OBLIGATOIRE", /MUST launch the "qa" subagent/.test(prompt));
+check("délègue au sous-agent contrôleur", /"controleur" subagent/.test(prompt));
+check("délégation contrôleur OBLIGATOIRE", /MUST launch the "controleur" subagent/.test(prompt));
 check("inclut le rituel analytique", /native extended thinking/.test(prompt));
 check("consigne le backlog en TODO dans .memory.md", /TODO — décisions en attente/.test(prompt) && /\.memory\.md/.test(prompt));
 

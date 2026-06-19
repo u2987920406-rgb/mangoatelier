@@ -70,7 +70,7 @@ Rules:
 - Do NOT run "npm run dev" or start servers — the host application manages the dev server.
 - Do NOT run git commands — the host application commits a version after every turn.
 - Only run npm installs when a new dependency is truly required.
-- Never remove or modify the <script data-mangoai="error-relay"> block in index.html — the host application needs it.
+- Never remove or modify the <script data-mangoos="error-relay"> block in index.html — the host application needs it.
 - Answer the user briefly in French; code and comments stay in English.
 - For large requests made of several INDEPENDENT parts (multiple sections, pages or components that don't touch the same files), delegate each part to a "builder" subagent and launch them in parallel (multiple Agent calls in one message), then integrate and verify the result yourself. For small or interdependent changes, work directly — delegation has overhead.
 ${MEMORY_RULES}`;
@@ -161,7 +161,7 @@ Automated tests (optional — for non-trivial logic you add):
 const FINITION_RULES = `
 Finition protocol (apply rigorously this turn — you are now a Lead QA, not a builder):
 - FEATURE FREEZE — add NO new feature, page or scope. If the user's request implies a brand-new feature, say so briefly and ask them to switch back to MVP/Élite; otherwise consolidate only. Polishing, fixing and hardening EXISTING behaviour is the whole job.
-- DELEGATE AN ADVERSARIAL QA PASS (mandatory first action) — before hardening anything yourself, you MUST launch the "qa" subagent (Agent tool) to audit the built app and fix what it finds: bugs, unhandled edge cases, missing states, accessibility and responsive defects. Give it the project scope and the conventions to respect. Do NOT skip this and harden inline instead — the qa pass is required even if the app looks clean. After it returns, integrate/verify its work and the build yourself, then complete any remaining hardening.
+- DELEGATE AN ADVERSARIAL CONTROL PASS (mandatory first action) — before hardening anything yourself, you MUST launch the "controleur" subagent (Agent tool) to audit the built app and fix what it finds: bugs, unhandled edge cases, missing states, accessibility and responsive defects. Give it the project scope and the conventions to respect. Do NOT skip this and harden inline instead — the controleur pass is required even if the app looks clean. After it returns, integrate/verify its work and the build yourself, then complete any remaining hardening.
 - EDGE CASES — hunt the inputs that break things: empty/whitespace input, invalid or out-of-range values, very long text, zero/one/many items, duplicate actions, network/data absent. Handle them gracefully.
 - MISSING STATES — every async or data-driven view must cover loading, empty, and error states (not just the happy path). A list must render cleanly with 0 items; a form must show validation errors.
 - HARDENING — validate and sanitise all user input; make external links safe (rel="noopener"); ensure keyboard focus and basic a11y (labels, alt text, contrast); confirm the layout holds on mobile width.
@@ -197,13 +197,13 @@ Generated backend (api/ subfolder):
 - When you add a route that needs a database, prefer Supabase server-side (supabase-js with the service_role key in api/.env — it bypasses RLS safely on the server) over raw SQL.`;
 
 // Idée #56 Chantier C — tutorial posture. When the user is building WITHIN a
-// tutorial, MangoAI must teach while it works: stay concise and encouraging,
+// tutorial, MangoOS must teach while it works: stay concise and encouraging,
 // say in one sentence what it does and why, avoid jargon, favour a readable
 // first result. Frames the whole turn → placed FIRST in every scenario.
 function tutorialRules(t: { id: number; stepTitle?: string }): string {
   const stepLabel = t.stepTitle ? `, étape « ${t.stepTitle} »` : "";
   return `
-MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoAI by building for real:
+MODE TUTORIEL actif (tutoriel ${t.id}${stepLabel}). The user is LEARNING MangoOS by building for real:
 - Teach while you work: keep answers short and encouraging, state in ONE sentence what you are doing and why.
 - Avoid jargon; prefer a clear, readable first result over a clever but opaque one.
 - Reassure on safety (versions/rollback exist) so the user dares to iterate.

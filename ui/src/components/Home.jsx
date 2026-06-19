@@ -239,7 +239,7 @@ export default function Home({ projects, templates, onOpen, onDelete, onDeleteMa
                 <span className="text-lg">🎓</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-ink">
-                    {nextTutorialId === 1 ? "Découvrir MangoAI — Tutoriel 1" : `Tutoriel ${nextTutorialId}/10`}
+                    {nextTutorialId === 1 ? "Découvrir MangoOS — Tutoriel 1" : `Tutoriel ${nextTutorialId}/10`}
                   </p>
                   <p className="text-[11px] text-faint">Cliquer pour démarrer</p>
                 </div>

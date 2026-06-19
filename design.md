@@ -1,4 +1,4 @@
-# Design — MangoAI
+# Design — MangoOS
 
 ## Stack UI
 - **Tailwind CSS v4** (plugin `@tailwindcss/vite`, tokens dans `@theme` de `ui/src/index.css`)
@@ -41,9 +41,9 @@ Tokens Tailwind (`@theme` → classes `bg-*`, `text-*`, `border-*`) :
 - **Home.jsx** : écran d'accueil (voir plus haut)
 
 ## Chat
-- Bulles utilisateur à droite (fond `bubble`), réponses agent à gauche avec label « ✦ MangoAI » et rendu **markdown** (styles `.md` dans index.css)
+- Bulles utilisateur à droite (fond `bubble`), réponses agent à gauche avec label « ✦ MangoOS » et rendu **markdown** (styles `.md` dans index.css)
 - Lignes outils regroupées en `ToolGroup` repliable
-- Pendant la génération : texte « MangoAI travaille… » avec shimmer violet (`.shimmer-text`)
+- Pendant la génération : texte « MangoOS travaille… » avec shimmer violet (`.shimmer-text`)
 - Input : carte arrondie, textarea auto-grow (max 160px), bouton envoyer ↑ / stop ■, Entrée pour envoyer
 - État vide : icône Sparkles + invitation
 

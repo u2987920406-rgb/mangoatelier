@@ -703,7 +703,7 @@ export default function MultiProject({ onBack }) {
               <Layers size={40} className="text-faint" />
               <p className="text-ink font-medium">Aucun fichier trouvé</p>
               <p className="text-sm text-dim max-w-sm">
-                Génère d'abord des projets dans MangoAI. Les fichiers{" "}
+                Génère d'abord des projets dans MangoOS. Les fichiers{" "}
                 <code className="text-faint">.jsx</code>, <code className="text-faint">.tsx</code>,{" "}
                 <code className="text-faint">.ts</code> et <code className="text-faint">.js</code>{" "}
                 apparaîtront ici automatiquement.

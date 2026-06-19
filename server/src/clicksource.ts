@@ -27,7 +27,7 @@ export const CLICK_SOURCE_ATTR = "data-mango-src";
 // jamais les composants React.
 const PLUGIN_FACTORY = `function mangoClickSource() {
   // Stampe chaque élément hôte JSX avec data-mango-src="chemin/relatif:ligne"
-  // (dev only) pour le relais clic->source de MangoAI. Inoffensif, idempotent.
+  // (dev only) pour le relais clic->source de MangoOS. Inoffensif, idempotent.
   return function (babel) {
     var t = babel.types;
     return {

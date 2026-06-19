@@ -1,7 +1,7 @@
 // Proactive context compaction, transposed from Hermes Agent's
 // context_compressor.py. Hermes owns its message list and rewrites it
 // (threshold % of the context window, protected head/tail, summary written by
-// a cheap auxiliary model). MangoAI delegates conversation history to the
+// a cheap auxiliary model). MangoOS delegates conversation history to the
 // Claude Agent SDK, so the transposition keeps Hermes' CONCEPTS and maps them
 // onto SDK primitives:
 //   - threshold %        → context tokens measured on the turn's last API call
