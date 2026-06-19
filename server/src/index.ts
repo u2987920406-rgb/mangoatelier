@@ -35,6 +35,7 @@ import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js
 import { installArtifactStore, registerArtifactRoutes } from "./kernel-artifacts.js";
 import { installReuseCollector, installReuseImpactCollector, registerReuseRoutes, detectArtifactReads, detectPaletteReuse, publishReuse } from "./kernel-reuse-metrics.js";
 import { registerCurationRoutes } from "./kernel-curation-priority.js";
+import { registerCurationEffectRoutes } from "./kernel-curation-effect.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, buildProducedDesign, paletteFromContract } from "./kernel-design-events.js";
@@ -704,6 +705,7 @@ registerTraceRoutes(app);
 registerArtifactRoutes(app);
 registerReuseRoutes(app);
 registerCurationRoutes(app);
+registerCurationEffectRoutes(app);
 registerTokenizerRoutes(app);
 registerIdeationRoutes(app);
 registerVeilleRoutes(app);

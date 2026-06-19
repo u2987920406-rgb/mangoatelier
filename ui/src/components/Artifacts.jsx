@@ -15,6 +15,7 @@ export default function Artifacts() {
   const [reuse, setReuse] = useState(null);
   const [impact, setImpact] = useState(null);
   const [curation, setCuration] = useState(null);
+  const [effect, setEffect] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -43,6 +44,11 @@ export default function Artifacts() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => alive && d && setCuration(d))
         .catch(() => {});
+      // Preuve d'efficacité (#126) : la curation orientée fait-elle monter le rendement ?
+      fetch("/api/curation/effect")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && d && setEffect(d))
+        .catch(() => {});
     };
     load();
     const id = setInterval(load, 4000);
@@ -64,6 +70,7 @@ export default function Artifacts() {
       {reuse && reuse.totalTurns > 0 && <ReuseSummary reuse={reuse} />}
       {impact && impact.reuse.turns + impact.noReuse.turns > 0 && <ReuseImpact impact={impact} />}
       {curation && <CurationPriority curation={curation} />}
+      {effect && effect.samples > 0 && <CurationEffect effect={effect} />}
 
       {arts.length === 0 ? (
         <p className="px-1 py-2 text-xs leading-relaxed text-dim">
@@ -249,6 +256,37 @@ function CurationPriority({ curation }) {
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+// Preuve d'efficacité de la curation (#126) : la curation orientée fait-elle
+// monter le rendement nuit après nuit ? Verdict honnête, "insufficient" tant que
+// les données manquent. Reflète /api/curation/effect.
+const VERDICT = {
+  positive: { label: "Effet positif détecté", tone: "text-ok", note: "les familles priorisées progressent plus que les autres" },
+  neutral: { label: "Pas d'effet net", tone: "text-dim", note: "priorisées et autres progressent pareil" },
+  negative: { label: "Effet négatif", tone: "text-err", note: "les familles priorisées progressent moins" },
+  insufficient: { label: "Données insuffisantes", tone: "text-faint", note: "preuve en cours d'accumulation — une mesure par nuit" },
+};
+function CurationEffect({ effect }) {
+  const v = VERDICT[effect.verdict] ?? VERDICT.insufficient;
+  return (
+    <div className="rounded-lg border border-edge bg-bg px-2.5 py-2">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
+        Preuve d'efficacité de la curation
+      </div>
+      <div className={`text-[12px] font-semibold ${v.tone}`}>{v.label}</div>
+      <p className="mt-0.5 text-[10px] leading-snug text-faint">{v.note}.</p>
+      {effect.verdict !== "insufficient" && effect.lift !== null && (
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-3 text-[11px] text-faint">
+          <span>surcroît de progression <Delta value={effect.lift} unit="" /></span>
+          <span className="font-mono">{effect.observations} obs · {effect.samples} nuits</span>
+        </div>
+      )}
+      {effect.verdict === "insufficient" && (
+        <div className="mt-1 font-mono text-[10px] text-faint">{effect.samples} nuit·s échantillonnée·s</div>
+      )}
     </div>
   );
 }

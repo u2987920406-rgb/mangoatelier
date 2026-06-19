@@ -21,6 +21,7 @@ import { loadPreferences } from "./preferences.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
 import { getCurationPriority } from "./kernel-curation-priority.js";
+import { recordCurationSample } from "./kernel-curation-effect.js";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "nocturnal.json");
@@ -330,6 +331,10 @@ export async function runNocturnalBatch(count: number, opts: { freeStyle?: boole
     } catch {
       /* pas de priorité → récolte non orientée (comportement historique) */
     }
+    // #126 — Preuve d'efficacité : on horodate au DÉBUT du lot l'état (priorité +
+    // rendement) qui DRIVE la curation de cette nuit. La hausse de rendement
+    // attribuable se lira au prochain échantillon (nuit suivante). Best-effort.
+    recordCurationSample();
     for (let i = 0; i < prompts.length; i++) {
       progress = { current: i + 1, total: n, label: prompts[i].task.slice(0, 60) };
       const entry = await buildOne(prompts[i], batchId, i + 1, curationDirective);
