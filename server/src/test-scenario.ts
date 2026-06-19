@@ -154,6 +154,17 @@ check("artefacts présent en MVP quand section fournie", mvpAR.includes(ARTIFACT
 check("artefacts absent en finition", !assembleSystemPrompt({ mode: "finition", model: "sonnet", projectDir: dir, artifactsSection: sec }).includes(ARTIFACTS));
 check("artefacts absent en nocturne", !assembleSystemPrompt({ mode: "nocturne", model: "sonnet", projectDir: dir, artifactsSection: sec }).includes(ARTIFACTS));
 
+// Idée #119 — composants pertinents + blueprint hint : injectés quand fournis,
+// sinon retombent sur le comportement historique (dump complet / catalogue seul).
+const compSec = "\n\nComposants réutilisables PERTINENTS pour cette tâche (lis workspace/.components/<Name>/component.tsx pour réutiliser) :\n- **DataTable**: table";
+const eliteComp = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, componentsSection: compSec });
+check("composants : section pertinente injectée quand fournie", eliteComp.includes("PERTINENTS pour cette tâche"));
+check("composants : rules toujours présents (non-régression)", eliteComp.includes("Cross-project component library") && elite.includes("Cross-project component library"));
+const eliteBP = assembleSystemPrompt({ mode: "elite", model: "sonnet", projectDir: dir, blueprintHintSection: "\n\n→ Type de projet détecté pour cette demande : **dashboard**." });
+check("blueprint hint injecté quand fourni", eliteBP.includes("Type de projet détecté"));
+check("blueprint hint absent sans section (catalogue seul)", !elite.includes("Type de projet détecté"));
+check("blueprints catalogue toujours présent", elite.includes("Project blueprints") && eliteBP.includes("Project blueprints"));
+
 // Figma retiré (#25) : son bloc ne doit plus apparaître dans aucun mode.
 check("Figma absent des deux modes (intégration retirée)", !elite.includes("figma.com") && !mvp.includes("figma.com"));
 

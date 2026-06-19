@@ -60,6 +60,12 @@ export type PromptContext = {
   // projet (recherche par similarité, cross-projet), pré-calculées par agent.ts.
   // "" si pas de cible ou aucune palette proche → zéro poids.
   artifactsSection?: string;
+  // Idée #119 — composants PERTINENTS à la tâche (tri sémantique Blackboard, repli
+  // mots-clés), pré-calculés par agent.ts. Remplace le dump complet quand fourni ;
+  // sinon (tests / non fourni) on retombe sur la liste exhaustive.
+  componentsSection?: string;
+  // Idée #119 — rappel du blueprint du TYPE détecté pour la demande. "" si « autre ».
+  blueprintHintSection?: string;
 };
 
 // ── Prompt text blocks (moved verbatim from agent.ts) ──────────────────────
@@ -241,7 +247,9 @@ const BLOCKS: Record<string, (ctx: PromptContext) => string> = {
   constellations: (ctx) => ctx.constellationsSection ?? "",
   mode: (ctx) => MODE_RULES[ctx.mode],
   base: () => SYSTEM_APPEND,
-  blueprints: () => BLUEPRINTS_RULES,
+  // Idée #119 — catalogue + rappel du type pertinent détecté pour la demande
+  // (pré-calculé par agent.ts ; "" si « autre » ou non fourni → catalogue seul).
+  blueprints: (ctx) => BLUEPRINTS_RULES + (ctx.blueprintHintSection ?? ""),
   supabase: () => SUPABASE_RULES,
   tests: () => TESTS_RULES,
   finition: () => FINITION_RULES,
@@ -315,7 +323,9 @@ Autonomous moodboard (night generation): run the moodboard above WITHOUT asking 
   // Idée #36 — cross-project component library: reusable React/JSX components
   // shared across all projects. Rules + available list injected in every turn
   // so the agent both proposes existing components and saves new ones.
-  components: () => COMPONENTS_RULES + componentsPromptSection(WORKSPACE_DIR),
+  // Idée #119 — rules + liste : la liste PERTINENTE (tri sémantique) quand
+  // agent.ts la fournit, sinon le dump complet (non-régression / tests).
+  components: (ctx) => COMPONENTS_RULES + (ctx.componentsSection ?? componentsPromptSection(WORKSPACE_DIR)),
   // Idée #50 — Banque de références perso: mood library of inspirations
   // (screenshots / URLs / palettes) reused at the founding cadrage of each new
   // project. Rules always present; list injected only when references exist.
