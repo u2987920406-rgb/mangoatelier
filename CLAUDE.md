@@ -7,7 +7,9 @@ Lire `statut.md` uniquement et afficher immédiatement le **tableau consolidé**
 
 Lire aussi `memory.md` pour l'état courant du projet.
 
-**Ne PAS lire `historique.md` au démarrage** — ce fichier est lourd (~80 ko). Le lire uniquement quand l'utilisateur demande explicitement le détail d'une idée ou d'une session passée.
+Lire aussi `fondation.md` — le document fondateur (architecture, vision 10 ans, principes non-négociables). Léger (~25 ko) et structurant : c'est la référence absolue pour toute décision d'architecture.
+
+**Ne PAS lire `historique.md` au démarrage** — ce fichier est lourd (~220 ko). Le lire uniquement quand l'utilisateur demande explicitement le détail d'une idée ou d'une session passée.
 
 ## Comment accéder à l'historique
 
