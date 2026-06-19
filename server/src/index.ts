@@ -33,6 +33,7 @@ import { installMangoQaBridge } from "./kernel-mangoqa-bridge.js";
 import { Blackboard, setBlackboard } from "./kernel-blackboard.js";
 import { installTraceCollector, registerTraceRoutes } from "./trace-dashboard.js";
 import { installArtifactStore, registerArtifactRoutes } from "./kernel-artifacts.js";
+import { installReuseCollector, registerReuseRoutes, detectArtifactReads, publishReuse } from "./kernel-reuse-metrics.js";
 import { startChatTurn, finishChatTurn } from "./kernel-chat-bridge.js";
 import type { Span } from "./kernel-trace.js";
 import { publishDesignReference, publishDesignProduced, paletteFromContract } from "./kernel-design-events.js";
@@ -167,6 +168,9 @@ app.post("/api/chat", async (req, res) => {
   // Kernel : span du tour (getTracer) ouvert dans le try, clos dans le finally
   // où l'issue est publiée sur l'Event Bus. Ref hors try pour le control-flow TS.
   let turnSpan: Span | null = null;
+  // Kernel : chemins lus par l'agent ce tour — un Read sur .components/.skills/
+  // .procedures = réutilisation effective d'un artefact réinjecté (#121).
+  const turnToolReads: string[] = [];
   // Object refs (not plain lets): assigned inside streamAgentTurn's closure,
   // read in the finally block — TS control-flow can't track the assignment.
   const lastContext: { current: { tokens: number; window: number } | null } = { current: null };
@@ -309,6 +313,7 @@ app.post("/api/chat", async (req, res) => {
             lastContext.current = { tokens: event.contextTokens, window: event.contextWindow };
           }
         }
+        if (event.type === "tool" && event.name === "Read") turnToolReads.push(event.detail);
         recordEvent(event);
         send(event);
       }
@@ -482,6 +487,10 @@ app.post("/api/chat", async (req, res) => {
         ? { resolvedBy: relayMeta.current.resolvedBy, attempts: relayMeta.current.attempts }
         : {}),
     });
+    // Kernel : publie les réutilisations effectives d'artefacts détectées dans les
+    // lectures de l'agent (Read sur .components/.skills/.procedures). Avant
+    // finishChatTurn pour que le tour soit compté au dénominateur du taux.
+    publishReuse(projectName, detectArtifactReads(turnToolReads));
     // Kernel : clôt le span et publie l'issue du tour sur l'Event Bus. C'est le
     // signal réel que lisent le Disjoncteur (échecs/coût/emballement) et MangoQA.
     // Fire-and-forget — n'altère ni le SSE ni la réponse.
@@ -678,6 +687,7 @@ app.post("/api/stop", async (_req, res) => {
 registerPromptLabRoutes(app);
 registerTraceRoutes(app);
 registerArtifactRoutes(app);
+registerReuseRoutes(app);
 registerTokenizerRoutes(app);
 registerIdeationRoutes(app);
 registerVeilleRoutes(app);
@@ -729,6 +739,10 @@ const httpServer = app.listen(PORT, () => {
   // sémantiquement interrogeable. Résout getBlackboard() à chaque événement → voit
   // le store SQLite une fois la persistance (ci-dessous) branchée en async.
   installArtifactStore(getBus());
+  // Kernel : collecteur de réutilisation — compte les tours (chat.turn) et les
+  // réutilisations effectives d'artefacts (artifact.reuse) pour mesurer si la
+  // réinjection #118→#120 sert vraiment. Alimente /api/reuse.
+  installReuseCollector(getBus());
   // Kernel : persistance du Blackboard si BLACKBOARD_DB est défini (sinon mémoire,
   // comportement historique). node:sqlite est intégré au runtime → import DYNAMIQUE
   // pour ne charger le module que quand la persistance est activée. Fallback mémoire
