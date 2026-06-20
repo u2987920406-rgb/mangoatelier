@@ -40,14 +40,35 @@ export interface TuningKnobs {
 // gagnant net), pleine confiance au signal mesuré.
 export const DEFAULT_KNOBS: TuningKnobs = { exploreBaseline: 15, exploitGain: 1 }
 
+// Réglage CONTINU (#129) : au lieu de 4 paliers, on interpole les boutons selon
+// l'AMPLITUDE du lift (#126). `LIFT_SCALE` = lift (en points de rendement) qui
+// sature l'effet. Les fourchettes englobent les anciens paliers discrets.
+const LIFT_SCALE = 20
+const CENTER_EXPLORE = 16 // exploreBaseline à lift 0
+const EXPLORE_SWING = 10 // → exploreBaseline ∈ [6, 26]
+const GAIN_SWING = 0.35 // → exploitGain ∈ [0.65, 1.35]
+const round1 = (v: number): number => Math.round(v * 10) / 10
+const round2 = (v: number): number => Math.round(v * 100) / 100
+
+/** Interpole les boutons à partir du lift (pur). lift > 0 → exploite plus
+ * (explore ↓, gain ↑) ; lift < 0 → explore plus (explore ↑, gain ↓). Borné. */
+export function tuneKnobsFromLift(lift: number): TuningKnobs {
+  const t = Math.max(-1, Math.min(1, lift / LIFT_SCALE)) // ∈ [-1, 1]
+  return {
+    exploreBaseline: round1(CENTER_EXPLORE - t * EXPLORE_SWING),
+    exploitGain: round2(1 + t * GAIN_SWING),
+  }
+}
+
 /** Règle les boutons selon le verdict d'efficacité #126 (pur). On ne couple PAS
- * ce module à kernel-curation-effect : le verdict entre par paramètre.
- *   • positive — l'exploitation MARCHE → on exploite plus (explore moins, gain ↑).
- *   • negative — l'exploitation se RETOURNE contre nous → on explore plus et on se
- *     méfie du rendement cumulé (gain ↓).
- *   • neutral  — pas d'effet prouvé → léger penchant exploration.
- *   • insufficient / inconnu — données insuffisantes → défaut (explore pour collecter). */
-export function tuneKnobs(verdict: string): TuningKnobs {
+ * ce module à kernel-curation-effect : verdict ET lift entrent par paramètre.
+ *   • `lift` fourni + verdict conclusif → réglage CONTINU (#129, interpolation).
+ *   • `lift` absent → repli sur les paliers discrets (rétro-compatible #127).
+ *   • insufficient / inconnu → défaut (données insuffisantes → on ne bouge pas). */
+export function tuneKnobs(verdict: string, lift?: number | null): TuningKnobs {
+  if (verdict === 'insufficient') return DEFAULT_KNOBS
+  if (lift !== undefined && lift !== null) return tuneKnobsFromLift(lift)
+  // Repli discret quand le lift n'est pas fourni.
   switch (verdict) {
     case 'positive':
       return { exploreBaseline: 8, exploitGain: 1.3 }

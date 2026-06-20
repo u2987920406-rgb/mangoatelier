@@ -1,7 +1,7 @@
 // Tests de la priorité de curation pondérée par le rendement (#125).
 //   npx tsx src/test-kernel-curation-priority.ts
 import type { ReuseImpactSnapshot, ReuseImpactComparison, ReuseKind } from './kernel-reuse-metrics.js'
-import { rankFamiliesByYield, curationDirective, tuneKnobs, DEFAULT_KNOBS } from './kernel-curation-priority.js'
+import { rankFamiliesByYield, curationDirective, tuneKnobs, tuneKnobsFromLift, DEFAULT_KNOBS } from './kernel-curation-priority.js'
 
 let passed = 0
 let failed = 0
@@ -93,14 +93,36 @@ function snap(families: Array<{ kind: ReuseKind } & ReuseImpactComparison>): Reu
   check('directive : exploration si non mesuré', du.includes('à explorer'))
 }
 
-// ── tuneKnobs : le verdict #126 règle l'arbitrage exploit/explore (#127) ─────
+// ── tuneKnobs : repli DISCRET quand le lift n'est pas fourni (#127) ──────────
 {
-  check('tune positive → exploite plus (explore bas, gain haut)',
-    tuneKnobs('positive').exploreBaseline === 8 && tuneKnobs('positive').exploitGain === 1.3)
-  check('tune negative → explore plus (explore haut, gain bas)',
-    tuneKnobs('negative').exploreBaseline === 25 && tuneKnobs('negative').exploitGain === 0.7)
-  check('tune neutral → léger penchant exploration', tuneKnobs('neutral').exploreBaseline === 18)
-  check('tune insufficient/inconnu → défaut', tuneKnobs('insufficient').exploreBaseline === DEFAULT_KNOBS.exploreBaseline)
+  check('tune positive (sans lift) → palier discret', tuneKnobs('positive').exploreBaseline === 8 && tuneKnobs('positive').exploitGain === 1.3)
+  check('tune negative (sans lift) → palier discret', tuneKnobs('negative').exploreBaseline === 25 && tuneKnobs('negative').exploitGain === 0.7)
+  check('tune neutral (sans lift) → léger penchant exploration', tuneKnobs('neutral').exploreBaseline === 18)
+  check('tune insufficient → défaut', tuneKnobs('insufficient').exploreBaseline === DEFAULT_KNOBS.exploreBaseline)
+}
+
+// ── tuneKnobsFromLift : réglage CONTINU interpolé sur le lift (#129) ─────────
+{
+  check('lift 0 → centre (explore 16, gain 1)', tuneKnobsFromLift(0).exploreBaseline === 16 && tuneKnobsFromLift(0).exploitGain === 1)
+  check('lift +10 → exploite (explore 11, gain 1.18)', tuneKnobsFromLift(10).exploreBaseline === 11 && tuneKnobsFromLift(10).exploitGain === 1.18)
+  check('lift -10 → explore (explore 21, gain 0.83)', tuneKnobsFromLift(-10).exploreBaseline === 21 && tuneKnobsFromLift(-10).exploitGain === 0.83)
+  // Saturation aux bornes (|lift| ≥ LIFT_SCALE=20).
+  check('lift +100 saturé → explore 6, gain 1.35', tuneKnobsFromLift(100).exploreBaseline === 6 && tuneKnobsFromLift(100).exploitGain === 1.35)
+  check('lift -100 saturé → explore 26, gain 0.65', tuneKnobsFromLift(-100).exploreBaseline === 26 && tuneKnobsFromLift(-100).exploitGain === 0.65)
+  // Monotonie : plus le lift monte, plus on exploite (explore ↓, gain ↑).
+  check('monotonie : lift croissant → explore décroissant', tuneKnobsFromLift(5).exploreBaseline > tuneKnobsFromLift(15).exploreBaseline)
+  check('monotonie : lift croissant → gain croissant', tuneKnobsFromLift(5).exploitGain < tuneKnobsFromLift(15).exploitGain)
+}
+
+// ── tuneKnobs(verdict, lift) : le continu s'active quand le lift est fourni ──
+{
+  // Avec un lift fourni et un verdict conclusif → interpolation (≠ palier discret).
+  check('continu : positive + lift 10 → interpolé (explore 11, pas 8)', tuneKnobs('positive', 10).exploreBaseline === 11)
+  check('continu : negative + lift -10 → interpolé (explore 21, pas 25)', tuneKnobs('negative', -10).exploreBaseline === 21)
+  // insufficient reste un GARDE : même avec un lift, on ne bouge pas du défaut.
+  check('continu : insufficient + lift → défaut (garde)', tuneKnobs('insufficient', 10).exploreBaseline === DEFAULT_KNOBS.exploreBaseline)
+  // lift null → repli discret.
+  check('continu : lift null → repli discret', tuneKnobs('positive', null).exploreBaseline === 8)
 }
 
 // ── rankFamiliesByYield avec knobs : effet concret du réglage ────────────────

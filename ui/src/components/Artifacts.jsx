@@ -263,8 +263,11 @@ function CurationPriority({ curation }) {
         <span className="text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
           Priorité de curation nocturne
         </span>
-        <span className={`text-[9px] font-semibold uppercase tracking-wider ${mode.tone}`} title="réglée par le verdict d'efficacité (#127)">
+        <span className={`text-[9px] font-semibold uppercase tracking-wider ${mode.tone}`} title="poids interpolés en continu sur le lift (#129)">
           {mode.label}
+          {curation.knobs?.exploitGain != null && (
+            <span className="ml-1 font-mono normal-case opacity-70">×{curation.knobs.exploitGain}</span>
+          )}
         </span>
       </div>
       <p className="mb-1 text-[10px] leading-snug text-faint">

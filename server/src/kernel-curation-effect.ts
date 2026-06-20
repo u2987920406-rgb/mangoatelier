@@ -95,10 +95,11 @@ export function recordCurationSample(
   file: string = LEDGER_FILE,
 ): CurationSample | null {
   try {
-    const verdict = analyzeCurationEffect(loadLedger(file)).verdict
-    // Rendement FENÊTRÉ (#128) → l'échantillon reflète le rendement RÉCENT, ce qui
-    // rend le Δ entre nuits causal (et non lissé par toute l'histoire).
-    const ranked = rankFamiliesByYield(getReuseImpactCollector().windowedSnapshot(), tuneKnobs(verdict))
+    const effect = analyzeCurationEffect(loadLedger(file))
+    // Rendement FENÊTRÉ (#128) + réglage CONTINU des poids (#129, interpolé sur le
+    // lift) → l'échantillon reflète le rendement RÉCENT et la politique réelle.
+    const knobs = tuneKnobs(effect.verdict, effect.lift)
+    const ranked = rankFamiliesByYield(getReuseImpactCollector().windowedSnapshot(), knobs)
     const sample = buildCurationSample(ranked, now())
     appendCurationSample(sample, file)
     return sample
@@ -117,8 +118,9 @@ export interface TunedCurationPriority extends CurationPriority {
  * C'est ici que la boucle se referme sur elle-même — l'orchestration vit dans ce
  * module (qui dépend de priority) pour éviter le cycle d'import. */
 export function getTunedCurationPriority(file: string = LEDGER_FILE): TunedCurationPriority {
-  const verdict = analyzeCurationEffect(loadLedger(file)).verdict
-  return { ...getCurationPriority(tuneKnobs(verdict)), verdict }
+  const effect = analyzeCurationEffect(loadLedger(file))
+  // #129 : poids interpolés en continu sur le lift (le verdict reste le garde).
+  return { ...getCurationPriority(tuneKnobs(effect.verdict, effect.lift)), verdict: effect.verdict }
 }
 
 // ── Analyse de l'effet (différence-de-différences) ───────────────────────────

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { ReuseKind } from './kernel-reuse-metrics.js'
-import type { RankedFamily } from './kernel-curation-priority.js'
+import { DEFAULT_KNOBS, type RankedFamily } from './kernel-curation-priority.js'
 import {
   familyYieldScore,
   buildCurationSample,
@@ -133,7 +133,10 @@ function sample(ts: string, fams: Array<[ReuseKind, number | null, boolean]>): C
     }
     const tuned = getTunedCurationPriority(tmp)
     check('tuned : verdict positif détecté depuis le ledger', tuned.verdict === 'positive')
-    check('tuned : poids passent en mode exploitation (explore 8)', tuned.knobs.exploreBaseline === 8 && tuned.knobs.exploitGain === 1.3)
+    // Réglage CONTINU (#129) : lift +10 → interpolé {explore 11, gain 1.18}
+    // (mode exploitation), pas le palier discret {8, 1.3}.
+    check('tuned : poids interpolés en mode exploitation', tuned.knobs.exploreBaseline === 11 && tuned.knobs.exploitGain === 1.18)
+    check('tuned : exploite plus que le défaut', tuned.knobs.exploreBaseline < DEFAULT_KNOBS.exploreBaseline && tuned.knobs.exploitGain > 1)
     check('tuned : renvoie un classement + directive', Array.isArray(tuned.ranked) && typeof tuned.directive === 'string')
   } finally {
     fs.rmSync(tmp, { force: true })
