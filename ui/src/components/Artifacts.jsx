@@ -190,10 +190,23 @@ function ReuseImpact({ impact }) {
       </div>
       <Row label="avec réutilisation" b={reuse} />
       <Row label="sans" b={noReuse} />
-      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-edge pt-1.5 text-[11px] text-faint">
-        <span>coût <Delta value={delta.costSavingPct} unit="%" /></span>
-        <span>vitesse <Delta value={delta.durationSavingPct} unit="%" /></span>
-        <span>succès <Delta value={delta.successRatePts} unit=" pts" /></span>
+      <div className="mt-1.5 border-t border-edge pt-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px] text-faint">
+          <span className="text-[9px] uppercase tracking-wider text-faint">cumulé</span>
+          <span>coût <Delta value={delta.costSavingPct} unit="%" /></span>
+          <span>vitesse <Delta value={delta.durationSavingPct} unit="%" /></span>
+          <span>succès <Delta value={delta.successRatePts} unit=" pts" /></span>
+        </div>
+        {impact.windowed && (
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px] text-faint">
+            <span className="text-[9px] uppercase tracking-wider text-accent-soft" title="ce qui pilote la curation (#128)">
+              récent{impact.windowTurns ? ` · ${impact.windowTurns}t` : ""}
+            </span>
+            <span>coût <Delta value={impact.windowed.delta.costSavingPct} unit="%" /></span>
+            <span>vitesse <Delta value={impact.windowed.delta.durationSavingPct} unit="%" /></span>
+            <span>succès <Delta value={impact.windowed.delta.successRatePts} unit=" pts" /></span>
+          </div>
+        )}
       </div>
       {fams.length > 0 && (
         <div className="mt-1.5 border-t border-edge pt-1.5">

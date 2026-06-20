@@ -295,11 +295,27 @@ function addTo(b: RawBucket, m: TurnMetrics): void {
 
 const IMPACT_KINDS: ReuseKind[] = ['component', 'skill', 'procedure', 'palette']
 
+/** Taille par défaut de la fenêtre glissante du rendement RÉCENT (#128). Le
+ * cumulé lisse toute l'histoire ; le fenêtré ne regarde que les N derniers tours
+ * → signal causal pour le verdict #126 et le réglage #127. Surcharger via env. */
+export const REUSE_WINDOW = (() => {
+  const n = Number(process.env.REUSE_IMPACT_WINDOW)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 120
+})()
+
 export interface TurnMetrics {
   costUsd: number
   durationMs: number
   agentTurns: number
   success: boolean
+}
+
+// Un tour conclu, mémorisé pour la fenêtre glissante : familles réutilisées +
+// métriques. Léger (≤ MAX_HISTORY entrées).
+interface TurnRecord {
+  kinds: ReuseKind[]
+  reusedAny: boolean
+  m: TurnMetrics
 }
 
 export class ReuseImpactCollector {
@@ -312,6 +328,9 @@ export class ReuseImpactCollector {
   private withKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
   private withoutKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
   private minSample = 3
+  // Anneau borné des tours récents → rendement fenêtré (#128).
+  private history: TurnRecord[] = []
+  private maxHistory = 1000
 
   /** Le tour à venir de ce projet a réutilisé ces familles d'artefact. */
   markReuse(project: string, kinds: ReuseKind[] = []): void {
@@ -320,15 +339,19 @@ export class ReuseImpactCollector {
     this.pending.set(project, set) // présent même vide → le tour a réutilisé (vue globale)
   }
 
-  /** Un tour s'est conclu : le ranger dans le seau global + dans chaque famille. */
+  /** Un tour s'est conclu : le ranger dans le seau global + dans chaque famille
+   * (cumulé) ET dans l'anneau d'historique (fenêtré). */
   recordTurn(project: string, m: TurnMetrics): void {
     const kinds = this.pending.get(project)
     this.pending.delete(project)
-    addTo(kinds !== undefined ? this.reuse : this.noReuse, m)
+    const reusedAny = kinds !== undefined
+    addTo(reusedAny ? this.reuse : this.noReuse, m)
     for (const k of IMPACT_KINDS) {
       const used = kinds?.has(k) ?? false
       addTo((used ? this.withKind : this.withoutKind).get(k)!, m)
     }
+    this.history.push({ kinds: kinds ? [...kinds] : [], reusedAny, m })
+    if (this.history.length > this.maxHistory) this.history.shift()
   }
 
   private avg(b: RawBucket): ReuseImpactBucket {
@@ -361,8 +384,14 @@ export class ReuseImpactCollector {
     }
   }
 
-  snapshot(): ReuseImpactSnapshot {
-    const overall = this.compare(this.reuse, this.noReuse)
+  /** Assemble un snapshot à partir de quatre seaux (global + par famille). */
+  private buildSnapshot(
+    reuse: RawBucket,
+    noReuse: RawBucket,
+    withKind: Map<ReuseKind, RawBucket>,
+    withoutKind: Map<ReuseKind, RawBucket>,
+  ): ReuseImpactSnapshot {
+    const overall = this.compare(reuse, noReuse)
     return {
       reuse: overall.with,
       noReuse: overall.without,
@@ -370,15 +399,44 @@ export class ReuseImpactCollector {
       sampleSufficient: overall.sampleSufficient,
       byKind: IMPACT_KINDS.map((kind) => ({
         kind,
-        ...this.compare(this.withKind.get(kind)!, this.withoutKind.get(kind)!),
+        ...this.compare(withKind.get(kind)!, withoutKind.get(kind)!),
       })),
     }
+  }
+
+  /** Vue CUMULÉE (depuis le démarrage). C'est la vue « durée de vie » #124. */
+  snapshot(): ReuseImpactSnapshot {
+    return this.buildSnapshot(this.reuse, this.noReuse, this.withKind, this.withoutKind)
+  }
+
+  /** Vue FENÊTRÉE (#128) : même analyse, mais sur les `window` derniers tours
+   * seulement → reflète le rendement RÉCENT (causal), pas la moyenne de toute la
+   * vie. C'est cette vue qui alimente le verdict #126 et le réglage #127. */
+  windowedSnapshot(window: number = REUSE_WINDOW): ReuseImpactSnapshot {
+    const recent = window > 0 ? this.history.slice(-window) : this.history
+    const reuse = emptyRaw()
+    const noReuse = emptyRaw()
+    const withKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
+    const withoutKind = new Map<ReuseKind, RawBucket>(IMPACT_KINDS.map((k) => [k, emptyRaw()] as [ReuseKind, RawBucket]))
+    for (const r of recent) {
+      addTo(r.reusedAny ? reuse : noReuse, r.m)
+      for (const k of IMPACT_KINDS) {
+        addTo((r.kinds.includes(k) ? withKind : withoutKind).get(k)!, r.m)
+      }
+    }
+    return this.buildSnapshot(reuse, noReuse, withKind, withoutKind)
+  }
+
+  /** Nombre de tours actuellement dans la fenêtre (diagnostic / UI). */
+  historySize(): number {
+    return this.history.length
   }
 
   reset(): void {
     this.pending.clear()
     this.reuse = emptyRaw()
     this.noReuse = emptyRaw()
+    this.history = []
     for (const k of IMPACT_KINDS) {
       this.withKind.set(k, emptyRaw())
       this.withoutKind.set(k, emptyRaw())
@@ -433,6 +491,8 @@ export function registerReuseRoutes(app: Express): void {
     res.json(getReuseCollector().snapshot())
   })
   app.get('/api/reuse/impact', (_req: Request, res: Response) => {
-    res.json(getReuseImpactCollector().snapshot())
+    const c = getReuseImpactCollector()
+    // Cumulé (durée de vie #124) + fenêtré (récent #128, ce qui pilote la curation).
+    res.json({ ...c.snapshot(), window: REUSE_WINDOW, windowTurns: c.historySize(), windowed: c.windowedSnapshot() })
   })
 }

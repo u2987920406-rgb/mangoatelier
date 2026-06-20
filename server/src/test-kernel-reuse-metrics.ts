@@ -198,6 +198,39 @@ function check(name: string, cond: boolean): void {
   check('famille : vue globale intacte', s.reuse.turns === 2 && s.noReuse.turns === 1)
 }
 
+// ── Rendement FENÊTRÉ (#128) : ne regarde que les N derniers tours ───────────
+{
+  const c = new ReuseImpactCollector()
+  // 8 vieux tours « avec composant » BON marché + 8 « sans » chers : le composant
+  // a l'air très rentable au CUMUL (et les anciens dominent en nombre).
+  for (let i = 0; i < 8; i++) {
+    c.markReuse('p', ['component'])
+    c.recordTurn('p', { costUsd: 0.01, durationMs: 100, agentTurns: 1, success: true })
+  }
+  for (let i = 0; i < 8; i++) c.recordTurn('p', { costUsd: 0.1, durationMs: 100, agentTurns: 1, success: true })
+  // RÉCEMMENT (3+3), le composant devient CHER : son rendement récent s'effondre.
+  for (let i = 0; i < 3; i++) {
+    c.markReuse('p', ['component'])
+    c.recordTurn('p', { costUsd: 0.2, durationMs: 100, agentTurns: 1, success: true })
+  }
+  for (let i = 0; i < 3; i++) c.recordTurn('p', { costUsd: 0.05, durationMs: 100, agentTurns: 1, success: true })
+
+  const cum = c.snapshot()
+  const win = c.windowedSnapshot(6) // 6 derniers tours seulement
+  const cumComp = cum.byKind.find((f) => f.kind === 'component')!
+  const winComp = win.byKind.find((f) => f.kind === 'component')!
+  check('fenêtré : historySize compte tous les tours', c.historySize() === 22)
+  check('fenêtré : le cumulé voit le composant rentable', (cumComp.delta.costSavingPct ?? 0) > 0)
+  check('fenêtré : la fenêtre voit le composant DEVENU cher', (winComp.delta.costSavingPct ?? 0) < 0)
+  check('fenêtré : la fenêtre ne compte que 6 tours', winComp.with.turns + winComp.without.turns === 6)
+
+  // window <= 0 → tout l'historique (équivaut au cumulé).
+  check('fenêtré : window 0 → tout', c.windowedSnapshot(0).reuse.turns === cum.reuse.turns)
+  // reset vide aussi l'historique.
+  c.reset()
+  check('fenêtré : reset vide l\'historique', c.historySize() === 0)
+}
+
 // ── Branchement Bus de l'impact (appariement reuse → chat.turn) ──────────────
 {
   getReuseImpactCollector().reset()

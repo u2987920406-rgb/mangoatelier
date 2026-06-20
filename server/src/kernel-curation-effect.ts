@@ -96,7 +96,9 @@ export function recordCurationSample(
 ): CurationSample | null {
   try {
     const verdict = analyzeCurationEffect(loadLedger(file)).verdict
-    const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot(), tuneKnobs(verdict))
+    // Rendement FENÊTRÉ (#128) → l'échantillon reflète le rendement RÉCENT, ce qui
+    // rend le Δ entre nuits causal (et non lissé par toute l'histoire).
+    const ranked = rankFamiliesByYield(getReuseImpactCollector().windowedSnapshot(), tuneKnobs(verdict))
     const sample = buildCurationSample(ranked, now())
     appendCurationSample(sample, file)
     return sample

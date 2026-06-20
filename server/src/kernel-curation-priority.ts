@@ -153,6 +153,8 @@ export interface CurationPriority {
  * du verdict #126 → tuneKnobs) vit dans kernel-curation-effect pour éviter un
  * cycle d'import. Sans knobs : comportement par défaut (#125). */
 export function getCurationPriority(knobs: TuningKnobs = DEFAULT_KNOBS): CurationPriority {
-  const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot(), knobs)
+  // Rendement FENÊTRÉ (#128) : la curation réagit à l'efficacité RÉCENTE, pas à la
+  // moyenne cumulée de toute la vie du process.
+  const ranked = rankFamiliesByYield(getReuseImpactCollector().windowedSnapshot(), knobs)
   return { ranked, directive: curationDirective(ranked), knobs }
 }
