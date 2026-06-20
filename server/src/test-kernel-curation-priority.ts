@@ -1,7 +1,7 @@
 // Tests de la priorité de curation pondérée par le rendement (#125).
 //   npx tsx src/test-kernel-curation-priority.ts
 import type { ReuseImpactSnapshot, ReuseImpactComparison, ReuseKind } from './kernel-reuse-metrics.js'
-import { rankFamiliesByYield, curationDirective } from './kernel-curation-priority.js'
+import { rankFamiliesByYield, curationDirective, tuneKnobs, DEFAULT_KNOBS } from './kernel-curation-priority.js'
 
 let passed = 0
 let failed = 0
@@ -91,6 +91,31 @@ function snap(families: Array<{ kind: ReuseKind } & ReuseImpactComparison>): Reu
   const unknown = rankFamiliesByYield(snap([fam('component', { cost: null, succ: null })]))
   const du = curationDirective(unknown)
   check('directive : exploration si non mesuré', du.includes('à explorer'))
+}
+
+// ── tuneKnobs : le verdict #126 règle l'arbitrage exploit/explore (#127) ─────
+{
+  check('tune positive → exploite plus (explore bas, gain haut)',
+    tuneKnobs('positive').exploreBaseline === 8 && tuneKnobs('positive').exploitGain === 1.3)
+  check('tune negative → explore plus (explore haut, gain bas)',
+    tuneKnobs('negative').exploreBaseline === 25 && tuneKnobs('negative').exploitGain === 0.7)
+  check('tune neutral → léger penchant exploration', tuneKnobs('neutral').exploreBaseline === 18)
+  check('tune insufficient/inconnu → défaut', tuneKnobs('insufficient').exploreBaseline === DEFAULT_KNOBS.exploreBaseline)
+}
+
+// ── rankFamiliesByYield avec knobs : effet concret du réglage ────────────────
+{
+  // exploitGain amplifie le score mesuré ; exploreBaseline déplace les non-mesurées.
+  const s = snap([fam('component', { cost: 80, succ: 20 }), fam('skill', { cost: null, succ: null })])
+  const base = Object.fromEntries(rankFamiliesByYield(s).map((f) => [f.kind, f]))
+  const tuned = Object.fromEntries(rankFamiliesByYield(s, { exploreBaseline: 8, exploitGain: 1.3 }).map((f) => [f.kind, f]))
+  check('knobs : gain amplifie le score mesuré (110·1.3=143)', Math.abs(tuned.component.score - 143) < 1e-9)
+  check('knobs : exploreBaseline déplace le non-mesuré', tuned.skill.score === 8 && base.skill.score === 15)
+  check('knobs : positive sépare plus exploit de explore', tuned.component.score - tuned.skill.score > base.component.score - base.skill.score)
+
+  // exploitGain ne change PAS le signe → un dud reste un dud (exploit/deprioritize préservés).
+  const dud = rankFamiliesByYield(snap([fam('procedure', { cost: -30, succ: -10 })]), { exploreBaseline: 8, exploitGain: 1.3 })
+  check('knobs : gain ne ressuscite pas un dud', dud[0].reason === 'deprioritize')
 }
 
 console.log(`\n[curation-priority] ${passed} ✅  ${failed ? failed + ' ❌' : '0 ❌'}  (${passed + failed} assertions)`)

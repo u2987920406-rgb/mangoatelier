@@ -22,7 +22,13 @@ import path from 'node:path'
 import type { Express, Request, Response } from 'express'
 import type { ReuseKind } from './kernel-reuse-metrics.js'
 import { getReuseImpactCollector } from './kernel-reuse-metrics.js'
-import { rankFamiliesByYield, type RankedFamily } from './kernel-curation-priority.js'
+import {
+  rankFamiliesByYield,
+  getCurationPriority,
+  tuneKnobs,
+  type RankedFamily,
+  type CurationPriority,
+} from './kernel-curation-priority.js'
 import { atomicWriteFileSync } from './safe-io.js'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
@@ -81,19 +87,36 @@ export function appendCurationSample(sample: CurationSample, file: string = LEDG
 }
 
 /** Capture l'état courant (priorité #125 + rendement #124) dans le ledger.
- * Appelé une fois par lot nocturne. Best-effort, ne lève jamais. */
+ * Appelé une fois par lot nocturne. Le classement utilise les poids RÉGLÉS par le
+ * verdict courant (#127) → `pushed` reflète la politique réellement appliquée
+ * cette nuit. Best-effort, ne lève jamais. */
 export function recordCurationSample(
   now: () => string = () => new Date().toISOString(),
   file: string = LEDGER_FILE,
 ): CurationSample | null {
   try {
-    const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot())
+    const verdict = analyzeCurationEffect(loadLedger(file)).verdict
+    const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot(), tuneKnobs(verdict))
     const sample = buildCurationSample(ranked, now())
     appendCurationSample(sample, file)
     return sample
   } catch {
     return null
   }
+}
+
+// ── Boucle auto-réglée (#127) : le verdict #126 règle les poids #125 ─────────
+export interface TunedCurationPriority extends CurationPriority {
+  verdict: CurationVerdict
+}
+
+/** Priorité de curation AUTO-RÉGLÉE : lit le verdict d'efficacité courant, en
+ * dérive les boutons exploit/explore (tuneKnobs) et classe les familles avec.
+ * C'est ici que la boucle se referme sur elle-même — l'orchestration vit dans ce
+ * module (qui dépend de priority) pour éviter le cycle d'import. */
+export function getTunedCurationPriority(file: string = LEDGER_FILE): TunedCurationPriority {
+  const verdict = analyzeCurationEffect(loadLedger(file)).verdict
+  return { ...getCurationPriority(tuneKnobs(verdict)), verdict }
 }
 
 // ── Analyse de l'effet (différence-de-différences) ───────────────────────────
@@ -164,6 +187,11 @@ export function analyzeCurationEffect(
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 export function registerCurationEffectRoutes(app: Express): void {
+  // Priorité de curation AUTO-RÉGLÉE (#127) — la route reflète la politique réelle
+  // (poids ajustés par le verdict). Vit ici car la version réglée dépend de l'analyse.
+  app.get('/api/curation/priority', (_req: Request, res: Response) => {
+    res.json(getTunedCurationPriority())
+  })
   app.get('/api/curation/effect', (_req: Request, res: Response) => {
     res.json(analyzeCurationEffect(loadLedger()))
   })

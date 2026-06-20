@@ -11,6 +11,7 @@ import {
   analyzeCurationEffect,
   appendCurationSample,
   loadLedger,
+  getTunedCurationPriority,
   type CurationSample,
 } from './kernel-curation-effect.js'
 
@@ -110,6 +111,30 @@ function sample(ts: string, fams: Array<[ReuseKind, number | null, boolean]>): C
     const loaded = loadLedger(tmp)
     check('ledger : round-trip 2 échantillons', loaded.length === 2 && loaded[1].ts === 'B')
     check('ledger : fichier absent → []', loadLedger(path.join(os.tmpdir(), 'nope-xyz.json')).length === 0)
+  } finally {
+    fs.rmSync(tmp, { force: true })
+  }
+}
+
+// ── getTunedCurationPriority : la boucle se règle sur son verdict (#127) ─────
+{
+  const tmp = path.join(os.tmpdir(), `mangoos-tuned-${process.pid}.json`)
+  try {
+    fs.rmSync(tmp, { force: true })
+    // Ledger sans transition → verdict insufficient → poids par défaut (explore 15).
+    appendCurationSample(sample('T0', [['component', 10, true]]), tmp)
+    const dflt = getTunedCurationPriority(tmp)
+    check('tuned : verdict insufficient → knobs défaut', dflt.verdict === 'insufficient' && dflt.knobs.exploreBaseline === 15)
+
+    // Ledger prouvant un effet positif (poussée +10, contrôle 0 sur 3 transitions).
+    fs.rmSync(tmp, { force: true })
+    for (let i = 0; i < 4; i++) {
+      appendCurationSample(sample(`P${i}`, [['component', 10 + i * 10, true], ['skill', 50, false]]), tmp)
+    }
+    const tuned = getTunedCurationPriority(tmp)
+    check('tuned : verdict positif détecté depuis le ledger', tuned.verdict === 'positive')
+    check('tuned : poids passent en mode exploitation (explore 8)', tuned.knobs.exploreBaseline === 8 && tuned.knobs.exploitGain === 1.3)
+    check('tuned : renvoie un classement + directive', Array.isArray(tuned.ranked) && typeof tuned.directive === 'string')
   } finally {
     fs.rmSync(tmp, { force: true })
   }

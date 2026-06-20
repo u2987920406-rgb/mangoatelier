@@ -232,13 +232,27 @@ const REASON = {
   explore: { label: "à explorer", tone: "text-dim" },
   deprioritize: { label: "rendement faible", tone: "text-faint" },
 };
+// Mode de politique auto-réglé (#127) : le verdict d'efficacité règle l'arbitrage
+// exploit/explore. On le déduit des knobs renvoyés par l'API.
+function policyMode(curation) {
+  const b = curation.knobs?.exploreBaseline;
+  if (curation.verdict === "positive" || b <= 10) return { label: "exploitation renforcée", tone: "text-ok" };
+  if (curation.verdict === "negative" || b >= 22) return { label: "exploration accrue", tone: "text-warn" };
+  return { label: "équilibre par défaut", tone: "text-dim" };
+}
 function CurationPriority({ curation }) {
   const ranked = (curation.ranked ?? []).filter((f) => f.reason !== "deprioritize");
   if (ranked.length === 0) return null;
+  const mode = policyMode(curation);
   return (
     <div className="rounded-lg border border-accent/30 bg-accent/[0.06] px-2.5 py-2">
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
-        Priorité de curation nocturne
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
+          Priorité de curation nocturne
+        </span>
+        <span className={`text-[9px] font-semibold uppercase tracking-wider ${mode.tone}`} title="réglée par le verdict d'efficacité (#127)">
+          {mode.label}
+        </span>
       </div>
       <p className="mb-1 text-[10px] leading-snug text-faint">
         La nuit, MangoOS récolte d'abord les familles qui rapportent le plus.

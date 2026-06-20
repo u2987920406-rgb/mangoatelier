@@ -20,8 +20,7 @@ import { getBrain } from "./kernel.js";
 import { loadPreferences } from "./preferences.js";
 import { atomicWriteFileSync } from "./safe-io.js";
 import { AXIOMS_FILE_NAME } from "./axioms.js";
-import { getCurationPriority } from "./kernel-curation-priority.js";
-import { recordCurationSample } from "./kernel-curation-effect.js";
+import { recordCurationSample, getTunedCurationPriority } from "./kernel-curation-effect.js";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "nocturnal.json");
@@ -327,7 +326,9 @@ export async function runNocturnalBatch(count: number, opts: { freeStyle?: boole
     // partagée par tous les projets du lot. Best-effort (jamais bloquante).
     let curationDirective = "";
     try {
-      curationDirective = getCurationPriority().directive;
+      // Priorité AUTO-RÉGLÉE (#127) : les poids exploit/explore sont ajustés par le
+      // verdict d'efficacité #126. La boucle se règle sur sa propre preuve.
+      curationDirective = getTunedCurationPriority().directive;
     } catch {
       /* pas de priorité → récolte non orientée (comportement historique) */
     }

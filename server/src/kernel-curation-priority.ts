@@ -15,19 +15,50 @@
 //   • DEPRIORITIZE — famille au rendement mesuré NÉGATIF → on n'y pousse pas.
 //
 // Pur et déterministe (le tri ne dépend que du snapshot d'impact). Aucune I/O.
-import type { Express, Request, Response } from 'express'
 import type { ReuseKind } from './kernel-reuse-metrics.js'
 import { getReuseImpactCollector, type ReuseImpactSnapshot } from './kernel-reuse-metrics.js'
 
 const IMPACT_KINDS: ReuseKind[] = ['component', 'skill', 'procedure', 'palette']
 
-// Poids : le succès prime (un artefact pas cher mais qui fait échouer ne vaut
-// rien), le coût ensuite, la vitesse en appoint.
+// Poids du score mesuré : le succès prime (un artefact pas cher mais qui fait
+// échouer ne vaut rien), le coût ensuite, la vitesse en appoint.
 const WEIGHTS = { cost: 1, success: 1.5, duration: 0.3 }
-// Score neutre d'une famille non mesurée : la place AU-DESSUS d'un gagnant
-// marginal (on préfère explorer l'inconnu qu'exploiter un gain faible) mais sous
-// un gagnant net.
-const EXPLORE_BASELINE = 15
+
+// ── Boutons de réglage exploit/explore (#127, réglés par le verdict #126) ────
+// L'arbitrage exploit/explore n'est pas figé : il s'ADAPTE selon que la curation
+// orientée s'est avérée efficace ou non.
+//   • exploreBaseline — score d'une famille NON mesurée. Plus il est haut, plus on
+//     explore l'inconnu ; plus il est bas, plus on exploite les gagnants prouvés.
+//   • exploitGain     — multiplie le score mesuré. > 1 : on se fie davantage au
+//     rendement mesuré (sépare plus nettement) ; < 1 : on s'en méfie (l'aplatit).
+export interface TuningKnobs {
+  exploreBaseline: number
+  exploitGain: number
+}
+
+// Défaut : explore-penchant prudent (au-dessus d'un gagnant marginal, sous un
+// gagnant net), pleine confiance au signal mesuré.
+export const DEFAULT_KNOBS: TuningKnobs = { exploreBaseline: 15, exploitGain: 1 }
+
+/** Règle les boutons selon le verdict d'efficacité #126 (pur). On ne couple PAS
+ * ce module à kernel-curation-effect : le verdict entre par paramètre.
+ *   • positive — l'exploitation MARCHE → on exploite plus (explore moins, gain ↑).
+ *   • negative — l'exploitation se RETOURNE contre nous → on explore plus et on se
+ *     méfie du rendement cumulé (gain ↓).
+ *   • neutral  — pas d'effet prouvé → léger penchant exploration.
+ *   • insufficient / inconnu — données insuffisantes → défaut (explore pour collecter). */
+export function tuneKnobs(verdict: string): TuningKnobs {
+  switch (verdict) {
+    case 'positive':
+      return { exploreBaseline: 8, exploitGain: 1.3 }
+    case 'negative':
+      return { exploreBaseline: 25, exploitGain: 0.7 }
+    case 'neutral':
+      return { exploreBaseline: 18, exploitGain: 1 }
+    default:
+      return DEFAULT_KNOBS
+  }
+}
 
 export type CurationReason = 'exploit' | 'explore' | 'deprioritize'
 
@@ -41,8 +72,12 @@ export interface RankedFamily {
 }
 
 /** Classe les familles par rendement décroissant (pur). EXPLOIT (rendement +)
- * en tête, EXPLORE (non mesuré) au milieu, DEPRIORITIZE (rendement −) en queue. */
-export function rankFamiliesByYield(snapshot: ReuseImpactSnapshot): RankedFamily[] {
+ * en tête, EXPLORE (non mesuré) au milieu, DEPRIORITIZE (rendement −) en queue.
+ * `knobs` règle l'arbitrage exploit/explore (réglé par le verdict #126). */
+export function rankFamiliesByYield(
+  snapshot: ReuseImpactSnapshot,
+  knobs: TuningKnobs = DEFAULT_KNOBS,
+): RankedFamily[] {
   const byKind = snapshot.byKind ?? []
   const families: RankedFamily[] = byKind.map((f) => {
     const cost = f.delta.costSavingPct
@@ -52,10 +87,11 @@ export function rankFamiliesByYield(snapshot: ReuseImpactSnapshot): RankedFamily
     let score: number
     let reason: CurationReason
     if (!measured) {
-      score = EXPLORE_BASELINE
+      score = knobs.exploreBaseline
       reason = 'explore'
     } else {
-      score = WEIGHTS.cost * (cost ?? 0) + WEIGHTS.success * (succ ?? 0) + WEIGHTS.duration * (dur ?? 0)
+      const raw = WEIGHTS.cost * (cost ?? 0) + WEIGHTS.success * (succ ?? 0) + WEIGHTS.duration * (dur ?? 0)
+      score = knobs.exploitGain * raw // exploitGain > 0 ne change pas le signe → exploit/dud préservés
       reason = score >= 0 ? 'exploit' : 'deprioritize'
     }
     return { kind: f.kind, score, measured, costSavingPct: cost, successRatePts: succ, reason }
@@ -109,16 +145,14 @@ export function curationDirective(ranked: RankedFamily[], opts: { top?: number }
 export interface CurationPriority {
   ranked: RankedFamily[]
   directive: string
+  knobs: TuningKnobs
 }
 
-/** Priorité de curation courante, lue sur le collecteur d'impact #124 (live). */
-export function getCurationPriority(): CurationPriority {
-  const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot())
-  return { ranked, directive: curationDirective(ranked) }
-}
-
-export function registerCurationRoutes(app: Express): void {
-  app.get('/api/curation/priority', (_req: Request, res: Response) => {
-    res.json(getCurationPriority())
-  })
+/** Priorité de curation courante, lue sur le collecteur d'impact #124 (live).
+ * `knobs` règle l'arbitrage exploit/explore — l'orchestration auto-réglée (lecture
+ * du verdict #126 → tuneKnobs) vit dans kernel-curation-effect pour éviter un
+ * cycle d'import. Sans knobs : comportement par défaut (#125). */
+export function getCurationPriority(knobs: TuningKnobs = DEFAULT_KNOBS): CurationPriority {
+  const ranked = rankFamiliesByYield(getReuseImpactCollector().snapshot(), knobs)
+  return { ranked, directive: curationDirective(ranked), knobs }
 }
