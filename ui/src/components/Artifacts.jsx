@@ -263,10 +263,16 @@ function CurationPriority({ curation }) {
         <span className="text-[10px] font-semibold uppercase tracking-widest text-accent-soft">
           Priorité de curation nocturne
         </span>
-        <span className={`text-[9px] font-semibold uppercase tracking-wider ${mode.tone}`} title="poids interpolés en continu sur le lift (#129)">
+        <span className={`text-[9px] font-semibold uppercase tracking-wider ${mode.tone}`} title="poids appliqués (amortis par EMA #130), convergeant vers la cible interpolée (#129)">
           {mode.label}
           {curation.knobs?.exploitGain != null && (
-            <span className="ml-1 font-mono normal-case opacity-70">×{curation.knobs.exploitGain}</span>
+            <span className="ml-1 font-mono normal-case opacity-70">
+              ×{curation.knobs.exploitGain}
+              {curation.targetKnobs?.exploitGain != null &&
+                curation.targetKnobs.exploitGain !== curation.knobs.exploitGain && (
+                  <span className="opacity-60"> → ×{curation.targetKnobs.exploitGain}</span>
+                )}
+            </span>
           )}
         </span>
       </div>

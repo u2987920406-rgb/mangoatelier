@@ -324,18 +324,20 @@ export async function runNocturnalBatch(count: number, opts: { freeStyle?: boole
     const entries = loadEntries();
     // Curation pondérée par le rendement (#125) : calculée UNE fois pour la nuit,
     // partagée par tous les projets du lot. Best-effort (jamais bloquante).
+    // #126/#130 — Avance l'amortissement du réglage d'UN pas et horodate dans le
+    // ledger l'état (priorité + rendement) qui DRIVE la curation de cette nuit.
+    // FAIT EN PREMIER pour que la directive ci-dessous lise les poids AMORTIS de
+    // cette nuit (et non ceux de la veille). Best-effort.
+    recordCurationSample();
     let curationDirective = "";
     try {
-      // Priorité AUTO-RÉGLÉE (#127) : les poids exploit/explore sont ajustés par le
-      // verdict d'efficacité #126. La boucle se règle sur sa propre preuve.
+      // Priorité AUTO-RÉGLÉE (#127), AMORTIE (#130) : poids exploit/explore
+      // interpolés sur le lift (#129) puis lissés par EMA. La boucle se règle sur
+      // sa propre preuve, sans osciller.
       curationDirective = getTunedCurationPriority().directive;
     } catch {
       /* pas de priorité → récolte non orientée (comportement historique) */
     }
-    // #126 — Preuve d'efficacité : on horodate au DÉBUT du lot l'état (priorité +
-    // rendement) qui DRIVE la curation de cette nuit. La hausse de rendement
-    // attribuable se lira au prochain échantillon (nuit suivante). Best-effort.
-    recordCurationSample();
     for (let i = 0; i < prompts.length; i++) {
       progress = { current: i + 1, total: n, label: prompts[i].task.slice(0, 60) };
       const entry = await buildOne(prompts[i], batchId, i + 1, curationDirective);

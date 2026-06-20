@@ -26,14 +26,27 @@ import {
   rankFamiliesByYield,
   getCurationPriority,
   tuneKnobs,
+  DEFAULT_KNOBS,
   type RankedFamily,
   type CurationPriority,
+  type TuningKnobs,
 } from './kernel-curation-priority.js'
 import { atomicWriteFileSync } from './safe-io.js'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const LEDGER_FILE = path.join(DATA_DIR, 'curation-ledger.json')
+const TUNING_FILE = path.join(DATA_DIR, 'curation-tuning.json')
 const MAX_SAMPLES = 400 // borne le fichier (≈ plus d'un an de nuits)
+
+// Amortissement EMA (#130) : chaque nuit, les poids APPLIQUÉS ne bougent que
+// d'une fraction α vers la cible interpolée (#129). α petit = inertie forte
+// (anti-oscillation) mais réaction lente ; α=1 = réglage instantané (= #129 nu).
+const DAMP_ALPHA = (() => {
+  const a = Number(process.env.CURATION_DAMP_ALPHA)
+  return Number.isFinite(a) && a > 0 && a <= 1 ? a : 0.4
+})()
+const round1 = (v: number): number => Math.round(v * 10) / 10
+const round2 = (v: number): number => Math.round(v * 100) / 100
 
 export interface FamilySample {
   kind: ReuseKind
@@ -86,19 +99,68 @@ export function appendCurationSample(sample: CurationSample, file: string = LEDG
   atomicWriteFileSync(file, JSON.stringify(trimmed, null, 2))
 }
 
-/** Capture l'état courant (priorité #125 + rendement #124) dans le ledger.
- * Appelé une fois par lot nocturne. Le classement utilise les poids RÉGLÉS par le
- * verdict courant (#127) → `pushed` reflète la politique réellement appliquée
- * cette nuit. Best-effort, ne lève jamais. */
+// ── Amortissement du réglage (#130) : état persistant des poids APPLIQUÉS ────
+//
+// #129 saute pleinement à la cible chaque nuit → si le lift est bruité d'une nuit
+// à l'autre, la politique oscille (overshoot/ringing). On amortit : les poids
+// réellement appliqués suivent la cible par un filtre EMA (inertie). L'état (les
+// derniers poids appliqués) est persisté, car il dépend de l'historique.
+
+/** Interpole un EMA : prev + α·(target − prev), borné par α ∈ ]0, 1]. Pur. */
+export function dampKnobs(prev: TuningKnobs, target: TuningKnobs, alpha: number = DAMP_ALPHA): TuningKnobs {
+  const a = Math.max(0, Math.min(1, alpha))
+  return {
+    exploreBaseline: round1(prev.exploreBaseline + a * (target.exploreBaseline - prev.exploreBaseline)),
+    exploitGain: round2(prev.exploitGain + a * (target.exploitGain - prev.exploitGain)),
+  }
+}
+
+/** Derniers poids APPLIQUÉS (état d'amortissement). DEFAULT si rien encore. */
+export function loadAppliedKnobs(file: string = TUNING_FILE): TuningKnobs {
+  try {
+    const k = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<TuningKnobs>
+    if (typeof k.exploreBaseline === 'number' && typeof k.exploitGain === 'number') {
+      return { exploreBaseline: k.exploreBaseline, exploitGain: k.exploitGain }
+    }
+  } catch {
+    /* pas d'état → défaut */
+  }
+  return { ...DEFAULT_KNOBS }
+}
+
+function saveAppliedKnobs(knobs: TuningKnobs, file: string = TUNING_FILE): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  atomicWriteFileSync(file, JSON.stringify(knobs, null, 2))
+}
+
+/** Avance l'état d'amortissement d'UN pas : cible = poids interpolés sur le lift
+ * courant (#129), puis EMA depuis les poids appliqués précédents. Persiste et
+ * renvoie les nouveaux poids appliqués. Appelé une fois par nuit. */
+export function advanceTuning(
+  ledgerFile: string = LEDGER_FILE,
+  tuningFile: string = TUNING_FILE,
+  alpha: number = DAMP_ALPHA,
+): TuningKnobs {
+  const effect = analyzeCurationEffect(loadLedger(ledgerFile))
+  const target = tuneKnobs(effect.verdict, effect.lift)
+  const applied = dampKnobs(loadAppliedKnobs(tuningFile), target, alpha)
+  saveAppliedKnobs(applied, tuningFile)
+  return applied
+}
+
+/** Capture l'état courant dans le ledger ET avance l'amortissement du réglage.
+ * Appelé une fois par lot nocturne. Le classement utilise les poids APPLIQUÉS
+ * (amortis) → `pushed` reflète la politique réellement appliquée cette nuit.
+ * Best-effort, ne lève jamais. */
 export function recordCurationSample(
   now: () => string = () => new Date().toISOString(),
   file: string = LEDGER_FILE,
+  tuningFile: string = TUNING_FILE,
 ): CurationSample | null {
   try {
-    const effect = analyzeCurationEffect(loadLedger(file))
-    // Rendement FENÊTRÉ (#128) + réglage CONTINU des poids (#129, interpolé sur le
-    // lift) → l'échantillon reflète le rendement RÉCENT et la politique réelle.
-    const knobs = tuneKnobs(effect.verdict, effect.lift)
+    // Avance l'amortissement (#130) : un pas EMA vers la cible interpolée (#129)
+    // sur rendement fenêtré (#128). Les poids appliqués sont persistés.
+    const knobs = advanceTuning(file, tuningFile)
     const ranked = rankFamiliesByYield(getReuseImpactCollector().windowedSnapshot(), knobs)
     const sample = buildCurationSample(ranked, now())
     appendCurationSample(sample, file)
@@ -108,19 +170,26 @@ export function recordCurationSample(
   }
 }
 
-// ── Boucle auto-réglée (#127) : le verdict #126 règle les poids #125 ─────────
+// ── Boucle auto-réglée (#127) + amortie (#130) ───────────────────────────────
 export interface TunedCurationPriority extends CurationPriority {
   verdict: CurationVerdict
+  /** Cible interpolée vers laquelle l'amortissement converge (#129/#130). */
+  targetKnobs: TuningKnobs
 }
 
-/** Priorité de curation AUTO-RÉGLÉE : lit le verdict d'efficacité courant, en
- * dérive les boutons exploit/explore (tuneKnobs) et classe les familles avec.
- * C'est ici que la boucle se referme sur elle-même — l'orchestration vit dans ce
- * module (qui dépend de priority) pour éviter le cycle d'import. */
-export function getTunedCurationPriority(file: string = LEDGER_FILE): TunedCurationPriority {
+/** Priorité de curation AUTO-RÉGLÉE et AMORTIE : classe avec les poids APPLIQUÉS
+ * (état amorti #130), et expose la `targetKnobs` (cible vers laquelle on converge)
+ * + le verdict. LECTURE SEULE — n'avance pas l'amortissement (seul recordCuration-
+ * Sample, une fois par nuit, le fait). L'orchestration vit ici (dépend de priority)
+ * pour éviter le cycle d'import. */
+export function getTunedCurationPriority(
+  file: string = LEDGER_FILE,
+  tuningFile: string = TUNING_FILE,
+): TunedCurationPriority {
   const effect = analyzeCurationEffect(loadLedger(file))
-  // #129 : poids interpolés en continu sur le lift (le verdict reste le garde).
-  return { ...getCurationPriority(tuneKnobs(effect.verdict, effect.lift)), verdict: effect.verdict }
+  const target = tuneKnobs(effect.verdict, effect.lift)
+  const applied = loadAppliedKnobs(tuningFile)
+  return { ...getCurationPriority(applied), verdict: effect.verdict, targetKnobs: target }
 }
 
 // ── Analyse de l'effet (différence-de-différences) ───────────────────────────

@@ -12,6 +12,9 @@ import {
   appendCurationSample,
   loadLedger,
   getTunedCurationPriority,
+  dampKnobs,
+  advanceTuning,
+  loadAppliedKnobs,
   type CurationSample,
 } from './kernel-curation-effect.js'
 
@@ -119,11 +122,13 @@ function sample(ts: string, fams: Array<[ReuseKind, number | null, boolean]>): C
 // ── getTunedCurationPriority : la boucle se règle sur son verdict (#127) ─────
 {
   const tmp = path.join(os.tmpdir(), `mangoos-tuned-${process.pid}.json`)
+  const tun = path.join(os.tmpdir(), `mangoos-tun-${process.pid}.json`)
   try {
     fs.rmSync(tmp, { force: true })
+    fs.rmSync(tun, { force: true })
     // Ledger sans transition → verdict insufficient → poids par défaut (explore 15).
     appendCurationSample(sample('T0', [['component', 10, true]]), tmp)
-    const dflt = getTunedCurationPriority(tmp)
+    const dflt = getTunedCurationPriority(tmp, tun)
     check('tuned : verdict insufficient → knobs défaut', dflt.verdict === 'insufficient' && dflt.knobs.exploreBaseline === 15)
 
     // Ledger prouvant un effet positif (poussée +10, contrôle 0 sur 3 transitions).
@@ -131,15 +136,50 @@ function sample(ts: string, fams: Array<[ReuseKind, number | null, boolean]>): C
     for (let i = 0; i < 4; i++) {
       appendCurationSample(sample(`P${i}`, [['component', 10 + i * 10, true], ['skill', 50, false]]), tmp)
     }
-    const tuned = getTunedCurationPriority(tmp)
+    const tuned = getTunedCurationPriority(tmp, tun)
     check('tuned : verdict positif détecté depuis le ledger', tuned.verdict === 'positive')
-    // Réglage CONTINU (#129) : lift +10 → interpolé {explore 11, gain 1.18}
-    // (mode exploitation), pas le palier discret {8, 1.3}.
-    check('tuned : poids interpolés en mode exploitation', tuned.knobs.exploreBaseline === 11 && tuned.knobs.exploitGain === 1.18)
-    check('tuned : exploite plus que le défaut', tuned.knobs.exploreBaseline < DEFAULT_KNOBS.exploreBaseline && tuned.knobs.exploitGain > 1)
+    // #130 : LECTURE SEULE → les poids APPLIQUÉS restent au défaut (pas d'avance),
+    // mais la CIBLE interpolée (#129) reflète le lift +10 → {explore 11, gain 1.18}.
+    check('tuned : poids appliqués au défaut (lecture seule)', tuned.knobs.exploreBaseline === 15 && tuned.knobs.exploitGain === 1)
+    check('tuned : cible interpolée vers l\'exploitation', tuned.targetKnobs.exploreBaseline === 11 && tuned.targetKnobs.exploitGain === 1.18)
     check('tuned : renvoie un classement + directive', Array.isArray(tuned.ranked) && typeof tuned.directive === 'string')
   } finally {
     fs.rmSync(tmp, { force: true })
+    fs.rmSync(tun, { force: true })
+  }
+}
+
+// ── Amortissement EMA du réglage (#130) ──────────────────────────────────────
+{
+  // dampKnobs : un pas EMA prev → target.
+  const prev = { exploreBaseline: 15, exploitGain: 1 }
+  const target = { exploreBaseline: 11, exploitGain: 1.18 }
+  const d = dampKnobs(prev, target, 0.5)
+  check('damp : exploreBaseline à mi-chemin (13)', d.exploreBaseline === 13) // 15 + .5(11-15)
+  check('damp : exploitGain à mi-chemin (1.09)', d.exploitGain === 1.09) // 1 + .5(.18)
+  check('damp : α=1 → saute à la cible', dampKnobs(prev, target, 1).exploreBaseline === 11)
+  check('damp : α=0 → reste sur place', dampKnobs(prev, target, 0).exploreBaseline === 15)
+
+  // advanceTuning : converge vers la cible pas à pas, sans dépasser (anti-oscillation).
+  const tmp = path.join(os.tmpdir(), `mangoos-adv-led-${process.pid}.json`)
+  const tun = path.join(os.tmpdir(), `mangoos-adv-tun-${process.pid}.json`)
+  try {
+    fs.rmSync(tmp, { force: true })
+    fs.rmSync(tun, { force: true })
+    for (let i = 0; i < 4; i++) {
+      appendCurationSample(sample(`A${i}`, [['component', 10 + i * 10, true], ['skill', 50, false]]), tmp)
+    }
+    // Cible = {11, 1.18}. Départ défaut {15, 1}. α=0.5.
+    const k1 = advanceTuning(tmp, tun, 0.5)
+    check('advance : 1er pas amorti (explore 13, pas 11)', k1.exploreBaseline === 13)
+    const k2 = advanceTuning(tmp, tun, 0.5)
+    check('advance : 2e pas se rapproche encore (12)', k2.exploreBaseline === 12)
+    check('advance : converge sans dépasser la cible', k2.exploreBaseline > 11 && k2.exploreBaseline < k1.exploreBaseline)
+    // L'état persiste : relire les poids appliqués donne le dernier pas.
+    check('advance : état appliqué persisté', loadAppliedKnobs(tun).exploreBaseline === k2.exploreBaseline)
+  } finally {
+    fs.rmSync(tmp, { force: true })
+    fs.rmSync(tun, { force: true })
   }
 }
 
